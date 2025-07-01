@@ -7,7 +7,6 @@ const Container = styled.div`
   position: relative;
   overflow: hidden;
   cursor: grab;
-  background: #000;
   
   &:active {
     cursor: grabbing;
@@ -16,52 +15,20 @@ const Container = styled.div`
 
 const MovableArea = styled.div`
   position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
   transform-origin: center;
   user-select: none;
+`;
+
+const Grid = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-`;
-
-const InfiniteBackground = styled.div`
-  position: absolute;
-  top: -200%;
-  left: -200%;
-  width: 500%;
-  height: 500%;
-  background: url('/psychedelic-bg.jpg') center repeat;
-  background-size: 40% 40%;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at center,
-        rgba(255, 0, 255, 0.3) 0%,
-        rgba(0, 255, 255, 0.3) 33%,
-        rgba(255, 255, 0, 0.3) 66%,
-        rgba(255, 0, 128, 0.3) 100%);
-    mix-blend-mode: overlay;
-    animation: pulse 8s ease-in-out infinite;
-    background-attachment: fixed;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 0.5; }
-    50% { opacity: 0.8; }
-    100% { opacity: 0.5; }
-  }
-`;
-
-const InfiniteGrid = styled.div`
-  position: absolute;
-  top: -200%;
-  left: -200%;
-  width: 500%;
-  height: 500%;
   background-image: 
     linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
@@ -69,22 +36,16 @@ const InfiniteGrid = styled.div`
   pointer-events: none;
 `;
 
-const ImageContainer = styled.div`
+const Image = styled.img`
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 80vmin;
   height: 60vmin;
-`;
-
-const Image = styled.img`
-  width: 100%;
-  height: 100%;
   object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
-  box-shadow: 0 0 30px rgba(0,0,0,0.5);
 `;
 
 export function DraggableImage({ imageSrc }) {
@@ -128,15 +89,12 @@ export function DraggableImage({ imageSrc }) {
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
         }}
       >
-        <InfiniteBackground />
-        <InfiniteGrid />
-        <ImageContainer>
-          <Image 
-            src={imageSrc}
-            alt="Draggable Image"
-            draggable="false"
-          />
-        </ImageContainer>
+        <Grid />
+        <Image 
+          src={imageSrc}
+          alt="Draggable Image"
+          draggable="false"
+        />
       </MovableArea>
     </Container>
   );
