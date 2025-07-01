@@ -7,6 +7,7 @@ const Container = styled.div`
   position: relative;
   overflow: hidden;
   cursor: grab;
+  touch-action: none;
   
   &:active {
     cursor: grabbing;
@@ -134,45 +135,39 @@ export function DraggableImage({ imageSrc }) {
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // Only handle left mouse button
     e.preventDefault();
+    e.stopPropagation();
     
+    const rect = e.currentTarget.getBoundingClientRect();
     const startX = e.clientX - position.x;
     const startY = e.clientY - position.y;
-    let lastX = e.clientX;
-    let lastY = e.clientY;
-    let animationFrame;
     
     const handleMouseMove = (e) => {
-      lastX = e.clientX;
-      lastY = e.clientY;
+      e.preventDefault();
+      e.stopPropagation();
       
-      if (!animationFrame) {
-        animationFrame = requestAnimationFrame(() => {
-          const newX = lastX - startX;
-          const newY = lastY - startY;
-          setPosition({ x: newX, y: newY });
-          animationFrame = null;
-        });
-      }
+      const newX = e.clientX - startX;
+      const newY = e.clientY - startY;
+      setPosition({ x: newX, y: newY });
     };
     
-    const handleMouseUp = () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
+    const handleMouseUp = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
     
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove, { passive: false });
+    document.addEventListener('mouseup', handleMouseUp, { passive: false });
   };
 
   const handleWheel = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     
     // More responsive zoom speed
-    const delta = e.deltaY * -0.002;
-    const newScale = Math.min(Math.max(0.1, scale + (scale * delta)), 10);
+    const delta = e.deltaY * -0.001;
+    const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 10);
     
     // Get container dimensions
     const rect = e.currentTarget.getBoundingClientRect();
@@ -186,10 +181,8 @@ export function DraggableImage({ imageSrc }) {
     const newX = position.x + mouseX * factor;
     const newY = position.y + mouseY * factor;
     
-    requestAnimationFrame(() => {
-      setScale(newScale);
-      setPosition({ x: newX, y: newY });
-    });
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
   };
 
   return (
