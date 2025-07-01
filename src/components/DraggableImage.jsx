@@ -15,20 +15,21 @@ const Container = styled.div`
 
 const MovableArea = styled.div`
   position: absolute;
-  top: -100%;
-  left: -100%;
-  width: 300%;
-  height: 300%;
-  transform-origin: center;
-  user-select: none;
-`;
-
-const MovingBackground = styled.div`
-  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  transform-origin: center;
+  user-select: none;
+  will-change: transform;
+`;
+
+const MovingBackground = styled.div`
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
   background: 
     repeating-linear-gradient(
       45deg,
@@ -38,6 +39,7 @@ const MovingBackground = styled.div`
       rgba(255, 0, 128, 0.2) 150px
     );
   animation: slide 20s linear infinite;
+  will-change: transform;
 
   &::before {
     content: '';
@@ -56,6 +58,7 @@ const MovingBackground = styled.div`
       );
     mix-blend-mode: screen;
     animation: pulse 8s ease-in-out infinite;
+    will-change: transform;
   }
 
   &::after {
@@ -76,17 +79,18 @@ const MovingBackground = styled.div`
       );
     mix-blend-mode: overlay;
     animation: rotate 15s linear infinite;
+    will-change: transform;
   }
 
   @keyframes slide {
-    0% { background-position: 0 0; }
-    100% { background-position: 200px 200px; }
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(200px, 200px); }
   }
 
   @keyframes pulse {
-    0% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.05); }
-    100% { opacity: 0.5; transform: scale(1); }
+    0% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 0.5; }
   }
 
   @keyframes rotate {
@@ -97,15 +101,16 @@ const MovingBackground = styled.div`
 
 const Grid = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
   background-image: 
     linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
   background-size: 100px 100px;
   pointer-events: none;
+  will-change: transform;
 `;
 
 const Image = styled.img`
@@ -128,11 +133,14 @@ export function DraggableImage({ imageSrc }) {
     e.preventDefault();
     const startX = e.clientX - position.x;
     const startY = e.clientY - position.y;
+    const startScale = scale;
     
     const handleMouseMove = (e) => {
       const newX = e.clientX - startX;
       const newY = e.clientY - startY;
-      setPosition({ x: newX, y: newY });
+      requestAnimationFrame(() => {
+        setPosition({ x: newX, y: newY });
+      });
     };
     
     const handleMouseUp = () => {
@@ -146,9 +154,23 @@ export function DraggableImage({ imageSrc }) {
 
   const handleWheel = (e) => {
     e.preventDefault();
-    const delta = e.deltaY * -0.002;
-    const newScale = Math.min(Math.max(0.1, scale + delta), 10);
-    setScale(newScale);
+    const delta = e.deltaY * -0.001;
+    const newScale = Math.min(Math.max(0.1, scale + delta), 5);
+    
+    // Calculate mouse position relative to container
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Adjust position to zoom towards mouse
+    const scaleChange = newScale - scale;
+    const newX = position.x - (x - rect.width/2) * scaleChange;
+    const newY = position.y - (y - rect.height/2) * scaleChange;
+    
+    requestAnimationFrame(() => {
+      setScale(newScale);
+      setPosition({ x: newX, y: newY });
+    });
   };
 
   return (
