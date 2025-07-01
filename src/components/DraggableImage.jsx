@@ -7,11 +7,28 @@ const Container = styled.div`
   position: relative;
   overflow: hidden;
   cursor: grab;
-  background: url('/psychedelic-bg.jpg') center/cover;
+  background: #000;
   
   &:active {
     cursor: grabbing;
   }
+`;
+
+const MovableArea = styled.div`
+  position: absolute;
+  transform-origin: center;
+  user-select: none;
+  width: 100%;
+  height: 100%;
+`;
+
+const BackgroundLayer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('/psychedelic-bg.jpg') center/cover;
 
   &::before {
     content: '';
@@ -37,22 +54,16 @@ const Container = styled.div`
   }
 `;
 
-const MovableArea = styled.div`
-  position: absolute;
-  transform-origin: center;
-  user-select: none;
-`;
-
 const Grid = styled.div`
   position: absolute;
-  top: -100%;
-  left: -100%;
-  width: 300%;
-  height: 300%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-image: 
-    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
-  background-size: 50px 50px;
+    linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
+  background-size: 25% 25%;
   pointer-events: none;
 `;
 
@@ -63,6 +74,7 @@ const Image = styled.img`
   object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
+  opacity: 0;
 `;
 
 export function DraggableImage({ imageSrc }) {
@@ -103,16 +115,21 @@ export function DraggableImage({ imageSrc }) {
     >
       <MovableArea
         style={{
-          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-          width: '100%',
-          height: '100%'
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
         }}
       >
+        <BackgroundLayer />
         <Grid />
         <Image 
           src={imageSrc}
           alt="Draggable Image"
           draggable="false"
+          onLoad={(e) => {
+            // Use the actual image dimensions to set the grid size
+            const img = e.target;
+            const gridSize = `${img.naturalWidth / 4}px ${img.naturalHeight / 4}px`;
+            e.target.parentElement.style.backgroundSize = gridSize;
+          }}
         />
       </MovableArea>
     </Container>
