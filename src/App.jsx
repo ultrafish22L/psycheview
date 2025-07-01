@@ -19,19 +19,42 @@ const Container = styled.div`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, 
-      rgba(128, 0, 128, 0.2) 0%,
-      rgba(0, 128, 128, 0.2) 50%,
-      rgba(128, 0, 0, 0.2) 100%);
+    background: 
+      radial-gradient(circle at center,
+        rgba(255, 0, 255, 0.8) 0%,
+        rgba(0, 255, 255, 0.8) 33%,
+        rgba(255, 255, 0, 0.8) 66%,
+        rgba(255, 0, 128, 0.8) 100%),
+      linear-gradient(45deg,
+        rgba(128, 0, 255, 0.4) 0%,
+        rgba(255, 0, 128, 0.4) 100%);
     pointer-events: none;
     animation: gradientSpin 20s linear infinite;
   }
 
   @keyframes gradientSpin {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.5); }
-    100% { transform: rotate(360deg) scale(1); }
+    0% { 
+      transform: rotate(0deg) scale(1);
+      filter: hue-rotate(0deg);
+    }
+    50% { 
+      transform: rotate(180deg) scale(1.5);
+      filter: hue-rotate(180deg);
+    }
+    100% { 
+      transform: rotate(360deg) scale(1);
+      filter: hue-rotate(360deg);
+    }
   }
+`
+
+const ViewWindow = styled.div`
+  width: 80vmin;
+  height: 60vmin;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 `
 
 const Controls = styled.div`
@@ -136,13 +159,15 @@ function App() {
         Use mouse wheel to zoom • Click and drag to pan • Explore beyond the edges
       </Instructions>
       
-      <InfiniteCanvas
-        initialImage="/psychedelic-flora.jpg"
-        scale={scale}
-        position={position}
-        onScaleChange={setScale}
-        onPositionChange={setPosition}
-      />
+      <ViewWindow>
+        <InfiniteCanvas
+          initialImage="/psychedelic-flora.jpg"
+          scale={scale}
+          position={position}
+          onScaleChange={setScale}
+          onPositionChange={setPosition}
+        />
+      </ViewWindow>
       
       <Controls>
         <Button onClick={handleZoomIn}>Zoom In</Button>

@@ -6,6 +6,9 @@ const Canvas = styled.div`
   height: 100%;
   position: relative;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const TileContainer = styled.div`
