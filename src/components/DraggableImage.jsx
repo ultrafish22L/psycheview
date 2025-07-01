@@ -15,11 +15,12 @@ const Container = styled.div`
 
 const MovableArea = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
   transform-origin: center;
+  transform: translate(-50%, -50%);
   user-select: none;
   will-change: transform;
 `;
@@ -118,11 +119,12 @@ const Image = styled.img`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 80vmin;
+  width: 60vmin;
   height: 60vmin;
-  object-fit: cover;
+  object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none;
 `;
 
 export function DraggableImage({ imageSrc }) {
@@ -130,20 +132,33 @@ export function DraggableImage({ imageSrc }) {
   const [scale, setScale] = useState(1);
   
   const handleMouseDown = (e) => {
+    if (e.button !== 0) return; // Only handle left mouse button
     e.preventDefault();
+    
     const startX = e.clientX - position.x;
     const startY = e.clientY - position.y;
-    const startScale = scale;
+    let lastX = e.clientX;
+    let lastY = e.clientY;
+    let animationFrame;
     
     const handleMouseMove = (e) => {
-      const newX = e.clientX - startX;
-      const newY = e.clientY - startY;
-      requestAnimationFrame(() => {
-        setPosition({ x: newX, y: newY });
-      });
+      lastX = e.clientX;
+      lastY = e.clientY;
+      
+      if (!animationFrame) {
+        animationFrame = requestAnimationFrame(() => {
+          const newX = lastX - startX;
+          const newY = lastY - startY;
+          setPosition({ x: newX, y: newY });
+          animationFrame = null;
+        });
+      }
     };
     
     const handleMouseUp = () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -154,18 +169,22 @@ export function DraggableImage({ imageSrc }) {
 
   const handleWheel = (e) => {
     e.preventDefault();
-    const delta = e.deltaY * -0.001;
-    const newScale = Math.min(Math.max(0.1, scale + delta), 5);
     
-    // Calculate mouse position relative to container
+    // More responsive zoom speed
+    const delta = e.deltaY * -0.002;
+    const newScale = Math.min(Math.max(0.1, scale + (scale * delta)), 10);
+    
+    // Get container dimensions
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
     
-    // Adjust position to zoom towards mouse
-    const scaleChange = newScale - scale;
-    const newX = position.x - (x - rect.width/2) * scaleChange;
-    const newY = position.y - (y - rect.height/2) * scaleChange;
+    // Calculate mouse position relative to container center
+    const mouseX = e.clientX - rect.left - rect.width / 2;
+    const mouseY = e.clientY - rect.top - rect.height / 2;
+    
+    // Calculate new position to zoom towards mouse
+    const factor = 1 - newScale / scale;
+    const newX = position.x + mouseX * factor;
+    const newY = position.y + mouseY * factor;
     
     requestAnimationFrame(() => {
       setScale(newScale);
@@ -180,7 +199,7 @@ export function DraggableImage({ imageSrc }) {
     >
       <MovableArea
         style={{
-          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
+          transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${scale})`
         }}
       >
         <MovingBackground />
