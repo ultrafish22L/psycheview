@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 
 const Container = styled.div`
@@ -133,40 +133,138 @@ const Image = styled.img`
 export function DraggableImage({ imageSrc }) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const moveBy = useCallback((dx, dy) => {
+    setPosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+  }, []);
+  
+  const zoomBy = useCallback((delta, centerX, centerY) => {
+    const newScale = Math.min(Math.max(0.1, scale * Math.exp(delta)), 5);
+    const factor = newScale / scale;
+    
+    setScale(newScale);
+    setPosition(prev => ({
+      x: prev.x + (centerX - centerX * factor),
+      y: prev.y + (centerY - centerY * factor)
+    }));
+  }, [scale]);
+  
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      const moveStep = e.shiftKey ? 100 : 50;
+      const zoomStep = e.shiftKey ? 0.2 : 0.1;
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          moveBy(moveStep, 0);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          moveBy(-moveStep, 0);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          moveBy(0, moveStep);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          moveBy(0, -moveStep);
+          break;
+        case '=':
+        case '+':
+          e.preventDefault();
+          zoomBy(zoomStep, window.innerWidth / 2, window.innerHeight / 2);
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          zoomBy(-zoomStep, window.innerWidth / 2, window.innerHeight / 2);
+          break;
+        case '0':
+          e.preventDefault();
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [moveBy, zoomBy]);
   
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // Only handle left mouse button
     e.preventDefault();
     e.stopPropagation();
     
-    const rect = e.currentTarget.getBoundingClientRect();
     const startX = e.clientX - position.x;
     const startY = e.clientY - position.y;
+    setIsDragging(true);
     
     const handleMouseMove = (e) => {
+      if (!isDragging) return;
       e.preventDefault();
       e.stopPropagation();
       
-      const newX = e.clientX - startX;
-      const newY = e.clientY - startY;
-      
       requestAnimationFrame(() => {
-        setPosition({ x: newX, y: newY });
+        setPosition({
+          x: e.clientX - startX,
+          y: e.clientY - startY
+        });
       });
     };
     
     const handleMouseUp = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      setIsDragging(false);
       
       window.removeEventListener('mousemove', handleMouseMove, { capture: true });
       window.removeEventListener('mouseup', handleMouseUp, { capture: true });
-      e.currentTarget.style.cursor = 'grab';
     };
     
     window.addEventListener('mousemove', handleMouseMove, { capture: true });
     window.addEventListener('mouseup', handleMouseUp, { capture: true });
-    e.currentTarget.style.cursor = 'grabbing';
+  };
+  
+  // Touch support
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const startX = touch.clientX - position.x;
+    const startY = touch.clientY - position.y;
+    setIsDragging(true);
+    
+    const handleTouchMove = (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      e.preventDefault();
+      
+      const touch = e.touches[0];
+      requestAnimationFrame(() => {
+        setPosition({
+          x: touch.clientX - startX,
+          y: touch.clientY - startY
+        });
+      });
+    };
+    
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      setIsDragging(false);
+      
+      window.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      window.removeEventListener('touchend', handleTouchEnd, { capture: true });
+    };
+    
+    window.addEventListener('touchmove', handleTouchMove, { capture: true, passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { capture: true });
   };
 
   const handleWheel = (e) => {
@@ -204,11 +302,14 @@ export function DraggableImage({ imageSrc }) {
   return (
     <Container 
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onWheel={handleWheel}
+      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
     >
       <MovableArea
         style={{
-          transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`
+          transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`,
+          transition: isDragging ? 'none' : 'transform 0.1s ease-out'
         }}
       >
         <MovingBackground />
