@@ -11,41 +11,6 @@ const Container = styled.div`
   align-items: center;
   overflow: hidden;
   position: relative;
-
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at center,
-        rgba(255, 0, 255, 0.8) 0%,
-        rgba(0, 255, 255, 0.8) 33%,
-        rgba(255, 255, 0, 0.8) 66%,
-        rgba(255, 0, 128, 0.8) 100%),
-      linear-gradient(45deg,
-        rgba(128, 0, 255, 0.4) 0%,
-        rgba(255, 0, 128, 0.4) 100%);
-    pointer-events: none;
-    animation: gradientSpin 20s linear infinite;
-  }
-
-  @keyframes gradientSpin {
-    0% { 
-      transform: rotate(0deg) scale(1);
-      filter: hue-rotate(0deg);
-    }
-    50% { 
-      transform: rotate(180deg) scale(1.5);
-      filter: hue-rotate(180deg);
-    }
-    100% { 
-      transform: rotate(360deg) scale(1);
-      filter: hue-rotate(360deg);
-    }
-  }
 `
 
 const ViewWindow = styled.div`

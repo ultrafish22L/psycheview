@@ -7,10 +7,53 @@ const Container = styled.div`
   position: relative;
   overflow: hidden;
   cursor: grab;
+  background: url('/psychedelic-bg.jpg') center/cover;
   
   &:active {
     cursor: grabbing;
   }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at center,
+        rgba(255, 0, 255, 0.3) 0%,
+        rgba(0, 255, 255, 0.3) 33%,
+        rgba(255, 255, 0, 0.3) 66%,
+        rgba(255, 0, 128, 0.3) 100%);
+    mix-blend-mode: overlay;
+    animation: pulse 8s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.5; }
+  }
+`;
+
+const MovableArea = styled.div`
+  position: absolute;
+  transform-origin: center;
+  user-select: none;
+`;
+
+const Grid = styled.div`
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
 `;
 
 const Image = styled.img`
@@ -18,7 +61,6 @@ const Image = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform-origin: center;
   user-select: none;
   -webkit-user-drag: none;
 `;
@@ -59,14 +101,20 @@ export function DraggableImage({ imageSrc }) {
       onMouseDown={handleMouseDown}
       onWheel={handleWheel}
     >
-      <Image 
-        src={imageSrc}
-        alt="Draggable Image"
+      <MovableArea
         style={{
-          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+          width: '100%',
+          height: '100%'
         }}
-        draggable="false"
-      />
+      >
+        <Grid />
+        <Image 
+          src={imageSrc}
+          alt="Draggable Image"
+          draggable="false"
+        />
+      </MovableArea>
     </Container>
   );
 }
