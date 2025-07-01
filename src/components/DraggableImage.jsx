@@ -3,13 +3,14 @@ import styled from 'styled-components';
 
 const Container = styled.div`
   width: 100%;
-  height: 100%;
+  height: 100vh;
   position: relative;
   overflow: hidden;
   cursor: grab;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  background: #000;
   
   &:active {
     cursor: grabbing;
@@ -20,9 +21,7 @@ const MovableArea = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 300%;
-  height: 300%;
-  transform-origin: 50% 50%;
+  transform-origin: center;
   user-select: none;
   will-change: transform;
   pointer-events: all;
@@ -200,36 +199,26 @@ export function DraggableImage({ imageSrc }) {
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // Only handle left mouse button
     e.preventDefault();
-    e.stopPropagation();
     
     const startX = e.clientX - position.x;
     const startY = e.clientY - position.y;
-    setIsDragging(true);
     
     const handleMouseMove = (e) => {
-      if (!isDragging) return;
       e.preventDefault();
-      e.stopPropagation();
-      
       requestAnimationFrame(() => {
-        setPosition({
-          x: e.clientX - startX,
-          y: e.clientY - startY
-        });
+        const newX = e.clientX - startX;
+        const newY = e.clientY - startY;
+        setPosition({ x: newX, y: newY });
       });
     };
     
-    const handleMouseUp = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-      
-      window.removeEventListener('mousemove', handleMouseMove, { capture: true });
-      window.removeEventListener('mouseup', handleMouseUp, { capture: true });
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
     
-    window.addEventListener('mousemove', handleMouseMove, { capture: true });
-    window.addEventListener('mouseup', handleMouseUp, { capture: true });
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
   
   // Touch support
@@ -269,11 +258,10 @@ export function DraggableImage({ imageSrc }) {
 
   const handleWheel = (e) => {
     e.preventDefault();
-    e.stopPropagation();
     
     // Calculate zoom
-    const delta = e.deltaY * -0.001;
-    const newScale = Math.min(Math.max(0.1, scale * Math.exp(delta)), 5);
+    const delta = e.deltaY * -0.002;
+    const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 5);
     
     // Get mouse position relative to container
     const rect = e.currentTarget.getBoundingClientRect();
@@ -288,15 +276,13 @@ export function DraggableImage({ imageSrc }) {
     const distanceX = mouseX - centerX;
     const distanceY = mouseY - centerY;
     
-    // Calculate new position to maintain mouse point during zoom
+    // Calculate new position
     const factor = newScale / scale;
-    const newX = position.x + (distanceX - distanceX * factor);
-    const newY = position.y + (distanceY - distanceY * factor);
+    const newX = position.x - (distanceX * (factor - 1));
+    const newY = position.y - (distanceY * (factor - 1));
     
-    requestAnimationFrame(() => {
-      setScale(newScale);
-      setPosition({ x: newX, y: newY });
-    });
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
   };
 
   return (
