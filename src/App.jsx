@@ -9,29 +9,57 @@ const Container = styled.div`
   justify-content: center;
   align-items: center;
   position: relative;
-  background: url('/psychedelic-bg.jpg') center/cover;
+  background: #000;
+  overflow: hidden;
 
   &::before {
     content: '';
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
     background: 
-      radial-gradient(circle at center,
-        rgba(255, 0, 255, 0.3) 0%,
-        rgba(0, 255, 255, 0.3) 33%,
-        rgba(255, 255, 0, 0.3) 66%,
-        rgba(255, 0, 128, 0.3) 100%);
-    mix-blend-mode: overlay;
-    animation: pulse 8s ease-in-out infinite;
+      repeating-conic-gradient(
+        from 0deg at 50% 50%,
+        #ff00ff 0deg,
+        #00ffff 30deg,
+        #ffff00 60deg,
+        #ff0080 90deg,
+        #ff00ff 120deg
+      );
+    animation: outerRotate 20s linear infinite;
+    opacity: 0.3;
   }
 
-  @keyframes pulse {
-    0% { opacity: 0.5; }
-    50% { opacity: 0.8; }
-    100% { opacity: 0.5; }
+  &::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: 
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        transparent 0,
+        transparent 100px,
+        rgba(255, 0, 255, 0.2) 120px,
+        transparent 140px
+      );
+    mix-blend-mode: screen;
+    animation: outerPulse 15s ease-in-out infinite;
+  }
+
+  @keyframes outerRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes outerPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
   }
 `
 
