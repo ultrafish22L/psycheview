@@ -22,13 +22,14 @@ const MovableArea = styled.div`
   height: 100%;
 `;
 
-const BackgroundLayer = styled.div`
+const InfiniteBackground = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: url('/psychedelic-bg.jpg') center/cover;
+  top: -200%;
+  left: -200%;
+  width: 500%;
+  height: 500%;
+  background: url('/psychedelic-bg.jpg') center repeat;
+  background-size: 40% 40%;
 
   &::before {
     content: '';
@@ -45,6 +46,7 @@ const BackgroundLayer = styled.div`
         rgba(255, 0, 128, 0.3) 100%);
     mix-blend-mode: overlay;
     animation: pulse 8s ease-in-out infinite;
+    background-attachment: fixed;
   }
 
   @keyframes pulse {
@@ -54,27 +56,35 @@ const BackgroundLayer = styled.div`
   }
 `;
 
-const Grid = styled.div`
+const InfiniteGrid = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: -200%;
+  left: -200%;
+  width: 500%;
+  height: 500%;
   background-image: 
     linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
-  background-size: 25% 25%;
+  background-size: 100px 100px;
   pointer-events: none;
 `;
 
-const Image = styled.img`
+const ImageContainer = styled.div`
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vmin;
+  height: 60vmin;
+`;
+
+const Image = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
-  opacity: 0;
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
 `;
 
 export function DraggableImage({ imageSrc }) {
@@ -118,19 +128,15 @@ export function DraggableImage({ imageSrc }) {
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
         }}
       >
-        <BackgroundLayer />
-        <Grid />
-        <Image 
-          src={imageSrc}
-          alt="Draggable Image"
-          draggable="false"
-          onLoad={(e) => {
-            // Use the actual image dimensions to set the grid size
-            const img = e.target;
-            const gridSize = `${img.naturalWidth / 4}px ${img.naturalHeight / 4}px`;
-            e.target.parentElement.style.backgroundSize = gridSize;
-          }}
-        />
+        <InfiniteBackground />
+        <InfiniteGrid />
+        <ImageContainer>
+          <Image 
+            src={imageSrc}
+            alt="Draggable Image"
+            draggable="false"
+          />
+        </ImageContainer>
       </MovableArea>
     </Container>
   );

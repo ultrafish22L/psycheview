@@ -14,12 +14,10 @@ const Container = styled.div`
 `
 
 const ViewWindow = styled.div`
-  width: 80vmin;
-  height: 60vmin;
   position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  border-radius: 10px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 `
 
 const Instructions = styled.div`
