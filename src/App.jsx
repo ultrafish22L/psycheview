@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import styled from 'styled-components'
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { InfiniteCanvas } from './components/InfiniteCanvas'
 
 const Container = styled.div`
   width: 100vw;
@@ -106,7 +106,9 @@ const Instructions = styled.div`
 `
 
 function App() {
-  const [showInstructions, setShowInstructions] = useState(true)
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -115,48 +117,38 @@ function App() {
     return () => clearTimeout(timer)
   }, [])
 
+  const handleReset = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(10, prev * 1.2));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(0.1, prev * 0.8));
+  };
+
   return (
     <Container>
       <Instructions $visible={showInstructions}>
-        Use mouse wheel to zoom • Click and drag to pan • WASD keys to navigate
+        Use mouse wheel to zoom • Click and drag to pan • Explore beyond the edges
       </Instructions>
       
-      <TransformWrapper
-        initialScale={1}
-        minScale={0.5}
-        maxScale={8}
-        wheel={{ wheelEnabled: true }}
-        pinch={{ pinchEnabled: true }}
-        doubleClick={{ disabled: true }}
-      >
-        {({ zoomIn, zoomOut, resetTransform }) => (
-          <>
-            <TransformComponent
-              wrapperStyle={{
-                width: '100%',
-                height: '100%',
-                overflow: 'hidden'
-              }}
-            >
-              <img 
-                src="/psychedelic-flora.jpg" 
-                alt="Psychedelic Flora"
-                style={{ 
-                  maxWidth: '100%',
-                  maxHeight: '100vh',
-                  objectFit: 'contain'
-                }}
-              />
-            </TransformComponent>
-            
-            <Controls>
-              <Button onClick={() => zoomIn()}>Zoom In</Button>
-              <Button onClick={() => zoomOut()}>Zoom Out</Button>
-              <Button onClick={() => resetTransform()}>Reset</Button>
-            </Controls>
-          </>
-        )}
-      </TransformWrapper>
+      <InfiniteCanvas
+        initialImage="/psychedelic-flora.jpg"
+        scale={scale}
+        position={position}
+        onScaleChange={setScale}
+        onPositionChange={setPosition}
+      />
+      
+      <Controls>
+        <Button onClick={handleZoomIn}>Zoom In</Button>
+        <Button onClick={handleZoomOut}>Zoom Out</Button>
+        <Button onClick={handleReset}>Reset</Button>
+      </Controls>
     </Container>
   )
 }
