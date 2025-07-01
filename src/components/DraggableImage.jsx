@@ -23,6 +23,39 @@ const MovableArea = styled.div`
   user-select: none;
 `;
 
+const MovingBackground = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('/psychedelic-bg.jpg') center repeat;
+  background-size: 40% 40%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at center,
+        rgba(255, 0, 255, 0.3) 0%,
+        rgba(0, 255, 255, 0.3) 33%,
+        rgba(255, 255, 0, 0.3) 66%,
+        rgba(255, 0, 128, 0.3) 100%);
+    mix-blend-mode: overlay;
+    animation: pulse 8s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.5; }
+  }
+`;
+
 const Grid = styled.div`
   position: absolute;
   top: 0;
@@ -89,6 +122,7 @@ export function DraggableImage({ imageSrc }) {
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
         }}
       >
+        <MovingBackground />
         <Grid />
         <Image 
           src={imageSrc}
