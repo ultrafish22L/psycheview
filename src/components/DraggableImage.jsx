@@ -22,10 +22,10 @@ const MovableArea = styled.div`
   left: 50%;
   width: 300%;
   height: 300%;
-  transform-origin: center;
-  transform: translate(-50%, -50%);
+  transform-origin: 50% 50%;
   user-select: none;
   will-change: transform;
+  pointer-events: all;
 `;
 
 const MovingBackground = styled.div`
@@ -199,7 +199,7 @@ export function DraggableImage({ imageSrc }) {
     >
       <MovableArea
         style={{
-          transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${scale})`
+          transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`
         }}
       >
         <MovingBackground />
