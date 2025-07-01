@@ -8,6 +8,8 @@ const Container = styled.div`
   overflow: hidden;
   cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   
   &:active {
     cursor: grabbing;
@@ -135,51 +137,56 @@ export function DraggableImage({ imageSrc }) {
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // Only handle left mouse button
     e.preventDefault();
-    e.stopPropagation();
     
-    const rect = e.currentTarget.getBoundingClientRect();
-    const startX = e.clientX - position.x;
-    const startY = e.clientY - position.y;
+    const startX = e.pageX - position.x;
+    const startY = e.pageY - position.y;
+    let isDragging = true;
     
     const handleMouseMove = (e) => {
+      if (!isDragging) return;
       e.preventDefault();
-      e.stopPropagation();
       
-      const newX = e.clientX - startX;
-      const newY = e.clientY - startY;
+      const newX = e.pageX - startX;
+      const newY = e.pageY - startY;
       setPosition({ x: newX, y: newY });
     };
     
-    const handleMouseUp = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const handleMouseUp = () => {
+      isDragging = false;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
     };
     
-    document.addEventListener('mousemove', handleMouseMove, { passive: false });
-    document.addEventListener('mouseup', handleMouseUp, { passive: false });
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'grabbing';
   };
 
   const handleWheel = (e) => {
     e.preventDefault();
-    e.stopPropagation();
     
-    // More responsive zoom speed
-    const delta = e.deltaY * -0.001;
-    const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 10);
+    // Calculate zoom
+    const delta = e.deltaY * -0.002;
+    const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 5);
     
-    // Get container dimensions
+    // Get mouse position relative to container
     const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.pageX - rect.left;
+    const mouseY = e.pageY - rect.top;
     
-    // Calculate mouse position relative to container center
-    const mouseX = e.clientX - rect.left - rect.width / 2;
-    const mouseY = e.clientY - rect.top - rect.height / 2;
+    // Calculate zoom center point
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
     
-    // Calculate new position to zoom towards mouse
-    const factor = 1 - newScale / scale;
-    const newX = position.x + mouseX * factor;
-    const newY = position.y + mouseY * factor;
+    // Calculate offset from center
+    const distanceX = mouseX - centerX;
+    const distanceY = mouseY - centerY;
+    
+    // Calculate new position
+    const factor = newScale / scale;
+    const newX = position.x - (distanceX * (factor - 1));
+    const newY = position.y - (distanceY * (factor - 1));
     
     setScale(newScale);
     setPosition({ x: newX, y: newY });
