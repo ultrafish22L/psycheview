@@ -29,8 +29,15 @@ const MovingBackground = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('/psychedelic-bg.jpg') center repeat;
-  background-size: 40% 40%;
+  background: 
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 0, 255, 0.2),
+      rgba(0, 255, 255, 0.2) 50px,
+      rgba(255, 255, 0, 0.2) 100px,
+      rgba(255, 0, 128, 0.2) 150px
+    );
+  animation: slide 20s linear infinite;
 
   &::before {
     content: '';
@@ -40,19 +47,51 @@ const MovingBackground = styled.div`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(circle at center,
-        rgba(255, 0, 255, 0.3) 0%,
-        rgba(0, 255, 255, 0.3) 33%,
-        rgba(255, 255, 0, 0.3) 66%,
-        rgba(255, 0, 128, 0.3) 100%);
-    mix-blend-mode: overlay;
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 0, 255, 0.1) 0,
+        rgba(0, 255, 255, 0.1) 40px,
+        rgba(255, 255, 0, 0.1) 80px,
+        rgba(255, 0, 128, 0.1) 120px
+      );
+    mix-blend-mode: screen;
     animation: pulse 8s ease-in-out infinite;
   }
 
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-conic-gradient(
+        from 0deg at 50% 50%,
+        rgba(255, 0, 255, 0.1) 0deg,
+        rgba(0, 255, 255, 0.1) 90deg,
+        rgba(255, 255, 0, 0.1) 180deg,
+        rgba(255, 0, 128, 0.1) 270deg,
+        rgba(255, 0, 255, 0.1) 360deg
+      );
+    mix-blend-mode: overlay;
+    animation: rotate 15s linear infinite;
+  }
+
+  @keyframes slide {
+    0% { background-position: 0 0; }
+    100% { background-position: 200px 200px; }
+  }
+
   @keyframes pulse {
-    0% { opacity: 0.5; }
-    50% { opacity: 0.8; }
-    100% { opacity: 0.5; }
+    0% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+    100% { opacity: 0.5; transform: scale(1); }
+  }
+
+  @keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `;
 
