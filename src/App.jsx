@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import styled from 'styled-components'
-import { InfiniteCanvas } from './components/InfiniteCanvas'
+import { DraggableImage } from './components/DraggableImage'
 
 const Container = styled.div`
   width: 100vw;
@@ -57,81 +57,23 @@ const ViewWindow = styled.div`
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 `
 
-const Controls = styled.div`
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 10px 20px;
-  border-radius: 20px;
-  backdrop-filter: blur(5px);
-  z-index: 1000;
-`
-
-const Button = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 8px 15px;
-  border-radius: 15px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Arial', sans-serif;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      45deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
-    transform: rotate(45deg);
-    animation: shimmer 2s infinite;
-    pointer-events: none;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-  }
-
-  @keyframes shimmer {
-    0% { transform: translateX(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) rotate(45deg); }
-  }
-`
-
 const Instructions = styled.div`
   position: fixed;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
   color: white;
-  background: rgba(0, 0, 0, 0.7);
   padding: 10px 20px;
   border-radius: 20px;
-  backdrop-filter: blur(5px);
-  font-family: 'Arial', sans-serif;
-  opacity: ${props => props.$visible ? '1' : '0'};
+  font-size: 14px;
+  pointer-events: none;
+  opacity: ${props => props.$visible ? 1 : 0};
   transition: opacity 0.3s ease;
 `
 
 function App() {
   const [showInstructions, setShowInstructions] = useState(true);
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -140,40 +82,15 @@ function App() {
     return () => clearTimeout(timer)
   }, [])
 
-  const handleReset = () => {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-  };
-
-  const handleZoomIn = () => {
-    setScale(prev => Math.min(10, prev * 1.2));
-  };
-
-  const handleZoomOut = () => {
-    setScale(prev => Math.max(0.1, prev * 0.8));
-  };
-
   return (
     <Container>
       <Instructions $visible={showInstructions}>
-        Use mouse wheel to zoom • Click and drag to pan • Explore beyond the edges
+        Click and drag to move the image
       </Instructions>
       
       <ViewWindow>
-        <InfiniteCanvas
-          initialImage="/psychedelic-flora.jpg"
-          scale={scale}
-          position={position}
-          onScaleChange={setScale}
-          onPositionChange={setPosition}
-        />
+        <DraggableImage imageSrc="/psychedelic-flora.jpg" />
       </ViewWindow>
-      
-      <Controls>
-        <Button onClick={handleZoomIn}>Zoom In</Button>
-        <Button onClick={handleZoomOut}>Zoom Out</Button>
-        <Button onClick={handleReset}>Reset</Button>
-      </Controls>
     </Container>
   )
 }
