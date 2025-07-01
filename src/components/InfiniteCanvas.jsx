@@ -18,13 +18,42 @@ const TileContainer = styled.div`
   transform-origin: top left;
 `;
 
-const Tile = styled.div`
+const ImageContainer = styled.div`
   position: absolute;
-  width: ${props => props.$size}px;
-  height: ${props => props.$size}px;
-  background-size: cover;
-  background-position: center;
-  transition: opacity 0.3s ease;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const MainImage = styled.img`
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+`;
+
+const Grid = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 400%;
+  height: 400%;
+  transform: translate(-50%, -50%);
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.1) 10px, transparent 10px),
+    linear-gradient(90deg, rgba(255,255,255,0.1) 10px, transparent 10px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  pointer-events: none;
+  animation: gridPulse 10s ease-in-out infinite;
+
+  @keyframes gridPulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
 `;
 
 const TILE_SIZE = 1024;
@@ -38,59 +67,9 @@ export function InfiniteCanvas({
   onScaleChange 
 }) {
   const containerRef = useRef(null);
-  const [tiles, setTiles] = useState(new Map());
-  const [visibleArea, setVisibleArea] = useState({
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0
-  });
-
-  // Calculate which tiles should be visible
-  const calculateVisibleTiles = () => {
-    if (!containerRef.current) return;
-
-    const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
-    
-    // Convert screen coordinates to world coordinates
-    const worldLeft = (position.x - rect.width / 2) / scale;
-    const worldTop = (position.y - rect.height / 2) / scale;
-    const worldRight = (position.x + rect.width / 2) / scale;
-    const worldBottom = (position.y + rect.height / 2) / scale;
-
-    // Calculate tile indices
-    const startTileX = Math.floor(worldLeft / TILE_SIZE) - BUFFER_TILES;
-    const startTileY = Math.floor(worldTop / TILE_SIZE) - BUFFER_TILES;
-    const endTileX = Math.ceil(worldRight / TILE_SIZE) + BUFFER_TILES;
-    const endTileY = Math.ceil(worldBottom / TILE_SIZE) + BUFFER_TILES;
-
-    // Update visible area
-    setVisibleArea({
-      left: startTileX * TILE_SIZE,
-      top: startTileY * TILE_SIZE,
-      right: endTileX * TILE_SIZE,
-      bottom: endTileY * TILE_SIZE
-    });
-
-    // Create new tiles Map
-    const newTiles = new Map();
-    for (let y = startTileY; y <= endTileY; y++) {
-      for (let x = startTileX; x <= endTileX; x++) {
-        const key = `${x},${y}`;
-        newTiles.set(key, {
-          x: x * TILE_SIZE,
-          y: y * TILE_SIZE,
-          image: tiles.get(key)?.image || initialImage
-        });
-      }
-    }
-    setTiles(newTiles);
-  };
-
   // Handle pan/zoom changes
   useEffect(() => {
-    calculateVisibleTiles();
+    // Could add additional effects here if needed
   }, [scale, position.x, position.y]);
 
   // Handle mouse/touch events for panning
@@ -132,17 +111,17 @@ export function InfiniteCanvas({
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`
         }}
       >
-        {Array.from(tiles.values()).map((tile) => (
-          <Tile
-            key={`${tile.x},${tile.y}`}
-            $size={TILE_SIZE}
+        <Grid />
+        <ImageContainer>
+          <MainImage 
+            src={initialImage}
+            alt="Main Image"
             style={{
-              left: `${tile.x}px`,
-              top: `${tile.y}px`,
-              backgroundImage: `url(${tile.image})`
+              maxWidth: '80vmin',
+              maxHeight: '60vmin'
             }}
           />
-        ))}
+        </ImageContainer>
       </TileContainer>
     </Canvas>
   );
