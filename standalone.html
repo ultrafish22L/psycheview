@@ -90,34 +90,35 @@
 
         /* Main container */
         .app-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            position: relative;
             min-height: 100vh;
-            padding: 20px;
         }
 
         /* Instructions */
         .instructions {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             color: rgba(255, 255, 255, 0.9);
             text-align: center;
-            margin-bottom: 20px;
             font-size: 14px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 15px 25px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            pointer-events: none;
         }
 
         /* Image Viewer */
         .image-viewer {
             position: relative;
-            width: 800px;
-            height: 600px;
-            max-width: 90vw;
-            max-height: 70vh;
+            width: calc(100vw - 40px);
+            height: calc(100vh - 120px);
+            margin: 20px;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border-radius: 20px;
