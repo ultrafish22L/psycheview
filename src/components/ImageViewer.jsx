@@ -7,42 +7,13 @@ const ViewerContainer = styled.div`
   height: ${props => props.$containerHeight}px;
   margin: 20px auto;
   overflow: hidden;
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   cursor: grab;
   user-select: none;
   
   &:active {
     cursor: grabbing;
   }
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, 
-      rgba(255, 0, 255, 0.3), 
-      rgba(0, 255, 255, 0.3), 
-      rgba(255, 255, 0, 0.3),
-      rgba(255, 0, 255, 0.3)
-    );
-    border-radius: 22px;
-    z-index: -1;
-    animation: borderGlow 3s ease-in-out infinite alternate;
-  }
-  
-  @keyframes borderGlow {
-    0% { opacity: 0.5; }
-    100% { opacity: 1; }
-  }
+
 `;
 
 const ContentContainer = styled.div`
