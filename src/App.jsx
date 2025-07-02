@@ -59,33 +59,7 @@ const Instructions = styled.div`
   }
 `
 
-const Title = styled.h1`
-  position: fixed;
-  top: 50px;
-  left: 50px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 2.5rem;
-  font-weight: 700;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
-  background-size: 400% 400%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradientShift 3s ease-in-out infinite;
-  
-  @keyframes gradientShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-  
-  @media (max-width: 768px) {
-    font-size: 1.8rem;
-    top: 20px;
-    left: 20px;
-  }
-`
+
 
 function App() {
   const [showInstructions, setShowInstructions] = useState(true);
@@ -100,8 +74,6 @@ function App() {
   return (
     <Container>
       <AnimatedBackground />
-      
-      <Title>PsycheView</Title>
       
       <Instructions $visible={showInstructions}>
         🎨 Click & drag to pan • Scroll to zoom (0.25x - 4x) • Touch supported
