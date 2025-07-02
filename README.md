@@ -108,6 +108,11 @@ node server.js
 
 PsycheView focuses on creating a seamless, immersive viewing experience for psychedelic art. The clean interface eliminates visual distractions while the animated background and infinite outfill functionality create a trippy, engaging environment.
 
+## 🏷️ Version Tags
+
+- **`zelator`** - Sophisticated priority-based queue management system
+- **`magister`** - 🎯 **PRODUCTION-READY** Complete demo/live mode system with Stability AI integration
+
 ---
 
 *Experience the intersection of modern web design and psychedelic art* ✨
