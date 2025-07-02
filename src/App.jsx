@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import styled from 'styled-components'
-import { DraggableImage } from './components/DraggableImage'
+import { AnimatedBackground } from './components/AnimatedBackground'
+import { ImageViewer } from './components/ImageViewer'
 
 const Container = styled.div`
   width: 100vw;
@@ -9,84 +10,81 @@ const Container = styled.div`
   justify-content: center;
   align-items: center;
   position: relative;
-  background: #000;
   overflow: hidden;
-
-  &::before {
-    content: '';
-    position: fixed;
-    top: -50%;
-    left: -50%;
-    right: -50%;
-    bottom: -50%;
-    background: 
-      repeating-conic-gradient(
-        from 0deg at 50% 50%,
-        #ff00ff 0deg,
-        #00ffff 30deg,
-        #ffff00 60deg,
-        #ff0080 90deg,
-        #ff00ff 120deg
-      );
-    animation: outerRotate 20s linear infinite;
-    opacity: 0.3;
-  }
-
-  &::after {
-    content: '';
-    position: fixed;
-    top: -50%;
-    left: -50%;
-    right: -50%;
-    bottom: -50%;
-    background: 
-      repeating-radial-gradient(
-        circle at 50% 50%,
-        transparent 0,
-        transparent 100px,
-        rgba(255, 0, 255, 0.2) 120px,
-        transparent 140px
-      );
-    mix-blend-mode: screen;
-    animation: outerPulse 15s ease-in-out infinite;
-  }
-
-  @keyframes outerRotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  @keyframes outerPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.5); }
-    100% { transform: scale(1); }
-  }
-`
-
-const ViewWindow = styled.div`
-  position: relative;
-  width: 80vmin;
-  height: 60vmin;
-  overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-  background: #000;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 `
 
 const Instructions = styled.div`
   position: fixed;
-  top: 20px;
+  top: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(20px);
   color: white;
-  padding: 10px 20px;
-  border-radius: 20px;
+  padding: 15px 25px;
+  border-radius: 25px;
   font-size: 14px;
+  font-weight: 500;
   pointer-events: none;
   opacity: ${props => props.$visible ? 1 : 0};
-  transition: opacity 0.3s ease;
+  transition: all 0.5s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  text-align: center;
+  line-height: 1.4;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(45deg, 
+      rgba(255, 0, 255, 0.3), 
+      rgba(0, 255, 255, 0.3), 
+      rgba(255, 255, 0, 0.3),
+      rgba(255, 0, 255, 0.3)
+    );
+    border-radius: 26px;
+    z-index: -1;
+    animation: borderShimmer 2s ease-in-out infinite alternate;
+  }
+  
+  @keyframes borderShimmer {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+`
+
+const Title = styled.h1`
+  position: fixed;
+  top: 50px;
+  left: 50px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease-in-out infinite;
+  
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+    top: 20px;
+    left: 20px;
+  }
 `
 
 function App() {
@@ -95,19 +93,21 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowInstructions(false)
-    }, 5000)
+    }, 6000)
     return () => clearTimeout(timer)
   }, [])
 
   return (
     <Container>
+      <AnimatedBackground />
+      
+      <Title>PsycheView</Title>
+      
       <Instructions $visible={showInstructions}>
-        Click and drag to move the image
+        🎨 Click & drag to pan • Scroll to zoom (0.25x - 4x) • Touch supported
       </Instructions>
       
-      <ViewWindow>
-        <DraggableImage imageSrc="/psychedelic-flora.jpg" />
-      </ViewWindow>
+      <ImageViewer imageSrc="/psychedelic-flora.jpg" />
     </Container>
   )
 }
