@@ -1,27 +1,28 @@
 # PsycheView 🎨
 
-A super slick, modern, interactive web viewer for psychedelic floral imagery with glassmorphism design and trippy animations.
+A super slick, modern, interactive web viewer for psychedelic imagery with seamless pan, zoom, and outfill functionality.
 
 ## ✨ Features
 
 ### 🖼️ Interactive Image Viewer
 - **Pan & Zoom**: Click and drag to pan, scroll to zoom (0.25x - 4x)
+- **Seamless Outfill**: Image extends infinitely beyond its boundaries with perfect seamlessness
 - **Touch Support**: Full mobile and tablet compatibility
 - **Smooth Animations**: Fluid transitions for all interactions
 - **Cursor-Centered Zoom**: Image maintains position under cursor while zooming
 
 ### 🎭 Visual Design
-- **Glassmorphism**: Modern frosted glass effects with backdrop blur
-- **Psychedelic Background**: Animated floating orbs and particle fields
+- **Clean Interface**: No visual artifacts or edge effects for perfect seamless viewing
+- **Psychedelic Background**: Animated floating orbs and gradient fields
 - **Grid Overlay**: Dynamic grid spacing based on image dimensions (1/4 width/height)
 - **Tiled Background**: Infinitely repeating psychedelic pattern
-- **Drop Shadows**: Professional depth and lighting effects
+- **Modern Aesthetics**: Sleek, contemporary design
 
 ### 📱 Responsive Design
 - **Mobile Optimized**: Touch-friendly interactions
 - **Adaptive Layout**: Responsive sizing with viewport units
 - **Cross-Browser**: Compatible with modern browsers
-- **Accessible**: Proper ARIA labels and keyboard support
+- **Zero Dependencies**: Pure HTML, CSS, and JavaScript
 
 ### 🎨 Three-Layer System
 1. **Tiled Background**: Psychedelic pattern that extends infinitely
@@ -32,15 +33,14 @@ All layers move together seamlessly during pan and zoom operations.
 
 ## 🚀 Getting Started
 
+Simply open `index.html` in any modern web browser. No build process, no dependencies, no installation required!
+
 ```bash
-# Install dependencies
-npm install
+# Clone the repository
+git clone https://github.com/ultrafish22L/psycheview.git
 
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
+# Open in browser
+open index.html
 ```
 
 ## 🎮 Controls
@@ -52,14 +52,13 @@ npm run build
 
 ## 🛠️ Tech Stack
 
-- **React 19** - Modern UI framework
-- **Styled Components** - CSS-in-JS styling
-- **Vite** - Fast build tool and dev server
-- **Modern CSS** - Glassmorphism, animations, and responsive design
+- **Pure HTML/CSS/JavaScript** - No frameworks or dependencies
+- **Modern CSS** - Animations, transforms, and responsive design
+- **Lightweight** - ~15KB total size
 
 ## 🎨 Design Philosophy
 
-PsycheView combines modern web design trends with psychedelic aesthetics to create an immersive viewing experience. The glassmorphism effects provide a contemporary feel while the animated background and color palette evoke the trippy, vibrant world of psychedelic art.
+PsycheView focuses on creating a seamless, immersive viewing experience for psychedelic art. The clean interface eliminates visual distractions while the animated background and infinite outfill functionality create a trippy, engaging environment.
 
 ---
 
