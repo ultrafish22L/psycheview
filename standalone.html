@@ -317,13 +317,23 @@
                 this.minScale = 0.25;
                 this.maxScale = 4;
                 
+                // Outfill properties
+                this.outfillBlocks = new Map();
+                this.generationQueue = [];
+                this.activeGenerations = 0;
+                this.lastVisibleBlocks = new Set();
+                this.imageWidth = 0;
+                this.imageHeight = 0;
+                
                 this.init();
             }
             
             init() {
                 // Set up container size based on image aspect ratio
                 this.image.onload = () => {
-                    const aspectRatio = this.image.naturalWidth / this.image.naturalHeight;
+                    this.imageWidth = this.image.naturalWidth;
+                    this.imageHeight = this.image.naturalHeight;
+                    const aspectRatio = this.imageWidth / this.imageHeight;
                     const containerHeight = window.innerHeight - 120;
                     const containerWidth = Math.min(containerHeight * aspectRatio, window.innerWidth - 40);
                     
@@ -332,6 +342,8 @@
                     
                     this.viewer.style.width = finalWidth + 'px';
                     this.viewer.style.height = finalHeight + 'px';
+                    this.containerWidth = finalWidth;
+                    this.containerHeight = finalHeight;
                 };
                 
                 // Mouse events
@@ -436,9 +448,158 @@
                 this.content.style.transition = 'transform 0.1s ease-out';
             }
             
+            getVisibleBlocks() {
+                if (!this.containerWidth || !this.containerHeight || !this.imageWidth || !this.imageHeight) return new Set();
+                
+                const visibleBlocks = new Set();
+                const gridSizeX = this.imageWidth / 4;
+                const gridSizeY = this.imageHeight / 4;
+                
+                // Calculate the viewport bounds in image coordinates
+                const viewportLeft = -this.translateX / this.scale;
+                const viewportTop = -this.translateY / this.scale;
+                const viewportRight = viewportLeft + this.containerWidth / this.scale;
+                const viewportBottom = viewportTop + this.containerHeight / this.scale;
+                
+                // Calculate grid bounds that are visible
+                const startGridX = Math.floor(viewportLeft / gridSizeX);
+                const endGridX = Math.ceil(viewportRight / gridSizeX);
+                const startGridY = Math.floor(viewportTop / gridSizeY);
+                const endGridY = Math.ceil(viewportBottom / gridSizeY);
+                
+                // Add all visible grid blocks, including those outside the original image
+                for (let gridX = startGridX; gridX < endGridX; gridX++) {
+                    for (let gridY = startGridY; gridY < endGridY; gridY++) {
+                        const blockLeft = gridX * gridSizeX;
+                        const blockRight = (gridX + 1) * gridSizeX;
+                        const blockTop = gridY * gridSizeY;
+                        const blockBottom = (gridY + 1) * gridSizeY;
+                        
+                        // Check if this block extends beyond the original image
+                        const isOutsideImage = blockLeft >= this.imageWidth || blockRight <= 0 || 
+                                              blockTop >= this.imageHeight || blockBottom <= 0 ||
+                                              blockLeft < 0 || blockTop < 0;
+                        
+                        if (isOutsideImage) {
+                            visibleBlocks.add(`${gridX},${gridY}`);
+                        }
+                    }
+                }
+                
+                return visibleBlocks;
+            }
+            
+            simulateGeneration(blockKey) {
+                return new Promise((resolve) => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 0.05;
+                        const block = this.outfillBlocks.get(blockKey);
+                        if (block) {
+                            block.progress = progress;
+                            this.updateOutfillBlock(blockKey, block);
+                        }
+                        
+                        if (progress >= 1) {
+                            clearInterval(interval);
+                            this.outfillBlocks.set(blockKey, { 
+                                status: 'ready', 
+                                progress: 1, 
+                                imageData: this.image.src 
+                            });
+                            this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                            resolve();
+                        }
+                    }, 200);
+                });
+            }
+            
+            updateOutfillBlock(blockKey, block) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                const gridSizeX = this.imageWidth / 4;
+                const gridSizeY = this.imageHeight / 4;
+                const blockLeft = gridX * gridSizeX;
+                const blockTop = gridY * gridSizeY;
+                
+                let blockElement = document.getElementById(`outfill-${blockKey}`);
+                if (!blockElement) {
+                    blockElement = document.createElement('div');
+                    blockElement.id = `outfill-${blockKey}`;
+                    blockElement.style.position = 'absolute';
+                    blockElement.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                    blockElement.style.backdropFilter = 'blur(2px)';
+                    this.content.appendChild(blockElement);
+                }
+                
+                blockElement.style.left = blockLeft + 'px';
+                blockElement.style.top = blockTop + 'px';
+                blockElement.style.width = gridSizeX + 'px';
+                blockElement.style.height = gridSizeY + 'px';
+                
+                if (block.status === 'ready') {
+                    blockElement.style.backgroundImage = `url(${block.imageData})`;
+                    blockElement.style.backgroundSize = 'cover';
+                    blockElement.style.backgroundPosition = 'center';
+                    blockElement.style.backgroundColor = 'transparent';
+                    blockElement.innerHTML = '';
+                } else if (block.status === 'generating') {
+                    blockElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                    blockElement.innerHTML = `
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 50px;
+                            height: 50px;
+                            border: 4px solid rgba(255, 255, 255, 0.2);
+                            border-top: 4px solid rgba(0, 255, 255, 0.8);
+                            border-radius: 50%;
+                            transform: translate(-50%, -50%) rotate(${block.progress * 360}deg);
+                            transition: transform 0.2s ease;
+                        "></div>
+                    `;
+                }
+            }
+            
+            checkVisibleBlocks() {
+                const currentVisibleBlocks = this.getVisibleBlocks();
+                
+                // Find new blocks that weren't visible before
+                const newBlocks = [];
+                currentVisibleBlocks.forEach(blockKey => {
+                    if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
+                        newBlocks.push(blockKey);
+                        this.outfillBlocks.set(blockKey, { status: 'generating', progress: 0, imageData: null });
+                        this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                    }
+                });
+                
+                // Add new blocks to generation queue
+                if (newBlocks.length > 0) {
+                    this.generationQueue.push(...newBlocks);
+                    this.processGenerationQueue();
+                }
+                
+                this.lastVisibleBlocks = currentVisibleBlocks;
+            }
+            
+            processGenerationQueue() {
+                if (this.generationQueue.length > 0 && this.activeGenerations < 2) {
+                    const blockKey = this.generationQueue.shift();
+                    this.activeGenerations++;
+                    
+                    this.simulateGeneration(blockKey).then(() => {
+                        this.activeGenerations--;
+                        this.processGenerationQueue();
+                    });
+                }
+            }
+
             updateTransform() {
                 this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
                 this.zoomIndicator.textContent = `${this.scale.toFixed(2)}x`;
+                this.checkVisibleBlocks();
             }
         }
         
