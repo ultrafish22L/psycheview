@@ -161,6 +161,7 @@ const GridOverlay = styled.div`
   pointer-events: none;
   mix-blend-mode: soft-light;
   animation: subtleGridShift 75s ease-in-out infinite;
+  z-index: 1;
   
   @keyframes subtleGridShift {
     0%, 100% { 
@@ -189,6 +190,7 @@ const MainImage = styled.img`
   -webkit-user-drag: none;
   pointer-events: none;
   filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+  z-index: 3;
 `;
 
 const OutfillBlock = styled.div`
@@ -196,8 +198,7 @@ const OutfillBlock = styled.div`
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(2px);
+  z-index: 2;
 `;
 
 const LoadingIndicator = styled.div`
