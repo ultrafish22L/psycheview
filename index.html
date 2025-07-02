@@ -365,6 +365,12 @@
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
             <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
+            <div class="debug-info" id="debugInfo" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 1000; max-width: 400px; max-height: 300px; overflow-y: auto;">
+                Debug Info
+            </div>
+
+
+
         </div>
     </div>
 
@@ -378,9 +384,17 @@
                 this.queueIndicator = document.getElementById('queueIndicator');
                 this.modeToggle = document.getElementById('modeToggle');
                 this.modeLabel = document.getElementById('modeLabel');
+                this.debugInfo = document.getElementById('debugInfo');
+
+                
+
                 
                 console.log('modeToggle found:', !!this.modeToggle);
                 console.log('modeLabel found:', !!this.modeLabel);
+                
+
+                
+
                 
 
                 
@@ -397,6 +411,16 @@
                 // Mode system
                 this.isLiveMode = false;
                 this.apiKey = null;
+                
+                // Stability AI API Configuration
+                this.apiConfig = {
+                    endpoint: 'https://api.stability.ai/v2beta/stable-image/edit/outpaint',
+                    prompt: 'Generate a yakuza style body tatoo floral image with Japanese mythical creatures mixed in.',
+                    seed: null, // null for random seed
+                    output_format: 'jpeg',
+                    creativity: 0.35,
+                    style_preset: null // null for default style
+                };
                 
                 // Outfill properties
                 this.outfillBlocks = new Map();
@@ -563,7 +587,15 @@
             }
             
             getVisibleBlocks() {
-                if (!this.containerWidth || !this.containerHeight || !this.imageWidth || !this.imageHeight) return new Set();
+                if (!this.containerWidth || !this.containerHeight || !this.imageWidth || !this.imageHeight) {
+                    console.log('❌ Missing dimensions:', {
+                        containerWidth: this.containerWidth,
+                        containerHeight: this.containerHeight,
+                        imageWidth: this.imageWidth,
+                        imageHeight: this.imageHeight
+                    });
+                    return new Set();
+                }
                 
                 const visibleBlocks = new Set();
                 const gridSizeX = this.imageWidth / 4;
@@ -574,6 +606,10 @@
                 const viewportTop = -this.translateY / this.scale;
                 const viewportRight = viewportLeft + this.containerWidth / this.scale;
                 const viewportBottom = viewportTop + this.containerHeight / this.scale;
+                
+
+                
+
                 
                 // Calculate grid bounds that are visible
                 const startGridX = Math.floor(viewportLeft / gridSizeX);
@@ -589,16 +625,17 @@
                         const blockTop = gridY * gridSizeY;
                         const blockBottom = (gridY + 1) * gridSizeY;
                         
-                        // Check if this block extends beyond the original image
-                        const isOutsideImage = blockLeft >= this.imageWidth || blockRight <= 0 || 
-                                              blockTop >= this.imageHeight || blockBottom <= 0 ||
-                                              blockLeft < 0 || blockTop < 0;
+                        // Check if this block extends beyond the original image (needs outfill)
+                        const needsOutfill = blockLeft < 0 || blockTop < 0 || 
+                                           blockRight > this.imageWidth || blockBottom > this.imageHeight;
                         
-                        if (isOutsideImage) {
+                        if (needsOutfill) {
                             visibleBlocks.add(`${gridX},${gridY}`);
                         }
                     }
                 }
+                
+
                 
                 return visibleBlocks;
             }
@@ -615,6 +652,12 @@
                 if (gridOverlay) {
                     gridOverlay.style.backgroundSize = `${gridCellWidth}px ${gridCellHeight}px`;
                 }
+            }
+            
+            // Helper method to update API configuration
+            updateApiConfig(newConfig) {
+                this.apiConfig = { ...this.apiConfig, ...newConfig };
+                console.log('🔧 API Configuration Updated:', this.apiConfig);
             }
             
             async simulateGeneration(blockKey) {
@@ -797,6 +840,17 @@
             
             checkVisibleBlocks() {
                 const currentVisibleBlocks = this.getVisibleBlocks();
+                
+                // Update debug info
+                this.debugInfo.innerHTML = `
+                    <div>Image: ${this.imageWidth}x${this.imageHeight}</div>
+                    <div>Container: ${this.containerWidth}x${this.containerHeight}</div>
+                    <div>Transform: ${this.translateX.toFixed(1)}, ${this.translateY.toFixed(1)}</div>
+                    <div>Scale: ${this.scale.toFixed(2)}</div>
+                    <div>Visible Blocks: ${currentVisibleBlocks.size}</div>
+                    <div>Queue: ${this.generationQueue.length}</div>
+                    <div>Active: ${this.activeGenerations}</div>
+                `;
                 
                 // Find new blocks that weren't visible before
                 const newBlocks = [];
@@ -1020,6 +1074,16 @@
                 }
 
                 try {
+                    console.log('🎨 Stability AI API Call:', {
+                        endpoint: this.apiConfig.endpoint,
+                        prompt: this.apiConfig.prompt,
+                        creativity: this.apiConfig.creativity,
+                        output_format: this.apiConfig.output_format,
+                        seed: this.apiConfig.seed,
+                        style_preset: this.apiConfig.style_preset,
+                        blockKey: blockKey
+                    });
+                    
                     // Generate mask for this block
                     const maskBlob = await this.generateMaskForBlock(blockKey);
                     
@@ -1030,12 +1094,20 @@
                     const formData = new FormData();
                     formData.append('image', imageBlob, 'image.jpg');
                     formData.append('mask', maskBlob, 'mask.png');
-                    formData.append('prompt', 'psychedelic floral pattern, vibrant colors, organic shapes, detailed botanical elements');
-                    formData.append('creativity', '0.35');
-                    formData.append('output_format', 'jpeg');
+                    formData.append('prompt', this.apiConfig.prompt);
+                    formData.append('creativity', this.apiConfig.creativity.toString());
+                    formData.append('output_format', this.apiConfig.output_format);
+                    
+                    // Add optional parameters if they are set
+                    if (this.apiConfig.seed !== null) {
+                        formData.append('seed', this.apiConfig.seed.toString());
+                    }
+                    if (this.apiConfig.style_preset !== null) {
+                        formData.append('style_preset', this.apiConfig.style_preset);
+                    }
                     
                     // Make API call
-                    const response = await fetch('https://api.stability.ai/v2beta/stable-image/edit/outpaint', {
+                    const response = await fetch(this.apiConfig.endpoint, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${this.apiKey}`,
