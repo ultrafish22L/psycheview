@@ -413,6 +413,7 @@
         <div class="api-key-input" id="apiKeyContainer">
             <input type="password" id="apiKeyInput" placeholder="Enter Stability AI API Key" />
             <button id="setApiKeyBtn">Set Key</button>
+            <button id="testApiBtn" style="margin-left: 10px; background: #ff6b6b;">Test API</button>
         </div>
 
         <div class="image-viewer" id="imageViewer">
@@ -433,11 +434,47 @@
     </div>
 
     <script>
+        // Override console to capture logs
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const logs = [];
+        
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' '), time: new Date().toLocaleTimeString()});
+            originalConsoleLog.apply(console, args);
+            updateDebugConsole();
+        };
+        
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' '), time: new Date().toLocaleTimeString()});
+            originalConsoleError.apply(console, args);
+            updateDebugConsole();
+        };
+        
+        function updateDebugConsole() {
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                const lastLogs = logs.slice(-10); // Show last 10 logs
+                debugInfo.innerHTML = 'Debug Console:<br>' + lastLogs.map(log => 
+                    `<span style="color: ${log.type === 'error' ? '#ff4444' : '#44ff44'}">[${log.time}] ${log.message}</span>`
+                ).join('<br>');
+            }
+        }
+        
         class ImageViewer {
             constructor() {
                 this.viewer = document.getElementById('imageViewer');
                 this.content = document.getElementById('viewerContent');
                 this.image = document.getElementById('mainImage');
+                
+                // API Configuration
+                this.config = {
+                    endpoint: 'https://api.stability.ai/v2beta/stable-image/edit/outpaint',
+                    prompt: 'Extend this psychedelic floral pattern with vibrant colors, intricate botanical details, and flowing organic shapes that seamlessly blend with the existing artwork',
+                    output_format: 'jpeg',
+                    creativity: 0.35,
+                    seed: null
+                };
                 this.zoomIndicator = document.getElementById('zoomIndicator');
                 this.queueIndicator = document.getElementById('queueIndicator');
                 this.modeToggle = document.getElementById('modeToggle');
@@ -445,6 +482,7 @@
                 this.debugInfo = document.getElementById('debugInfo');
                 this.apiKeyInput = document.getElementById('apiKeyInput');
                 this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
+                this.testApiBtn = document.getElementById('testApiBtn');
 
                 
 
@@ -575,6 +613,14 @@
                     });
                 }
                 
+                if (this.setApiKeyBtn) {
+                    this.setApiKeyBtn.addEventListener('click', () => this.setApiKey());
+                }
+                
+                if (this.testApiBtn) {
+                    this.testApiBtn.addEventListener('click', () => this.testApiCall());
+                }
+                
                 // Try to load API key from environment on startup
                 this.initializeApiKey();
                 
@@ -599,6 +645,174 @@
                 } else {
                     alert('Please enter a valid API key');
                 }
+            }
+            
+            async testApiCall() {
+                if (!this.apiKey) {
+                    alert('Please set an API key first');
+                    return;
+                }
+                
+                console.log('🧪 Testing API call...');
+                this.testApiBtn.textContent = 'Testing...';
+                this.testApiBtn.disabled = true;
+                
+                try {
+                    // Manually trigger an outfill for testing
+                    const testBlockKey = '-1,0'; // Block to the left of the image
+                    this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
+                    this.updateOutfillBlock(testBlockKey, this.outfillBlocks.get(testBlockKey));
+                    
+                    const result = await this.generateOutfill(testBlockKey);
+                    console.log('✅ API test successful!', result);
+                    alert('API test successful! Check console for details.');
+                    
+                } catch (error) {
+                    console.error('❌ API test failed:', error);
+                    alert(`API test failed: ${error.message}`);
+                } finally {
+                    this.testApiBtn.textContent = 'Test API';
+                    this.testApiBtn.disabled = false;
+                }
+            }
+            
+            async generateOutfill(blockKey) {
+                console.log('🚀 Starting generateOutfill for block:', blockKey);
+                
+                if (!this.apiKey) {
+                    throw new Error('No API key set');
+                }
+                
+                try {
+                    // Get the current image as a blob
+                    const imageBlob = await this.getImageAsBlob();
+                    console.log('📸 Image blob size:', imageBlob.size, 'bytes');
+                    
+                    // Generate mask for the block
+                    const maskBlob = await this.generateMaskForBlock(blockKey);
+                    console.log('🎭 Mask blob size:', maskBlob.size, 'bytes');
+                    
+                    // Prepare form data
+                    const formData = new FormData();
+                    formData.append('image', imageBlob, 'image.jpg');
+                    formData.append('mask', maskBlob, 'mask.png');
+                    formData.append('prompt', this.config.prompt);
+                    formData.append('output_format', this.config.output_format);
+                    formData.append('creativity', this.config.creativity.toString());
+                    
+                    // Add outpaint directions (required by API)
+                    formData.append('left', '32');
+                    formData.append('right', '32');
+                    formData.append('up', '32');
+                    formData.append('bottom', '32');
+                    
+                    if (this.config.seed) {
+                        formData.append('seed', this.config.seed.toString());
+                    }
+                    
+                    console.log('📤 Sending API request to:', this.config.endpoint);
+                    console.log('📤 Request data:', {
+                        prompt: this.config.prompt,
+                        output_format: this.config.output_format,
+                        creativity: this.config.creativity,
+                        seed: this.config.seed,
+                        left: '32',
+                        right: '32',
+                        up: '32',
+                        bottom: '32',
+                        imageSize: imageBlob.size,
+                        maskSize: maskBlob.size
+                    });
+                    
+                    // Make API call
+                    const response = await fetch(this.config.endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.apiKey}`,
+                            'Accept': 'image/*'
+                        },
+                        body: formData
+                    });
+                    
+                    console.log('📥 API Response status:', response.status);
+                    console.log('📥 API Response headers:', Object.fromEntries(response.headers.entries()));
+                    
+                    if (!response.ok) {
+                        // Try to get the error details from the response
+                        let errorMessage = `HTTP error! status: ${response.status}`;
+                        try {
+                            const errorText = await response.text();
+                            console.error('🚨 API Error Response (raw):', errorText);
+                            
+                            // Try to parse as JSON for better error details
+                            try {
+                                const errorJson = JSON.parse(errorText);
+                                console.error('🚨 API Error Response (parsed):', errorJson);
+                                if (errorJson.message) {
+                                    errorMessage = errorJson.message;
+                                } else if (errorJson.error) {
+                                    errorMessage = errorJson.error;
+                                } else if (errorJson.errors && errorJson.errors.length > 0) {
+                                    errorMessage = errorJson.errors[0];
+                                }
+                            } catch (parseError) {
+                                console.error('🚨 Could not parse error as JSON:', parseError);
+                                errorMessage = errorText || errorMessage;
+                            }
+                        } catch (textError) {
+                            console.error('🚨 Could not read error response:', textError);
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+                    
+                    // Get the generated image
+                    const imageBlob2 = await response.blob();
+                    console.log('✅ Generated image blob size:', imageBlob2.size, 'bytes');
+                    
+                    // Convert to data URL for display
+                    const imageUrl = URL.createObjectURL(imageBlob2);
+                    console.log('✅ Generated image URL:', imageUrl);
+                    
+                    // Update the outfill block with the generated image
+                    const block = this.outfillBlocks.get(blockKey);
+                    if (block) {
+                        block.status = 'completed';
+                        block.imageData = imageUrl;
+                        this.updateOutfillBlock(blockKey, block);
+                        console.log('✅ Block', blockKey, 'generation completed');
+                    }
+                    
+                    return {
+                        imageUrl,
+                        blockKey,
+                        size: imageBlob2.size
+                    };
+                    
+                } catch (error) {
+                    console.error('❌ generateOutfill error:', error);
+                    throw error;
+                }
+            }
+            
+            async getImageAsBlob() {
+                return new Promise((resolve, reject) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = this.image;
+                    
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to create image blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
             }
             
             async initializeApiKey() {
@@ -648,6 +862,8 @@
                 this.translateX += deltaX;
                 this.translateY += deltaY;
                 
+                console.log('🖱️ Mouse move:', { deltaX, deltaY, translateX: this.translateX, translateY: this.translateY });
+                
                 this.lastX = e.clientX;
                 this.lastY = e.clientY;
                 
@@ -677,6 +893,8 @@
                     
                     this.translateX = mouseX - (mouseX - this.translateX) * scaleDiff;
                     this.translateY = mouseY - (mouseY - this.translateY) * scaleDiff;
+                    
+                    console.log('🔍 Wheel zoom:', { newScale, translateX: this.translateX, translateY: this.translateY });
                     
                     this.scale = newScale;
                     this.updateTransform();
@@ -745,6 +963,13 @@
                 const startGridY = Math.floor(viewportTop / gridSizeY);
                 const endGridY = Math.ceil(viewportBottom / gridSizeY);
                 
+                console.log('🔍 Viewport bounds:', {
+                    viewportLeft, viewportTop, viewportRight, viewportBottom,
+                    gridSizeX, gridSizeY,
+                    startGridX, endGridX, startGridY, endGridY,
+                    imageWidth: this.imageWidth, imageHeight: this.imageHeight
+                });
+                
                 // Add all visible grid blocks, including those outside the original image
                 for (let gridX = startGridX; gridX < endGridX; gridX++) {
                     for (let gridY = startGridY; gridY < endGridY; gridY++) {
@@ -758,6 +983,10 @@
                                            blockRight > this.imageWidth || blockBottom > this.imageHeight;
                         
                         if (needsOutfill) {
+                            console.log('🎯 Found outfill block:', `${gridX},${gridY}`, {
+                                blockLeft, blockTop, blockRight, blockBottom,
+                                needsOutfill, imageWidth: this.imageWidth, imageHeight: this.imageHeight
+                            });
                             visibleBlocks.add(`${gridX},${gridY}`);
                         }
                     }
@@ -890,7 +1119,7 @@
                 blockElement.style.width = gridSizeX + 'px';
                 blockElement.style.height = gridSizeY + 'px';
                 
-                if (block.status === 'ready') {
+                if (block.status === 'ready' || block.status === 'completed') {
                     blockElement.style.backgroundImage = `url(${block.imageData})`;
                     blockElement.style.backgroundSize = 'cover';
                     blockElement.style.backgroundPosition = 'center';
@@ -987,11 +1216,13 @@
                         newBlocks.push(blockKey);
                         this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
                         this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                        console.log('🎯 New outfill block detected:', blockKey);
                     }
                 });
                 
                 // Add new blocks to generation queue
                 if (newBlocks.length > 0) {
+                    console.log('🚀 Adding blocks to queue:', newBlocks);
                     this.generationQueue.push(...newBlocks);
                     this.processGenerationQueue();
                 } else if (this.generationQueue.length > 0) {
@@ -1092,10 +1323,28 @@
                         this.updateOutfillBlock(blockKey, block);
                     }
                     
-                    this.simulateGeneration(blockKey).then(() => {
-                        this.activeGenerations--;
-                        this.processGenerationQueue();
-                    });
+                    // Use real API generation in live mode, simulation in demo mode
+                    if (this.isLiveMode && this.apiKey) {
+                        this.generateOutfill(blockKey).then(() => {
+                            this.activeGenerations--;
+                            this.processGenerationQueue();
+                        }).catch((error) => {
+                            console.error('❌ Generation failed for block:', blockKey, error);
+                            // Mark block as failed and continue
+                            const block = this.outfillBlocks.get(blockKey);
+                            if (block) {
+                                block.status = 'failed';
+                                this.updateOutfillBlock(blockKey, block);
+                            }
+                            this.activeGenerations--;
+                            this.processGenerationQueue();
+                        });
+                    } else {
+                        this.simulateGeneration(blockKey).then(() => {
+                            this.activeGenerations--;
+                            this.processGenerationQueue();
+                        });
+                    }
                 }
                 
                 // Update queue indicator
