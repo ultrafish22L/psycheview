@@ -514,30 +514,32 @@
                     const response = await fetch('/api/config');
                     const config = await response.json();
                     
-                    if (config.hasApiKey && config.apiKey) {
+                    if (config.hasApiKey && config.apiKey && config.apiKey !== 'test-key-for-demo') {
                         this.apiKey = config.apiKey;
                         console.log('API key loaded from environment variable');
                         this.updateModeUI();
                     } else {
-                        // Fallback to prompt if no environment variable
-                        const apiKey = prompt('Enter your Stability AI API key (STABILITY_API_KEY environment variable not set):');
-                        if (apiKey) {
-                            this.apiKey = apiKey;
+                        // Prompt for API key since environment variable not available
+                        const apiKey = prompt('Enter your Stability AI API key:');
+                        if (apiKey && apiKey.trim()) {
+                            this.apiKey = apiKey.trim();
                             this.updateModeUI();
+                            console.log('API key entered manually');
                         } else {
                             // Switch back to demo mode if no API key provided
                             this.isLiveMode = false;
                             this.updateModeUI();
-                            alert('API key required for live mode. Set STABILITY_API_KEY environment variable or enter manually.');
+                            alert('API key required for live mode. Please enter your Stability AI API key.');
                         }
                     }
                 } catch (error) {
                     console.error('Failed to fetch API config:', error);
                     // Fallback to prompt
                     const apiKey = prompt('Enter your Stability AI API key:');
-                    if (apiKey) {
-                        this.apiKey = apiKey;
+                    if (apiKey && apiKey.trim()) {
+                        this.apiKey = apiKey.trim();
                         this.updateModeUI();
+                        console.log('API key entered manually');
                     } else {
                         this.isLiveMode = false;
                         this.updateModeUI();
