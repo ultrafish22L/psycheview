@@ -62,77 +62,85 @@ const TiledBackground = styled.div`
   top: -450%;
   left: -450%;
   background: 
-    radial-gradient(circle at 0% 0%, rgba(255, 0, 255, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.4) 0%, transparent 40%),
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 0, 0.3) 0%, transparent 45%),
-    radial-gradient(circle at 75% 25%, rgba(255, 100, 0, 0.4) 0%, transparent 35%),
-    radial-gradient(circle at 100% 0%, rgba(100, 255, 100, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 0% 50%, rgba(255, 0, 100, 0.4) 0%, transparent 40%),
-    radial-gradient(circle at 25% 75%, rgba(100, 0, 255, 0.3) 0%, transparent 45%),
-    radial-gradient(circle at 50% 100%, rgba(0, 255, 150, 0.4) 0%, transparent 35%),
-    radial-gradient(circle at 75% 75%, rgba(255, 150, 0, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 100% 50%, rgba(150, 255, 255, 0.4) 0%, transparent 40%),
-    linear-gradient(45deg, 
-      rgba(255, 0, 255, 0.1) 0%, 
-      rgba(0, 255, 255, 0.1) 12.5%, 
-      rgba(255, 255, 0, 0.1) 25%, 
-      rgba(255, 100, 0, 0.1) 37.5%, 
-      rgba(100, 255, 100, 0.1) 50%, 
-      rgba(255, 0, 100, 0.1) 62.5%, 
-      rgba(100, 0, 255, 0.1) 75%, 
-      rgba(0, 255, 150, 0.1) 87.5%, 
-      rgba(255, 0, 255, 0.1) 100%
-    ),
-    repeating-conic-gradient(from 0deg at 50% 50%, 
-      rgba(255, 0, 255, 0.2) 0deg, 
-      rgba(0, 255, 255, 0.2) 45deg, 
-      rgba(255, 255, 0, 0.2) 90deg, 
-      rgba(255, 100, 0, 0.2) 135deg, 
-      rgba(100, 255, 100, 0.2) 180deg, 
-      rgba(255, 0, 100, 0.2) 225deg, 
-      rgba(100, 0, 255, 0.2) 270deg, 
-      rgba(0, 255, 150, 0.2) 315deg, 
-      rgba(255, 0, 255, 0.2) 360deg
-    );
+    /* Islamic star pattern - 8-pointed stars */
+    radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.15) 20%, transparent 25%),
+    radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.12) 15%, transparent 20%),
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 0, 0.12) 15%, transparent 20%),
+    radial-gradient(circle at 0% 100%, rgba(255, 100, 0, 0.12) 15%, transparent 20%),
+    radial-gradient(circle at 100% 100%, rgba(100, 255, 100, 0.12) 15%, transparent 20%),
+    
+    /* Geometric interlacing pattern */
+    linear-gradient(0deg, transparent 45%, rgba(255, 0, 100, 0.08) 47%, rgba(255, 0, 100, 0.08) 53%, transparent 55%),
+    linear-gradient(60deg, transparent 45%, rgba(100, 0, 255, 0.08) 47%, rgba(100, 0, 255, 0.08) 53%, transparent 55%),
+    linear-gradient(120deg, transparent 45%, rgba(0, 255, 150, 0.08) 47%, rgba(0, 255, 150, 0.08) 53%, transparent 55%),
+    
+    /* Hexagonal tessellation base */
+    radial-gradient(ellipse 30px 52px at 50% 50%, rgba(255, 150, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 30px 52px at 0% 0%, rgba(150, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 30px 52px at 100% 100%, rgba(255, 0, 150, 0.1) 0%, transparent 50%),
+    
+    /* Subtle arabesque curves */
+    radial-gradient(ellipse 40px 20px at 25% 25%, rgba(255, 255, 0, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40px 20px at 75% 75%, rgba(0, 255, 255, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 20px 40px at 75% 25%, rgba(255, 0, 255, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 20px 40px at 25% 75%, rgba(100, 255, 100, 0.06) 0%, transparent 70%);
+    
   background-size: 
-    150px 150px,
-    200px 200px,
-    175px 175px,
-    225px 225px,
+    120px 120px,
+    240px 240px,
+    240px 240px,
+    240px 240px,
+    240px 240px,
+    80px 138px,
+    80px 138px,
+    80px 138px,
+    60px 104px,
+    120px 208px,
+    120px 208px,
     160px 160px,
-    190px 190px,
-    210px 210px,
-    180px 180px,
-    170px 170px,
-    195px 195px,
-    300px 300px,
-    400px 400px;
+    160px 160px,
+    160px 160px,
+    160px 160px;
+    
+  background-position:
+    60px 60px,
+    0px 0px,
+    120px 0px,
+    0px 120px,
+    120px 120px,
+    0px 0px,
+    40px 69px,
+    80px 0px,
+    30px 52px,
+    60px 104px,
+    90px 156px,
+    0px 0px,
+    80px 80px,
+    40px 120px,
+    120px 40px;
+    
   background-repeat: repeat;
-  opacity: 0.7;
-  mix-blend-mode: screen;
-  filter: saturate(1.5) contrast(1.2) brightness(1.1);
-  animation: trippyShift 60s linear infinite;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  filter: saturate(1.3) contrast(1.1) brightness(1.2);
+  animation: islamicShift 90s ease-in-out infinite;
   
-  @keyframes trippyShift {
-    0% { 
-      filter: saturate(1.5) contrast(1.2) brightness(1.1) hue-rotate(0deg);
-      transform: scale(1) rotate(0deg);
+  @keyframes islamicShift {
+    0%, 100% { 
+      filter: saturate(1.3) contrast(1.1) brightness(1.2) hue-rotate(0deg);
+      opacity: 0.5;
     }
     25% { 
-      filter: saturate(2) contrast(1.5) brightness(0.9) hue-rotate(90deg);
-      transform: scale(1.1) rotate(90deg);
+      filter: saturate(1.6) contrast(1.3) brightness(1.0) hue-rotate(90deg);
+      opacity: 0.6;
     }
     50% { 
-      filter: saturate(1.8) contrast(1.8) brightness(1.3) hue-rotate(180deg);
-      transform: scale(0.9) rotate(180deg);
+      filter: saturate(1.4) contrast(1.4) brightness(1.3) hue-rotate(180deg);
+      opacity: 0.4;
     }
     75% { 
-      filter: saturate(2.2) contrast(1.3) brightness(1.0) hue-rotate(270deg);
-      transform: scale(1.05) rotate(270deg);
-    }
-    100% { 
-      filter: saturate(1.5) contrast(1.2) brightness(1.1) hue-rotate(360deg);
-      transform: scale(1) rotate(360deg);
+      filter: saturate(1.8) contrast(1.2) brightness(1.1) hue-rotate(270deg);
+      opacity: 0.7;
     }
   }
 `;
@@ -144,35 +152,27 @@ const GridOverlay = styled.div`
   top: -450%;
   left: -450%;
   background-image: 
-    linear-gradient(rgba(255, 0, 255, 0.4) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.4) 1px, transparent 1px),
-    linear-gradient(45deg, rgba(255, 255, 0, 0.2) 1px, transparent 1px),
-    linear-gradient(-45deg, rgba(255, 100, 0, 0.2) 1px, transparent 1px);
+    linear-gradient(rgba(128, 128, 128, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(128, 128, 128, 0.15) 1px, transparent 1px);
   background-size: 
     ${props => props.$gridSizeX}px ${props => props.$gridSizeY}px,
-    ${props => props.$gridSizeX}px ${props => props.$gridSizeY}px,
-    ${props => props.$gridSizeX * 2}px ${props => props.$gridSizeY * 2}px,
-    ${props => props.$gridSizeX * 2}px ${props => props.$gridSizeY * 2}px;
+    ${props => props.$gridSizeX}px ${props => props.$gridSizeY}px;
   pointer-events: none;
-  mix-blend-mode: overlay;
-  animation: gridPulse 45s ease-in-out infinite;
+  mix-blend-mode: soft-light;
+  animation: subtleGridShift 75s ease-in-out infinite;
   
-  @keyframes gridPulse {
+  @keyframes subtleGridShift {
     0%, 100% { 
-      opacity: 0.6;
-      filter: hue-rotate(0deg) saturate(1.5);
+      opacity: 0.3;
+      filter: hue-rotate(0deg) saturate(1.2);
     }
-    25% { 
-      opacity: 0.8;
-      filter: hue-rotate(90deg) saturate(2);
-    }
-    50% { 
+    33% { 
       opacity: 0.4;
-      filter: hue-rotate(180deg) saturate(1.8);
+      filter: hue-rotate(120deg) saturate(1.4);
     }
-    75% { 
-      opacity: 0.9;
-      filter: hue-rotate(270deg) saturate(2.2);
+    66% { 
+      opacity: 0.2;
+      filter: hue-rotate(240deg) saturate(1.1);
     }
   }
 `;
