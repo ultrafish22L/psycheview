@@ -295,6 +295,59 @@
             z-index: 1000;
         }
 
+        /* API Key Input */
+        .api-key-input {
+            position: fixed;
+            top: 20px;
+            left: 200px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .api-key-input input {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 12px;
+            width: 200px;
+            outline: none;
+        }
+
+        .api-key-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .api-key-input input:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .api-key-input button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .api-key-input button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .api-key-input button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .toggle-switch {
             position: relative;
             width: 50px;
@@ -357,6 +410,11 @@
             </div>
         </div>
 
+        <div class="api-key-input" id="apiKeyContainer">
+            <input type="password" id="apiKeyInput" placeholder="Enter Stability AI API Key" />
+            <button id="setApiKeyBtn">Set Key</button>
+        </div>
+
         <div class="image-viewer" id="imageViewer">
             <div class="viewer-content" id="viewerContent">
                 <div class="tiled-background"></div>
@@ -385,6 +443,8 @@
                 this.modeToggle = document.getElementById('modeToggle');
                 this.modeLabel = document.getElementById('modeLabel');
                 this.debugInfo = document.getElementById('debugInfo');
+                this.apiKeyInput = document.getElementById('apiKeyInput');
+                this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
 
                 
 
@@ -409,7 +469,7 @@
                 this.maxScale = 4;
                 
                 // Mode system
-                this.isLiveMode = true; // Start in live mode by default
+                this.isLiveMode = false; // Start in live mode by default
                 this.apiKey = null;
                 
                 // Stability AI API Configuration
@@ -500,12 +560,45 @@
                     console.error('modeToggle element not found!');
                 }
                 
-                // Initialize API key if starting in live mode
-                if (this.isLiveMode) {
-                    this.initializeApiKey();
+                // API key input
+                if (this.setApiKeyBtn) {
+                    this.setApiKeyBtn.onclick = () => {
+                        this.setApiKey();
+                    };
                 }
                 
+                if (this.apiKeyInput) {
+                    this.apiKeyInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            this.setApiKey();
+                        }
+                    });
+                }
+                
+                // Try to load API key from environment on startup
+                this.initializeApiKey();
+                
                 this.updateTransform();
+            }
+            
+            setApiKey() {
+                const apiKey = this.apiKeyInput.value.trim();
+                if (apiKey) {
+                    this.apiKey = apiKey;
+                    this.apiKeyInput.value = '';
+                    this.apiKeyInput.placeholder = 'API Key Set ✓';
+                    this.setApiKeyBtn.textContent = 'Update';
+                    
+                    // Enable live mode if API key is set
+                    if (!this.isLiveMode) {
+                        this.isLiveMode = true;
+                        this.updateModeUI();
+                    }
+                    
+                    console.log('API key set successfully');
+                } else {
+                    alert('Please enter a valid API key');
+                }
             }
             
             async initializeApiKey() {
@@ -516,35 +609,13 @@
                     
                     if (config.hasApiKey && config.apiKey && config.apiKey !== 'test-key-for-demo') {
                         this.apiKey = config.apiKey;
+                        this.apiKeyInput.placeholder = 'API Key Set ✓';
+                        this.setApiKeyBtn.textContent = 'Update';
                         console.log('API key loaded from environment variable');
                         this.updateModeUI();
-                    } else {
-                        // Prompt for API key since environment variable not available
-                        const apiKey = prompt('Enter your Stability AI API key:');
-                        if (apiKey && apiKey.trim()) {
-                            this.apiKey = apiKey.trim();
-                            this.updateModeUI();
-                            console.log('API key entered manually');
-                        } else {
-                            // Switch back to demo mode if no API key provided
-                            this.isLiveMode = false;
-                            this.updateModeUI();
-                            alert('API key required for live mode. Please enter your Stability AI API key.');
-                        }
                     }
                 } catch (error) {
                     console.error('Failed to fetch API config:', error);
-                    // Fallback to prompt
-                    const apiKey = prompt('Enter your Stability AI API key:');
-                    if (apiKey && apiKey.trim()) {
-                        this.apiKey = apiKey.trim();
-                        this.updateModeUI();
-                        console.log('API key entered manually');
-                    } else {
-                        this.isLiveMode = false;
-                        this.updateModeUI();
-                        alert('API key required for live mode.');
-                    }
                 }
             }
             
@@ -1038,13 +1109,13 @@
             }
 
             async toggleMode() {
-                this.isLiveMode = !this.isLiveMode;
-
-                if (this.isLiveMode) {
-                    await this.initializeApiKey();
-                } else {
-                    this.updateModeUI();
+                if (!this.isLiveMode && !this.apiKey) {
+                    alert('Please enter your Stability AI API key first to enable live mode.');
+                    return;
                 }
+                
+                this.isLiveMode = !this.isLiveMode;
+                this.updateModeUI();
             }
 
 
