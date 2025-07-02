@@ -160,7 +160,7 @@ const MainImage = styled.img`
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+
   z-index: 3;
 `;
 
