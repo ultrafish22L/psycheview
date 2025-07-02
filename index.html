@@ -435,6 +435,9 @@
                         this.viewer.style.height = finalHeight + 'px';
                         this.containerWidth = finalWidth;
                         this.containerHeight = finalHeight;
+                        
+                        // Update grid size to match image dimensions
+                        this.updateGridSize();
                     } else {
                         // Fallback size if image not loaded yet
                         this.viewer.style.width = '800px';
@@ -598,6 +601,20 @@
                 }
                 
                 return visibleBlocks;
+            }
+            
+            updateGridSize() {
+                if (!this.imageWidth || !this.imageHeight) return;
+                
+                // Calculate grid cell size (quarter of image dimensions)
+                const gridCellWidth = this.imageWidth / 4;
+                const gridCellHeight = this.imageHeight / 4;
+                
+                // Update the grid overlay background-size
+                const gridOverlay = document.querySelector('.grid-overlay');
+                if (gridOverlay) {
+                    gridOverlay.style.backgroundSize = `${gridCellWidth}px ${gridCellHeight}px`;
+                }
             }
             
             async simulateGeneration(blockKey) {
