@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Outfill System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Outfill System Test</h1>
+        <p>This page will test the outfill system by directly manipulating the transform values.</p>
+        
+        <div class="controls">
+            <button onclick="testPanRight()">Pan Right (expose left edge)</button>
+            <button onclick="testPanLeft()">Pan Left (expose right edge)</button>
+            <button onclick="testPanDown()">Pan Down (expose top edge)</button>
+            <button onclick="testPanUp()">Pan Up (expose bottom edge)</button>
+            <button onclick="resetPosition()">Reset Position</button>
+            <button onclick="openMainApp()">Open Main App</button>
+        </div>
+        
+        <div class="status" id="status">
+            Ready to test...
+        </div>
+        
+        <iframe id="appFrame" src="/" width="100%" height="600" style="border: 1px solid #ccc; margin-top: 20px;"></iframe>
+    </div>
+
+    <script>
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('Test:', message);
+        }
+
+        function executeInFrame(code) {
+            try {
+                const frame = document.getElementById('appFrame');
+                const frameWindow = frame.contentWindow;
+                
+                // Execute code in the iframe context
+                frameWindow.eval(code);
+                return true;
+            } catch (error) {
+                updateStatus('Error: ' + error.message);
+                return false;
+            }
+        }
+
+        function testPanRight() {
+            updateStatus('Testing pan right (expose left edge)...');
+            const code = `
+                if (window.viewer) {
+                    viewer.translateX = 200;
+                    viewer.updateTransform();
+                    console.log('🧪 Test: Panned right, translateX = 200');
+                } else {
+                    console.log('❌ Viewer not found');
+                }
+            `;
+            executeInFrame(code);
+        }
+
+        function testPanLeft() {
+            updateStatus('Testing pan left (expose right edge)...');
+            const code = `
+                if (window.viewer) {
+                    viewer.translateX = -200;
+                    viewer.updateTransform();
+                    console.log('🧪 Test: Panned left, translateX = -200');
+                } else {
+                    console.log('❌ Viewer not found');
+                }
+            `;
+            executeInFrame(code);
+        }
+
+        function testPanDown() {
+            updateStatus('Testing pan down (expose top edge)...');
+            const code = `
+                if (window.viewer) {
+                    viewer.translateY = 150;
+                    viewer.updateTransform();
+                    console.log('🧪 Test: Panned down, translateY = 150');
+                } else {
+                    console.log('❌ Viewer not found');
+                }
+            `;
+            executeInFrame(code);
+        }
+
+        function testPanUp() {
+            updateStatus('Testing pan up (expose bottom edge)...');
+            const code = `
+                if (window.viewer) {
+                    viewer.translateY = -150;
+                    viewer.updateTransform();
+                    console.log('🧪 Test: Panned up, translateY = -150');
+                } else {
+                    console.log('❌ Viewer not found');
+                }
+            `;
+            executeInFrame(code);
+        }
+
+        function resetPosition() {
+            updateStatus('Resetting position...');
+            const code = `
+                if (window.viewer) {
+                    viewer.translateX = 0;
+                    viewer.translateY = 0;
+                    viewer.updateTransform();
+                    console.log('🧪 Test: Reset to center');
+                } else {
+                    console.log('❌ Viewer not found');
+                }
+            `;
+            executeInFrame(code);
+        }
+
+        function openMainApp() {
+            window.open('/', '_blank');
+        }
+
+        // Wait for iframe to load
+        document.getElementById('appFrame').onload = function() {
+            updateStatus('App loaded. Ready to test outfill system.');
+            
+            // Set block size to quarter for testing
+            setTimeout(() => {
+                const code = `
+                    if (window.viewer) {
+                        viewer.updateBlockSize(4);
+                        console.log('🧪 Test: Set block size to quarter (4x4)');
+                    }
+                `;
+                executeInFrame(code);
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
