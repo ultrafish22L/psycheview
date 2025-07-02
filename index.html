@@ -409,7 +409,7 @@
                 this.maxScale = 4;
                 
                 // Mode system
-                this.isLiveMode = false;
+                this.isLiveMode = true; // Start in live mode by default
                 this.apiKey = null;
                 
                 // Stability AI API Configuration
@@ -500,7 +500,62 @@
                     console.error('modeToggle element not found!');
                 }
                 
+                // Initialize API key if starting in live mode
+                if (this.isLiveMode) {
+                    this.initializeApiKey();
+                }
+                
                 this.updateTransform();
+            }
+            
+            async initializeApiKey() {
+                try {
+                    // Try to get API key from environment variable
+                    const response = await fetch('/api/config');
+                    const config = await response.json();
+                    
+                    if (config.hasApiKey && config.apiKey) {
+                        this.apiKey = config.apiKey;
+                        console.log('API key loaded from environment variable');
+                        this.updateModeUI();
+                    } else {
+                        // Fallback to prompt if no environment variable
+                        const apiKey = prompt('Enter your Stability AI API key (STABILITY_API_KEY environment variable not set):');
+                        if (apiKey) {
+                            this.apiKey = apiKey;
+                            this.updateModeUI();
+                        } else {
+                            // Switch back to demo mode if no API key provided
+                            this.isLiveMode = false;
+                            this.updateModeUI();
+                            alert('API key required for live mode. Set STABILITY_API_KEY environment variable or enter manually.');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch API config:', error);
+                    // Fallback to prompt
+                    const apiKey = prompt('Enter your Stability AI API key:');
+                    if (apiKey) {
+                        this.apiKey = apiKey;
+                        this.updateModeUI();
+                    } else {
+                        this.isLiveMode = false;
+                        this.updateModeUI();
+                        alert('API key required for live mode.');
+                    }
+                }
+            }
+            
+            updateModeUI() {
+                if (this.isLiveMode) {
+                    this.modeToggle.classList.add('active');
+                    this.modeLabel.textContent = 'LIVE';
+                    this.modeLabel.className = 'mode-label live';
+                } else {
+                    this.modeToggle.classList.remove('active');
+                    this.modeLabel.textContent = 'DEMO';
+                    this.modeLabel.className = 'mode-label demo';
+                }
             }
             
             handleMouseDown(e) {
@@ -981,63 +1036,16 @@
             }
 
             async toggleMode() {
-                console.log('toggleMode called!');
                 this.isLiveMode = !this.isLiveMode;
-                this.modeToggle.classList.toggle('active', this.isLiveMode);
-                
+
                 if (this.isLiveMode) {
-                    console.log('Switching to LIVE mode');
-                    this.modeLabel.textContent = 'LIVE';
-                    this.modeLabel.className = 'mode-label live';
-                    await this.checkApiKey();
+                    await this.initializeApiKey();
                 } else {
-                    console.log('Switching to DEMO mode');
-                    this.modeLabel.textContent = 'DEMO';
-                    this.modeLabel.className = 'mode-label demo';
+                    this.updateModeUI();
                 }
             }
 
-            async checkApiKey() {
-                if (!this.apiKey) {
-                    try {
-                        const response = await fetch('/api/config');
-                        const config = await response.json();
-                        
-                        if (config.hasApiKey && config.apiKey) {
-                            this.apiKey = config.apiKey;
-                            console.log('API key loaded from environment variable');
-                        } else {
-                            // Fallback to prompt if no environment variable
-                            const apiKey = prompt('Enter your Stability AI API key (STABILITY_API_KEY environment variable not set):');
-                            if (apiKey) {
-                                this.apiKey = apiKey;
-                            } else {
-                                // Switch back to demo mode if no API key provided
-                                this.isLiveMode = false;
-                                this.modeToggle.classList.remove('active');
-                                this.modeLabel.textContent = 'DEMO';
-                                this.modeLabel.className = 'mode-label demo';
-                                alert('API key required for live mode. Set STABILITY_API_KEY environment variable or enter manually.');
-                                return;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch API config:', error);
-                        // Fallback to prompt
-                        const apiKey = prompt('Enter your Stability AI API key:');
-                        if (apiKey) {
-                            this.apiKey = apiKey;
-                        } else {
-                            this.isLiveMode = false;
-                            this.modeToggle.classList.remove('active');
-                            this.modeLabel.textContent = 'DEMO';
-                            this.modeLabel.className = 'mode-label demo';
-                            alert('API key required for live mode.');
-                            return;
-                        }
-                    }
-                }
-            }
+
 
             async generateMaskForBlock(blockKey) {
                 const [x, y] = blockKey.split(',').map(Number);
