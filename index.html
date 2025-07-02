@@ -115,9 +115,11 @@
         /* Image Viewer */
         .image-viewer {
             position: relative;
-            margin: 20px auto;
+            margin: 0;
             overflow: hidden;
             cursor: grab;
+            width: 100vw;
+            height: 100vh;
         }
 
         .image-viewer:active {
@@ -324,21 +326,14 @@
             }
             
             init() {
-                // Set up container size based on image aspect ratio
+                // Set up container size to fill viewport
                 this.image.onload = () => {
                     this.imageWidth = this.image.naturalWidth;
                     this.imageHeight = this.image.naturalHeight;
-                    const aspectRatio = this.imageWidth / this.imageHeight;
-                    const containerHeight = window.innerHeight - 120;
-                    const containerWidth = Math.min(containerHeight * aspectRatio, window.innerWidth - 40);
                     
-                    const finalHeight = containerWidth / aspectRatio > containerHeight ? containerHeight : containerWidth / aspectRatio;
-                    const finalWidth = finalHeight * aspectRatio;
-                    
-                    this.viewer.style.width = finalWidth + 'px';
-                    this.viewer.style.height = finalHeight + 'px';
-                    this.containerWidth = finalWidth;
-                    this.containerHeight = finalHeight;
+                    // Use full viewport dimensions
+                    this.containerWidth = window.innerWidth;
+                    this.containerHeight = window.innerHeight;
                 };
                 
                 // Mouse events
