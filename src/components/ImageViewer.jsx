@@ -3,9 +3,9 @@ import styled from 'styled-components';
 
 const ViewerContainer = styled.div`
   position: relative;
-  width: calc(100vw - 40px);
-  height: calc(100vh - 120px);
-  margin: 20px;
+  width: ${props => props.$containerWidth}px;
+  height: ${props => props.$containerHeight}px;
+  margin: 20px auto;
   overflow: hidden;
   border-radius: 20px;
   backdrop-filter: blur(20px);
@@ -200,13 +200,25 @@ export function ImageViewer({ imageSrc }) {
   const containerRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0, transformX: 0, transformY: 0 });
 
-  // Load image and set initial size
+  // Load image and calculate container size to match image aspect ratio
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
-      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
-      setContainerSize({ width: window.innerWidth - 40, height: window.innerHeight - 120 });
-      setDisplaySize({ width: img.naturalWidth, height: img.naturalHeight });
+      const naturalWidth = img.naturalWidth;
+      const naturalHeight = img.naturalHeight;
+      const aspectRatio = naturalWidth / naturalHeight;
+      
+      // Fill vertically with margin, calculate width from aspect ratio
+      const containerHeight = window.innerHeight - 120; // 20px top + 20px bottom + 80px for instructions
+      const containerWidth = Math.min(containerHeight * aspectRatio, window.innerWidth - 40);
+      
+      // If width constraint is hit, recalculate height
+      const finalHeight = containerWidth / aspectRatio > containerHeight ? containerHeight : containerWidth / aspectRatio;
+      const finalWidth = finalHeight * aspectRatio;
+      
+      setImageSize({ width: naturalWidth, height: naturalHeight });
+      setContainerSize({ width: finalWidth, height: finalHeight });
+      setDisplaySize({ width: naturalWidth, height: naturalHeight });
     };
     img.src = imageSrc;
   }, [imageSrc]);
@@ -318,6 +330,8 @@ export function ImageViewer({ imageSrc }) {
   return (
     <ViewerContainer
       ref={containerRef}
+      $containerWidth={containerSize.width}
+      $containerHeight={containerSize.height}
       onMouseDown={handleMouseDown}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
