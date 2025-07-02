@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Toggle</title>
+    <style>
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .mode-label {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .mode-label.demo {
+            background: rgba(255, 165, 0, 0.2);
+            color: #ff8c00;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.3);
+        }
+
+        .mode-label.live {
+            background: rgba(0, 255, 127, 0.2);
+            color: #00ff7f;
+            box-shadow: 0 0 20px rgba(0, 255, 127, 0.3);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active {
+            background: rgba(0, 255, 127, 0.3);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="mode-toggle">
+        <span class="mode-label demo" id="modeLabel">DEMO</span>
+        <div class="toggle-switch" id="modeToggle">
+            <div class="toggle-slider"></div>
+        </div>
+    </div>
+
+    <script>
+        let isLiveMode = false;
+        const modeToggle = document.getElementById('modeToggle');
+        const modeLabel = document.getElementById('modeLabel');
+
+        console.log('modeToggle:', modeToggle);
+        console.log('modeLabel:', modeLabel);
+
+        function toggleMode() {
+            console.log('toggleMode called, current isLiveMode:', isLiveMode);
+            isLiveMode = !isLiveMode;
+            modeToggle.classList.toggle('active', isLiveMode);
+            
+            if (isLiveMode) {
+                console.log('Switching to LIVE mode');
+                modeLabel.textContent = 'LIVE';
+                modeLabel.className = 'mode-label live';
+            } else {
+                console.log('Switching to DEMO mode');
+                modeLabel.textContent = 'DEMO';
+                modeLabel.className = 'mode-label demo';
+            }
+        }
+
+        if (modeToggle) {
+            modeToggle.addEventListener('click', toggleMode);
+            console.log('Event listener added');
+        } else {
+            console.error('modeToggle not found!');
+        }
+    </script>
+</body>
+</html>

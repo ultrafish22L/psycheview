@@ -1,0 +1,13 @@
+{
+  "name": "psycheview",
+  "version": "1.0.0",
+  "description": "Psychedelic image viewer with AI outfill capabilities",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["image", "viewer", "ai", "outfill", "psychedelic"],
+  "author": "OpenHands",
+  "license": "MIT"
+}
