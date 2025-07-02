@@ -115,11 +115,13 @@
         /* Image Viewer */
         .image-viewer {
             position: relative;
-            margin: 0;
+            margin: 60px auto;
             overflow: hidden;
             cursor: grab;
-            width: 100vw;
-            height: 100vh;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
 
         .image-viewer:active {
@@ -326,15 +328,43 @@
             }
             
             init() {
-                // Set up container size to fill viewport
-                this.image.onload = () => {
-                    this.imageWidth = this.image.naturalWidth;
-                    this.imageHeight = this.image.naturalHeight;
-                    
-                    // Use full viewport dimensions
-                    this.containerWidth = window.innerWidth;
-                    this.containerHeight = window.innerHeight;
+                // Set up container size based on image aspect ratio - windowed approach
+                const setupSize = () => {
+                    if (this.image.naturalWidth && this.image.naturalHeight) {
+                        this.imageWidth = this.image.naturalWidth;
+                        this.imageHeight = this.image.naturalHeight;
+                        const aspectRatio = this.imageWidth / this.imageHeight;
+                        
+                        // Create a window sized to fit the image with some margin for the psychedelic background
+                        const maxHeight = window.innerHeight - 120;
+                        const maxWidth = window.innerWidth - 80;
+                        
+                        let finalWidth, finalHeight;
+                        
+                        if (maxWidth / aspectRatio <= maxHeight) {
+                            finalWidth = maxWidth;
+                            finalHeight = maxWidth / aspectRatio;
+                        } else {
+                            finalHeight = maxHeight;
+                            finalWidth = maxHeight * aspectRatio;
+                        }
+                        
+                        this.viewer.style.width = finalWidth + 'px';
+                        this.viewer.style.height = finalHeight + 'px';
+                        this.containerWidth = finalWidth;
+                        this.containerHeight = finalHeight;
+                    } else {
+                        // Fallback size if image not loaded yet
+                        this.viewer.style.width = '800px';
+                        this.viewer.style.height = '600px';
+                        this.containerWidth = 800;
+                        this.containerHeight = 600;
+                    }
                 };
+                
+                this.image.onload = setupSize;
+                // Also call immediately in case image is already loaded
+                setupSize();
                 
                 // Mouse events
                 this.viewer.addEventListener('mousedown', this.handleMouseDown.bind(this));
