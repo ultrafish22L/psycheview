@@ -111,6 +111,7 @@ PsycheView focuses on creating a seamless, immersive viewing experience for psyc
 ## 🏷️ Version Tags
 
 - **`zelator`** - Sophisticated priority-based queue management system
+- **`zelator2`** - ✅ **FIXED** Perfect block alignment with dynamic grid sizing
 - **`magister`** - 🎯 **PRODUCTION-READY** Complete demo/live mode system with Stability AI integration
 
 ---
