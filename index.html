@@ -270,6 +270,19 @@
             font-size: 12px;
             font-family: monospace;
         }
+
+        /* Queue indicator */
+        .queue-indicator {
+            position: absolute;
+            top: 35px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -292,6 +305,7 @@
                 <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false">
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
+            <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
         </div>
     </div>
 
@@ -302,6 +316,7 @@
                 this.content = document.getElementById('viewerContent');
                 this.image = document.getElementById('mainImage');
                 this.zoomIndicator = document.getElementById('zoomIndicator');
+                this.queueIndicator = document.getElementById('queueIndicator');
                 
                 this.scale = 1;
                 this.translateX = 0;
@@ -632,12 +647,93 @@
                 if (newBlocks.length > 0) {
                     this.generationQueue.push(...newBlocks);
                     this.processGenerationQueue();
+                } else if (this.generationQueue.length > 0) {
+                    // Resort existing queue when visibility changes
+                    this.updateGenerationQueue();
                 }
                 
                 this.lastVisibleBlocks = currentVisibleBlocks;
             }
             
+            calculateBlockPriority(blockKey) {
+                const [x, y] = blockKey.split(',').map(Number);
+                const blockSize = Math.min(this.imageWidth / 4, this.imageHeight / 4);
+                
+                // Calculate block bounds in image coordinates
+                const blockLeft = x * blockSize;
+                const blockTop = y * blockSize;
+                const blockRight = blockLeft + blockSize;
+                const blockBottom = blockTop + blockSize;
+                
+                // Get current viewport bounds in image coordinates
+                const viewportLeft = -this.translateX / this.scale;
+                const viewportTop = -this.translateY / this.scale;
+                const viewportRight = viewportLeft + (this.containerWidth / this.scale);
+                const viewportBottom = viewportTop + (this.containerHeight / this.scale);
+                
+                // Calculate intersection
+                const intersectLeft = Math.max(blockLeft, viewportLeft);
+                const intersectTop = Math.max(blockTop, viewportTop);
+                const intersectRight = Math.min(blockRight, viewportRight);
+                const intersectBottom = Math.min(blockBottom, viewportBottom);
+                
+                // Calculate visibility percentage
+                let visibilityPercentage = 0;
+                if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
+                    const intersectArea = (intersectRight - intersectLeft) * (intersectBottom - intersectTop);
+                    const blockArea = blockSize * blockSize;
+                    visibilityPercentage = intersectArea / blockArea;
+                }
+                
+                // Calculate distance from viewport center
+                const blockCenterX = blockLeft + blockSize / 2;
+                const blockCenterY = blockTop + blockSize / 2;
+                const viewportCenterX = viewportLeft + (this.containerWidth / this.scale) / 2;
+                const viewportCenterY = viewportTop + (this.containerHeight / this.scale) / 2;
+                const distanceFromCenter = Math.sqrt(
+                    Math.pow(blockCenterX - viewportCenterX, 2) + 
+                    Math.pow(blockCenterY - viewportCenterY, 2)
+                );
+                
+                // Normalize distance (lower is better)
+                const maxDistance = Math.sqrt(
+                    Math.pow(this.imageWidth, 2) + Math.pow(this.imageHeight, 2)
+                );
+                const normalizedDistance = 1 - (distanceFromCenter / maxDistance);
+                
+                // Calculate priority score
+                let priority = visibilityPercentage * 100; // Base score from visibility
+                priority += normalizedDistance * 20; // Distance bonus
+                
+                // Bonus for fully visible blocks
+                if (visibilityPercentage >= 0.99) {
+                    priority += 50;
+                }
+                
+                return priority;
+            }
+
+            updateGenerationQueue() {
+                // Calculate priorities for all queued blocks
+                const queuedBlocks = this.generationQueue.map(blockKey => ({
+                    blockKey,
+                    priority: this.calculateBlockPriority(blockKey)
+                }));
+                
+                // Sort by priority (highest first)
+                queuedBlocks.sort((a, b) => b.priority - a.priority);
+                
+                // Update the queue with sorted block keys
+                this.generationQueue = queuedBlocks.map(item => item.blockKey);
+                
+                // Update queue indicator
+                this.updateQueueIndicator();
+            }
+
             processGenerationQueue() {
+                // Resort queue before processing
+                this.updateGenerationQueue();
+                
                 if (this.generationQueue.length > 0 && this.activeGenerations < 2) {
                     const blockKey = this.generationQueue.shift();
                     this.activeGenerations++;
@@ -654,6 +750,15 @@
                         this.processGenerationQueue();
                     });
                 }
+                
+                // Update queue indicator
+                this.updateQueueIndicator();
+            }
+
+            updateQueueIndicator() {
+                const queueCount = this.generationQueue.length;
+                const activeCount = this.activeGenerations;
+                this.queueIndicator.textContent = `Queue: ${queueCount} | Active: ${activeCount}`;
             }
 
             updateTransform() {
