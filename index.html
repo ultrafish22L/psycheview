@@ -1093,7 +1093,7 @@
                     directions.push('up', 'bottom', 'left', 'right');
                 }
                 
-                console.log(`🎯 Outpaint directions for block ${blockKey}:`, directions);
+                // console.log(`🎯 Outpaint directions for block ${blockKey}:`, directions, '(512px each)');
                 return directions;
             }
 
@@ -1104,16 +1104,7 @@
 
                 try {
                     const directions = this.getOutpaintDirections(blockKey);
-                    console.log('🎨 Stability AI API Call:', {
-                        endpoint: this.apiConfig.endpoint,
-                        prompt: this.apiConfig.prompt,
-                        creativity: this.apiConfig.creativity,
-                        output_format: this.apiConfig.output_format,
-                        seed: this.apiConfig.seed,
-                        style_preset: this.apiConfig.style_preset,
-                        blockKey: blockKey,
-                        outpaintDirections: directions
-                    });
+                    // console.log('🎨 Stability AI API Call:', { blockKey, outpaintDirections: directions });
                     
                     // Generate mask for this block
                     const maskBlob = await this.generateMaskForBlock(blockKey);
@@ -1139,7 +1130,7 @@
                     
                     // Add outpaint directions based on block position
                     directions.forEach(direction => {
-                        formData.append(direction, 'true');
+                        formData.append(direction, '512');  // Use pixel value for outpaint distance
                     });
                     
                     // Make API call
