@@ -57,28 +57,124 @@ const ContentContainer = styled.div`
 
 const TiledBackground = styled.div`
   position: absolute;
-  width: 400%;
-  height: 400%;
-  top: -150%;
-  left: -150%;
-  background-image: url('/psychedelic-bg.jpg');
-  background-size: 200px 200px;
+  width: 1000%;
+  height: 1000%;
+  top: -450%;
+  left: -450%;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(255, 0, 255, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 0, 0.3) 0%, transparent 45%),
+    radial-gradient(circle at 75% 25%, rgba(255, 100, 0, 0.4) 0%, transparent 35%),
+    radial-gradient(circle at 100% 0%, rgba(100, 255, 100, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 0% 50%, rgba(255, 0, 100, 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 25% 75%, rgba(100, 0, 255, 0.3) 0%, transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(0, 255, 150, 0.4) 0%, transparent 35%),
+    radial-gradient(circle at 75% 75%, rgba(255, 150, 0, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 100% 50%, rgba(150, 255, 255, 0.4) 0%, transparent 40%),
+    linear-gradient(45deg, 
+      rgba(255, 0, 255, 0.1) 0%, 
+      rgba(0, 255, 255, 0.1) 12.5%, 
+      rgba(255, 255, 0, 0.1) 25%, 
+      rgba(255, 100, 0, 0.1) 37.5%, 
+      rgba(100, 255, 100, 0.1) 50%, 
+      rgba(255, 0, 100, 0.1) 62.5%, 
+      rgba(100, 0, 255, 0.1) 75%, 
+      rgba(0, 255, 150, 0.1) 87.5%, 
+      rgba(255, 0, 255, 0.1) 100%
+    ),
+    repeating-conic-gradient(from 0deg at 50% 50%, 
+      rgba(255, 0, 255, 0.2) 0deg, 
+      rgba(0, 255, 255, 0.2) 45deg, 
+      rgba(255, 255, 0, 0.2) 90deg, 
+      rgba(255, 100, 0, 0.2) 135deg, 
+      rgba(100, 255, 100, 0.2) 180deg, 
+      rgba(255, 0, 100, 0.2) 225deg, 
+      rgba(100, 0, 255, 0.2) 270deg, 
+      rgba(0, 255, 150, 0.2) 315deg, 
+      rgba(255, 0, 255, 0.2) 360deg
+    );
+  background-size: 
+    150px 150px,
+    200px 200px,
+    175px 175px,
+    225px 225px,
+    160px 160px,
+    190px 190px,
+    210px 210px,
+    180px 180px,
+    170px 170px,
+    195px 195px,
+    300px 300px,
+    400px 400px;
   background-repeat: repeat;
-  opacity: 0.6;
-  mix-blend-mode: multiply;
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  filter: saturate(1.5) contrast(1.2) brightness(1.1);
+  animation: trippyShift 60s linear infinite;
+  
+  @keyframes trippyShift {
+    0% { 
+      filter: saturate(1.5) contrast(1.2) brightness(1.1) hue-rotate(0deg);
+      transform: scale(1) rotate(0deg);
+    }
+    25% { 
+      filter: saturate(2) contrast(1.5) brightness(0.9) hue-rotate(90deg);
+      transform: scale(1.1) rotate(90deg);
+    }
+    50% { 
+      filter: saturate(1.8) contrast(1.8) brightness(1.3) hue-rotate(180deg);
+      transform: scale(0.9) rotate(180deg);
+    }
+    75% { 
+      filter: saturate(2.2) contrast(1.3) brightness(1.0) hue-rotate(270deg);
+      transform: scale(1.05) rotate(270deg);
+    }
+    100% { 
+      filter: saturate(1.5) contrast(1.2) brightness(1.1) hue-rotate(360deg);
+      transform: scale(1) rotate(360deg);
+    }
+  }
 `;
 
 const GridOverlay = styled.div`
   position: absolute;
-  width: 400%;
-  height: 400%;
-  top: -150%;
-  left: -150%;
+  width: 1000%;
+  height: 1000%;
+  top: -450%;
+  left: -450%;
   background-image: 
-    linear-gradient(rgba(128, 128, 128, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(128, 128, 128, 0.3) 1px, transparent 1px);
-  background-size: ${props => props.$gridSizeX}px ${props => props.$gridSizeY}px;
+    linear-gradient(rgba(255, 0, 255, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.4) 1px, transparent 1px),
+    linear-gradient(45deg, rgba(255, 255, 0, 0.2) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255, 100, 0, 0.2) 1px, transparent 1px);
+  background-size: 
+    ${props => props.$gridSizeX}px ${props => props.$gridSizeY}px,
+    ${props => props.$gridSizeX}px ${props => props.$gridSizeY}px,
+    ${props => props.$gridSizeX * 2}px ${props => props.$gridSizeY * 2}px,
+    ${props => props.$gridSizeX * 2}px ${props => props.$gridSizeY * 2}px;
   pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: gridPulse 45s ease-in-out infinite;
+  
+  @keyframes gridPulse {
+    0%, 100% { 
+      opacity: 0.6;
+      filter: hue-rotate(0deg) saturate(1.5);
+    }
+    25% { 
+      opacity: 0.8;
+      filter: hue-rotate(90deg) saturate(2);
+    }
+    50% { 
+      opacity: 0.4;
+      filter: hue-rotate(180deg) saturate(1.8);
+    }
+    75% { 
+      opacity: 0.9;
+      filter: hue-rotate(270deg) saturate(2.2);
+    }
+  }
 `;
 
 const MainImage = styled.img`
