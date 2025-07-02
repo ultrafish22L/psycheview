@@ -803,7 +803,7 @@
                 
                 try {
                     // Manually trigger an outfill for testing
-                    const testBlockKey = '-1,0'; // Block to the left of the image
+                    const testBlockKey = '-1,-1'; // Block to the top-left corner
                     this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
                     this.updateOutfillBlock(testBlockKey, this.outfillBlocks.get(testBlockKey));
                     
