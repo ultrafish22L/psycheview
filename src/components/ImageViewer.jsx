@@ -191,14 +191,79 @@ const MainImage = styled.img`
   filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
 `;
 
+const OutfillBlock = styled.div`
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(2px);
+`;
+
+const LoadingIndicator = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+`;
+
+const ProgressRing = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 4px solid transparent;
+    border-top: 4px solid rgba(0, 255, 255, 0.8);
+    border-radius: 50%;
+    transform: rotate(${props => props.$progress * 360}deg);
+    transition: transform 0.2s ease;
+  }
+`;
+
 export function ImageViewer({ imageSrc }) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
+  const [outfillBlocks, setOutfillBlocks] = useState(new Map()); // Map of "x,y" -> {status: 'generating'|'ready', progress: 0-1, imageData: null}
+  const [generationQueue, setGenerationQueue] = useState([]);
+  const [activeGenerations, setActiveGenerations] = useState(0);
   const containerRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0, transformX: 0, transformY: 0 });
+  const lastVisibleBlocks = useRef(new Set());
 
   // Load image and calculate container size to match image aspect ratio
   useEffect(() => {
@@ -223,9 +288,122 @@ export function ImageViewer({ imageSrc }) {
     img.src = imageSrc;
   }, [imageSrc]);
 
-  // Fixed grid spacing for consistent pattern
-  const gridSizeX = 200;
-  const gridSizeY = 150;
+  // Grid spacing based on image dimensions (1/4 of image size)
+  const gridSizeX = imageSize.width > 0 ? imageSize.width / 4 : 200;
+  const gridSizeY = imageSize.height > 0 ? imageSize.height / 4 : 150;
+
+  // Calculate which grid blocks are currently visible
+  const getVisibleBlocks = useCallback(() => {
+    if (!containerSize.width || !containerSize.height || !imageSize.width || !imageSize.height) return new Set();
+    
+    const visibleBlocks = new Set();
+    
+    // Calculate the viewport bounds in image coordinates
+    const viewportLeft = -transform.x / transform.scale;
+    const viewportTop = -transform.y / transform.scale;
+    const viewportRight = viewportLeft + containerSize.width / transform.scale;
+    const viewportBottom = viewportTop + containerSize.height / transform.scale;
+    
+    // Calculate grid bounds that are visible
+    const startGridX = Math.floor(viewportLeft / gridSizeX);
+    const endGridX = Math.ceil(viewportRight / gridSizeX);
+    const startGridY = Math.floor(viewportTop / gridSizeY);
+    const endGridY = Math.ceil(viewportBottom / gridSizeY);
+    
+    // Add all visible grid blocks, including those outside the original image
+    for (let gridX = startGridX; gridX < endGridX; gridX++) {
+      for (let gridY = startGridY; gridY < endGridY; gridY++) {
+        // Skip blocks that are completely within the original image bounds
+        const blockLeft = gridX * gridSizeX;
+        const blockRight = (gridX + 1) * gridSizeX;
+        const blockTop = gridY * gridSizeY;
+        const blockBottom = (gridY + 1) * gridSizeY;
+        
+        // Check if this block extends beyond the original image
+        const isOutsideImage = blockLeft >= imageSize.width || blockRight <= 0 || 
+                              blockTop >= imageSize.height || blockBottom <= 0 ||
+                              blockLeft < 0 || blockTop < 0;
+        
+        if (isOutsideImage) {
+          visibleBlocks.add(`${gridX},${gridY}`);
+        }
+      }
+    }
+    
+    return visibleBlocks;
+  }, [transform, containerSize, imageSize, gridSizeX, gridSizeY]);
+
+  // Simulate AI generation
+  const simulateGeneration = useCallback((blockKey) => {
+    return new Promise((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 0.05; // Update every 200ms for 4 seconds total
+        setOutfillBlocks(prev => {
+          const newMap = new Map(prev);
+          const block = newMap.get(blockKey);
+          if (block) {
+            newMap.set(blockKey, { ...block, progress });
+          }
+          return newMap;
+        });
+        
+        if (progress >= 1) {
+          clearInterval(interval);
+          // Use the original image as placeholder for generated content
+          setOutfillBlocks(prev => {
+            const newMap = new Map(prev);
+            newMap.set(blockKey, { 
+              status: 'ready', 
+              progress: 1, 
+              imageData: imageSrc 
+            });
+            return newMap;
+          });
+          resolve();
+        }
+      }, 200);
+    });
+  }, [imageSrc]);
+
+  // Process generation queue
+  useEffect(() => {
+    if (generationQueue.length > 0 && activeGenerations < 2) {
+      const blockKey = generationQueue[0];
+      setGenerationQueue(prev => prev.slice(1));
+      setActiveGenerations(prev => prev + 1);
+      
+      simulateGeneration(blockKey).then(() => {
+        setActiveGenerations(prev => prev - 1);
+      });
+    }
+  }, [generationQueue, activeGenerations, simulateGeneration]);
+
+  // Detect newly visible blocks and queue them for generation
+  useEffect(() => {
+    const currentVisibleBlocks = getVisibleBlocks();
+    
+    // Find new blocks that weren't visible before
+    const newBlocks = [];
+    currentVisibleBlocks.forEach(blockKey => {
+      if (!lastVisibleBlocks.current.has(blockKey) && !outfillBlocks.has(blockKey)) {
+        newBlocks.push(blockKey);
+        // Mark as generating immediately
+        setOutfillBlocks(prev => {
+          const newMap = new Map(prev);
+          newMap.set(blockKey, { status: 'generating', progress: 0, imageData: null });
+          return newMap;
+        });
+      }
+    });
+    
+    // Add new blocks to generation queue
+    if (newBlocks.length > 0) {
+      setGenerationQueue(prev => [...prev, ...newBlocks]);
+    }
+    
+    lastVisibleBlocks.current = currentVisibleBlocks;
+  }, [transform, getVisibleBlocks, outfillBlocks]);
 
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return; // Only left mouse button
@@ -344,6 +522,32 @@ export function ImageViewer({ imageSrc }) {
       >
         <TiledBackground />
         <GridOverlay $gridSizeX={gridSizeX} $gridSizeY={gridSizeY} />
+        
+        {/* Render outfill blocks */}
+        {Array.from(outfillBlocks.entries()).map(([blockKey, block]) => {
+          const [gridX, gridY] = blockKey.split(',').map(Number);
+          const blockLeft = gridX * gridSizeX;
+          const blockTop = gridY * gridSizeY;
+          
+          return (
+            <OutfillBlock
+              key={blockKey}
+              style={{
+                left: blockLeft,
+                top: blockTop,
+                width: gridSizeX,
+                height: gridSizeY,
+                backgroundImage: block.status === 'ready' ? `url(${block.imageData})` : 'none',
+                backgroundColor: block.status === 'generating' ? 'rgba(0, 0, 0, 0.3)' : 'transparent'
+              }}
+            >
+              {block.status === 'generating' && (
+                <ProgressRing $progress={block.progress} />
+              )}
+            </OutfillBlock>
+          );
+        })}
+        
         <MainImage 
           src={imageSrc}
           alt="Psychedelic Flora"
