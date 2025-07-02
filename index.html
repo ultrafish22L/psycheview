@@ -1068,12 +1068,42 @@
                 });
             }
 
+            getOutpaintDirections(blockKey) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                const directions = [];
+                
+                // Determine which directions to outpaint based on block position
+                // Blocks with negative coordinates or beyond image bounds need outpainting
+                
+                if (gridX < 0) {
+                    directions.push('left');
+                }
+                if (gridX >= 4) {  // 4 blocks across the image width
+                    directions.push('right');
+                }
+                if (gridY < 0) {
+                    directions.push('up');
+                }
+                if (gridY >= 3) {  // 3 blocks across the image height (assuming 4:3 aspect ratio)
+                    directions.push('bottom');
+                }
+                
+                // If no specific direction detected, default to all directions
+                if (directions.length === 0) {
+                    directions.push('up', 'bottom', 'left', 'right');
+                }
+                
+                console.log(`🎯 Outpaint directions for block ${blockKey}:`, directions);
+                return directions;
+            }
+
             async callStabilityAPI(blockKey) {
                 if (!this.apiKey) {
                     throw new Error('No API key available');
                 }
 
                 try {
+                    const directions = this.getOutpaintDirections(blockKey);
                     console.log('🎨 Stability AI API Call:', {
                         endpoint: this.apiConfig.endpoint,
                         prompt: this.apiConfig.prompt,
@@ -1081,7 +1111,8 @@
                         output_format: this.apiConfig.output_format,
                         seed: this.apiConfig.seed,
                         style_preset: this.apiConfig.style_preset,
-                        blockKey: blockKey
+                        blockKey: blockKey,
+                        outpaintDirections: directions
                     });
                     
                     // Generate mask for this block
@@ -1105,6 +1136,11 @@
                     if (this.apiConfig.style_preset !== null) {
                         formData.append('style_preset', this.apiConfig.style_preset);
                     }
+                    
+                    // Add outpaint directions based on block position
+                    directions.forEach(direction => {
+                        formData.append(direction, 'true');
+                    });
                     
                     // Make API call
                     const response = await fetch(this.apiConfig.endpoint, {
