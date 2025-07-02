@@ -3,10 +3,8 @@ import styled from 'styled-components';
 
 const ViewerContainer = styled.div`
   position: relative;
-  width: 80vmin;
-  height: 60vmin;
-  max-width: 90vw;
-  max-height: 90vh;
+  width: ${props => props.$containerWidth}px;
+  height: ${props => props.$containerHeight}px;
   overflow: hidden;
   border-radius: 20px;
   backdrop-filter: blur(20px);
@@ -94,8 +92,8 @@ const MainImage = styled.img`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  max-width: none;
-  max-height: none;
+  width: ${props => props.$imageWidth}px;
+  height: ${props => props.$imageHeight}px;
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
@@ -106,21 +104,50 @@ export function ImageViewer({ imageSrc }) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
+  const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
   const containerRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0, transformX: 0, transformY: 0 });
 
-  // Load image and get dimensions for grid calculation
+  // Load image and calculate container size to match image aspect ratio
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
-      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+      const naturalWidth = img.naturalWidth;
+      const naturalHeight = img.naturalHeight;
+      const aspectRatio = naturalWidth / naturalHeight;
+      
+      // Calculate maximum container size based on viewport
+      const maxWidth = Math.min(window.innerWidth * 0.9, 1200);
+      const maxHeight = Math.min(window.innerHeight * 0.8, 800);
+      
+      let containerWidth, containerHeight, imageDisplayWidth, imageDisplayHeight;
+      
+      // Fit container to image aspect ratio within viewport constraints
+      if (aspectRatio > maxWidth / maxHeight) {
+        // Image is wider - constrain by width
+        containerWidth = maxWidth;
+        containerHeight = maxWidth / aspectRatio;
+        imageDisplayWidth = containerWidth;
+        imageDisplayHeight = containerHeight;
+      } else {
+        // Image is taller - constrain by height
+        containerHeight = maxHeight;
+        containerWidth = maxHeight * aspectRatio;
+        imageDisplayWidth = containerWidth;
+        imageDisplayHeight = containerHeight;
+      }
+      
+      setImageSize({ width: naturalWidth, height: naturalHeight });
+      setContainerSize({ width: containerWidth, height: containerHeight });
+      setDisplaySize({ width: imageDisplayWidth, height: imageDisplayHeight });
     };
     img.src = imageSrc;
   }, [imageSrc]);
 
-  // Calculate grid spacing based on image size
-  const gridSizeX = imageSize.width > 0 ? imageSize.width / 4 : 100;
-  const gridSizeY = imageSize.height > 0 ? imageSize.height / 4 : 100;
+  // Calculate grid spacing based on display image size (1/4 of displayed dimensions)
+  const gridSizeX = displaySize.width > 0 ? displaySize.width / 4 : 100;
+  const gridSizeY = displaySize.height > 0 ? displaySize.height / 4 : 100;
 
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return; // Only left mouse button
@@ -225,6 +252,8 @@ export function ImageViewer({ imageSrc }) {
   return (
     <ViewerContainer
       ref={containerRef}
+      $containerWidth={containerSize.width}
+      $containerHeight={containerSize.height}
       onMouseDown={handleMouseDown}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
@@ -241,6 +270,8 @@ export function ImageViewer({ imageSrc }) {
           src={imageSrc}
           alt="Psychedelic Flora"
           draggable="false"
+          $imageWidth={displaySize.width}
+          $imageHeight={displaySize.height}
         />
       </ContentContainer>
     </ViewerContainer>
