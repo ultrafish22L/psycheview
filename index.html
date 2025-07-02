@@ -848,11 +848,16 @@
                     formData.append('output_format', this.config.output_format);
                     formData.append('creativity', this.config.creativity.toString());
                     
-                    // Add outpaint directions (required by API)
-                    formData.append('left', '32');
-                    formData.append('right', '32');
-                    formData.append('up', '32');
-                    formData.append('bottom', '32');
+                    // Add outpaint directions based on block position
+                    const directions = this.getOutpaintDirections(blockKey);
+                    const blockSize = Math.round(Math.min(this.imageWidth / this.blockDivisions, this.imageHeight / this.blockDivisions));
+                    
+                    console.log(`🎯 Block ${blockKey} outpaint directions:`, directions, `(${blockSize}px each)`);
+                    
+                    // Only add the directions that are needed for this specific block
+                    directions.forEach(direction => {
+                        formData.append(direction, blockSize.toString());
+                    });
                     
                     if (this.config.seed) {
                         formData.append('seed', this.config.seed.toString());
