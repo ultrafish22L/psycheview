@@ -66,12 +66,6 @@ const TiledBackground = styled.div`
   background-repeat: repeat;
   opacity: 0.6;
   mix-blend-mode: multiply;
-  animation: backgroundFloat 30s linear infinite;
-  
-  @keyframes backgroundFloat {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(-200px, -200px); }
-  }
 `;
 
 const GridOverlay = styled.div`
