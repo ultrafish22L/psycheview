@@ -495,6 +495,8 @@
             <button id="autoGenToggleBtn" style="margin-left: 10px; background: #757575;">Auto-Gen: OFF</button>
             <button id="apiCallsToggleBtn" style="margin-left: 10px; background: #4CAF50;">API: ON</button>
             <button id="testPanBtn" style="margin-left: 10px; background: #ff9500;">Test Pan</button>
+            <button id="imageOpacityBtn" style="margin-left: 10px; background: #757575;">Image: 100%</button>
+            <button id="blockLayerBtn" style="margin-left: 10px; background: #757575;">Blocks: Under</button>
             <label style="margin-left: 15px; color: white; font-size: 12px;">
                 Block Size: 
                 <select id="blockSizeSelect" style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
@@ -589,6 +591,8 @@
                 this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
                 this.apiCallsToggleBtn = document.getElementById('apiCallsToggleBtn');
                 this.testPanBtn = document.getElementById('testPanBtn');
+                this.imageOpacityBtn = document.getElementById('imageOpacityBtn');
+                this.blockLayerBtn = document.getElementById('blockLayerBtn');
                 this.blockSizeSelect = document.getElementById('blockSizeSelect');
                 
                 // Debug preview elements
@@ -628,6 +632,12 @@
                 
                 // API calls control
                 this.apiCallsEnabled = true;
+                
+                // Image opacity control (false = 100%, true = 50%)
+                this.imageTranslucent = false;
+                
+                // Block layer control (false = under image, true = over image)
+                this.blocksOverImage = false;
                 
                 // Mode system
                 this.isLiveMode = true; // Start in live mode by default
@@ -759,6 +769,14 @@
 
                 if (this.testPanBtn) {
                     this.testPanBtn.addEventListener('click', () => this.testPan());
+                }
+                
+                if (this.imageOpacityBtn) {
+                    this.imageOpacityBtn.addEventListener('click', () => this.toggleImageOpacity());
+                }
+                
+                if (this.blockLayerBtn) {
+                    this.blockLayerBtn.addEventListener('click', () => this.toggleBlockLayer());
                 }
                 
                 if (this.debugPreviewClose) {
@@ -1477,6 +1495,41 @@
                 console.log('🔄 Blocks will', this.apiCallsEnabled ? 'make real API calls' : 'show grey loading blocks only');
             }
             
+            // Toggle image opacity
+            toggleImageOpacity() {
+                this.imageTranslucent = !this.imageTranslucent;
+                
+                if (this.imageOpacityBtn) {
+                    this.imageOpacityBtn.textContent = this.imageTranslucent ? 'Image: 50%' : 'Image: 100%';
+                    this.imageOpacityBtn.style.background = this.imageTranslucent ? '#4CAF50' : '#757575';
+                }
+                
+                // Apply opacity to main image
+                if (this.image) {
+                    this.image.style.opacity = this.imageTranslucent ? '0.5' : '1.0';
+                }
+                
+                console.log('🔄 Image opacity:', this.imageTranslucent ? '50%' : '100%');
+            }
+            
+            // Toggle block layer (under/over image)
+            toggleBlockLayer() {
+                this.blocksOverImage = !this.blocksOverImage;
+                
+                if (this.blockLayerBtn) {
+                    this.blockLayerBtn.textContent = this.blocksOverImage ? 'Blocks: Over' : 'Blocks: Under';
+                    this.blockLayerBtn.style.background = this.blocksOverImage ? '#4CAF50' : '#757575';
+                }
+                
+                // Update z-index of all existing outfill blocks
+                const existingBlocks = document.querySelectorAll('[id^="outfill-"]');
+                existingBlocks.forEach(block => {
+                    block.style.zIndex = this.blocksOverImage ? '4' : '2';
+                });
+                
+                console.log('🔄 Block layer:', this.blocksOverImage ? 'OVER image' : 'UNDER image');
+            }
+            
             // Update block size configuration
             updateBlockSize() {
                 const newBlockDivisions = parseInt(this.blockSizeSelect.value);
@@ -1600,7 +1653,7 @@
                     blockElement = document.createElement('div');
                     blockElement.id = `outfill-${blockKey}`;
                     blockElement.style.position = 'absolute';
-                    blockElement.style.zIndex = '2';
+                    blockElement.style.zIndex = this.blocksOverImage ? '4' : '2';
                     this.content.appendChild(blockElement);
                 }
                 
