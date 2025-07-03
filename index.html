@@ -1525,9 +1525,7 @@
                 const originalGridSizeX = this.imageWidth / this.blockDivisions;
                 const originalGridSizeY = this.imageHeight / this.blockDivisions;
                 
-                // No scaling - use original image coordinates
-                // const scaleX = this.containerWidth / this.imageWidth;
-                // const scaleY = this.containerHeight / this.imageHeight;
+                // Use original image coordinates - container will handle scaling automatically
                 
                 // Calculate block position in original coordinates with 50% overlap
                 // For outpaint blocks, we need 50% overlap with existing content
@@ -1551,11 +1549,11 @@
                     imageWidth: this.imageWidth, imageHeight: this.imageHeight
                 });
                 
-                // Use original coordinates and sizes - no scaling
+                // Use original coordinates - container scaling will be applied automatically
                 const blockLeft = originalBlockLeft;
                 const blockTop = originalBlockTop;
-                const gridSizeX = originalGridSizeX; // 1600px for blocksize=1
-                const gridSizeY = originalGridSizeY; // 1024px for blocksize=1
+                const gridSizeX = originalGridSizeX; // Original size - container scales automatically
+                const gridSizeY = originalGridSizeY; // Original size - container scales automatically
                 
                 let blockElement = document.getElementById(`outfill-${blockKey}`);
                 if (!blockElement) {
@@ -1909,33 +1907,33 @@
                     
                     if (directions.includes('right')) {
                         // Simple: outpaint image extends from left edge of original to 1600px past its right side
-                        console.log(`🔧 Right outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
+                        console.log(`🔧 Right outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
                         
-                        // Just set the background image with natural sizing - no special positioning
+                        // Use original dimensions - container scaling will be applied automatically
                         blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
                         blockElement.style.backgroundPosition = `0px 0px`;
                         
                     } else if (directions.includes('left')) {
                         // Simple: left outpaint image extends from 1600px left of original to its right edge
-                        console.log(`🔧 Left outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
+                        console.log(`🔧 Left outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
                         
-                        // Just set the background image with natural sizing - no special positioning
+                        // Use original dimensions - container scaling will be applied automatically
                         blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
                         blockElement.style.backgroundPosition = `0px 0px`;
                         
                     } else if (directions.includes('bottom')) {
                         // Simple: bottom outpaint image extends from top edge of original to 1024px below its bottom
-                        console.log(`🔧 Bottom outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
+                        console.log(`🔧 Bottom outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
                         
-                        // Just set the background image with natural sizing - no special positioning
+                        // Use original dimensions - container scaling will be applied automatically
                         blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
                         blockElement.style.backgroundPosition = `0px -${this.imageHeight}px`; // Skip original height to show outpaint portion
                         
                     } else if (directions.includes('up')) {
                         // Simple: up outpaint image extends from 1024px above original to its bottom edge
-                        console.log(`🔧 Up outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
+                        console.log(`🔧 Up outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
                         
-                        // Just set the background image with natural sizing - no special positioning
+                        // Use original dimensions - container scaling will be applied automatically
                         blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
                         blockElement.style.backgroundPosition = `0px 0px`;
                     }
