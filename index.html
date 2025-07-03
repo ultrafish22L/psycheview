@@ -493,6 +493,7 @@
             <button id="testApiBtn" style="margin-left: 10px; background: #ff6b6b;">Test API</button>
             <button id="debugToggleBtn" style="margin-left: 10px; background: #4CAF50;">Debug: ON</button>
             <button id="autoGenToggleBtn" style="margin-left: 10px; background: #757575;">Auto-Gen: OFF</button>
+            <button id="apiCallsToggleBtn" style="margin-left: 10px; background: #4CAF50;">API: ON</button>
             <button id="testPanBtn" style="margin-left: 10px; background: #ff9500;">Test Pan</button>
             <label style="margin-left: 15px; color: white; font-size: 12px;">
                 Block Size: 
@@ -586,6 +587,7 @@
                 this.testApiBtn = document.getElementById('testApiBtn');
                 this.debugToggleBtn = document.getElementById('debugToggleBtn');
                 this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
+                this.apiCallsToggleBtn = document.getElementById('apiCallsToggleBtn');
                 this.testPanBtn = document.getElementById('testPanBtn');
                 this.blockSizeSelect = document.getElementById('blockSizeSelect');
                 
@@ -623,6 +625,9 @@
                 
                 // Auto-generation control (default: false - blocks are NOT added automatically)
                 this.autoGenerateBlocks = false;
+                
+                // API calls control
+                this.apiCallsEnabled = true;
                 
                 // Mode system
                 this.isLiveMode = true; // Start in live mode by default
@@ -748,6 +753,10 @@
                     this.autoGenToggleBtn.addEventListener('click', () => this.toggleAutoGeneration());
                 }
 
+                if (this.apiCallsToggleBtn) {
+                    this.apiCallsToggleBtn.addEventListener('click', () => this.toggleApiCalls());
+                }
+
                 if (this.testPanBtn) {
                     this.testPanBtn.addEventListener('click', () => this.testPan());
                 }
@@ -809,6 +818,19 @@
             async testApiCall() {
                 if (!this.apiKey) {
                     alert('Please set an API key first');
+                    return;
+                }
+
+                if (!this.apiCallsEnabled) {
+                    console.log('🚫 API calls disabled - creating grey loading block only');
+                    this.testApiBtn.textContent = 'Test API';
+                    this.testApiBtn.disabled = false;
+                    
+                    // Create grey loading block for testing scaling
+                    const testBlockKey = '1,0';
+                    this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
+                    this.updateOutfillBlock(testBlockKey, this.outfillBlocks.get(testBlockKey));
+                    console.log('🎯 Grey loading block created for scaling test');
                     return;
                 }
                 
@@ -1436,6 +1458,19 @@
                 console.log('🔄 Auto-generation:', this.autoGenerateBlocks ? 'ENABLED' : 'DISABLED');
                 console.log('🔄 Blocks will', this.autoGenerateBlocks ? 'be automatically added when visible' : 'NOT be automatically added (manual only)');
             }
+
+            // Toggle API calls
+            toggleApiCalls() {
+                this.apiCallsEnabled = !this.apiCallsEnabled;
+
+                if (this.apiCallsToggleBtn) {
+                    this.apiCallsToggleBtn.textContent = this.apiCallsEnabled ? 'API: ON' : 'API: OFF';
+                    this.apiCallsToggleBtn.style.background = this.apiCallsEnabled ? '#4CAF50' : '#757575';
+                }
+
+                console.log('🔄 API calls:', this.apiCallsEnabled ? 'ENABLED' : 'DISABLED');
+                console.log('🔄 Blocks will', this.apiCallsEnabled ? 'make real API calls' : 'show grey loading blocks only');
+            }
             
             // Update block size configuration
             updateBlockSize() {
@@ -1566,10 +1601,10 @@
                 
                 // Apply special positioning for block (1,0) - right outpaint
                 if (blockKey === '1,0') {
-                    // Block (1,0) should start at original image's top-left corner
+                    // Block (1,0) should align with original image (both are in same scaled container)
                     blockElement.style.left = `0px`;
                     blockElement.style.top = `0px`;
-                    // Block should be twice as wide as original and same height as original
+                    // Size to match original image dimensions (container scaling handles the rest)
                     blockElement.style.width = `${this.imageWidth * 2}px`;
                     blockElement.style.height = `${this.imageHeight}px`;
                 } else {
@@ -1916,13 +1951,21 @@
                     
                     console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
                     
-                    // For block (1,0) - right outpaint: set background sizing
+                    // For block (1,0) - right outpaint: set background sizing and adjust block size
                     if (directions.includes('right')) {
-                        // Background should show the full generated image
-                        blockElement.style.backgroundSize = `${this.imageWidth * 2}px ${this.imageHeight}px`;
+                        // Calculate proper width based on generated image aspect ratio
+                        const generatedAspectRatio = generatedDimensions.width / generatedDimensions.height;
+                        const scaledWidth = this.imageHeight * generatedAspectRatio;
+                        
+                        // Update block size to match actual generated image aspect ratio
+                        blockElement.style.width = `${scaledWidth}px`;
+                        blockElement.style.height = `${this.imageHeight}px`;
+                        
+                        // Background should show the full generated image at correct scale
+                        blockElement.style.backgroundSize = `${scaledWidth}px ${this.imageHeight}px`;
                         blockElement.style.backgroundPosition = `0px 0px`;
                         
-                        console.log(`🔧 Block (1,0) background sized to ${this.imageWidth * 2}x${this.imageHeight}`);
+                        console.log(`🔧 Block (1,0) resized to ${scaledWidth}x${this.imageHeight} (aspect ratio: ${generatedAspectRatio})`);
                     }
                     
                     console.log(`✅ Block ${blockKey} background sizing updated`);
@@ -1932,6 +1975,11 @@
             }
 
             async callStabilityAPI(blockKey) {
+                if (!this.apiCallsEnabled) {
+                    console.log('🚫 API calls disabled - keeping grey loading block');
+                    return;
+                }
+                
                 if (!this.apiKey) {
                     throw new Error('No API key available');
                 }
