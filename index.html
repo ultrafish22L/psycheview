@@ -826,6 +826,11 @@
                     this.testApiBtn.textContent = 'Test API';
                     this.testApiBtn.disabled = false;
                     
+                    // Clear existing blocks first to test new sizing
+                    this.outfillBlocks.clear();
+                    const existingBlocks = document.querySelectorAll('[id^="outfill-"]');
+                    existingBlocks.forEach(block => block.remove());
+                    
                     // Create grey loading block for testing scaling
                     const testBlockKey = '1,0';
                     this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
@@ -1601,12 +1606,12 @@
                 
                 // Apply special positioning for block (1,0) - right outpaint
                 if (blockKey === '1,0') {
-                    // Block (1,0) should align with original image (both are in same scaled container)
+                    // Block (1,0) left/top/bottom align with original, right extends to double width
                     blockElement.style.left = `0px`;
                     blockElement.style.top = `0px`;
-                    // Size to match original image dimensions (container scaling handles the rest)
-                    blockElement.style.width = `${this.imageWidth * 2}px`;
-                    blockElement.style.height = `${this.imageHeight}px`;
+                    // Size: double width, same height as displayed container (container scaling handles zoom)
+                    blockElement.style.width = `${this.containerWidth * 2}px`;
+                    blockElement.style.height = `${this.containerHeight}px`;
                 } else {
                     // Default grid positioning for other blocks
                     blockElement.style.left = blockLeft + 'px';
