@@ -1525,9 +1525,9 @@
                 const originalGridSizeX = this.imageWidth / this.blockDivisions;
                 const originalGridSizeY = this.imageHeight / this.blockDivisions;
                 
-                // Calculate scaling factors to match displayed image size
-                const scaleX = this.containerWidth / this.imageWidth;
-                const scaleY = this.containerHeight / this.imageHeight;
+                // No scaling - use original image coordinates
+                // const scaleX = this.containerWidth / this.imageWidth;
+                // const scaleY = this.containerHeight / this.imageHeight;
                 
                 // Calculate block position in original coordinates with 50% overlap
                 // For outpaint blocks, we need 50% overlap with existing content
@@ -1551,11 +1551,11 @@
                     imageWidth: this.imageWidth, imageHeight: this.imageHeight
                 });
                 
-                // Scale to match displayed image size
-                const blockLeft = originalBlockLeft * scaleX;
-                const blockTop = originalBlockTop * scaleY;
-                const gridSizeX = originalGridSizeX * scaleX;
-                const gridSizeY = originalGridSizeY * scaleY;
+                // Use original coordinates and sizes - no scaling
+                const blockLeft = originalBlockLeft;
+                const blockTop = originalBlockTop;
+                const gridSizeX = originalGridSizeX; // 1600px for blocksize=1
+                const gridSizeY = originalGridSizeY; // 1024px for blocksize=1
                 
                 let blockElement = document.getElementById(`outfill-${blockKey}`);
                 if (!blockElement) {
@@ -1908,87 +1908,36 @@
                     console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
                     
                     if (directions.includes('right')) {
-                        // For right outpaint: 
-                        // Generated image (3200x1024) = Original (1600x1024) + Outpaint (1600x1024)
-                        // Block shows 50% overlap + 100% new content
-                        // We need to position the background so the right 50% of original + 100% outpaint shows
+                        // Simple: outpaint image extends from left edge of original to 1600px past its right side
+                        console.log(`🔧 Right outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
                         
-                        const originalWidth = this.imageWidth; // 1600
-                        const overlapRatio = 0.5; // 50% overlap
-                        
-                        // Calculate the portion of the generated image that should be visible
-                        const visibleOriginalWidth = originalWidth * overlapRatio; // 800px of original
-                        const outpaintWidth = generatedDimensions.width - originalWidth; // 1600px of outpaint
-                        const totalVisibleWidth = visibleOriginalWidth + outpaintWidth; // 2400px total
-                        
-                        // Scale to fit the block
-                        const scale = blockWidth / totalVisibleWidth;
-                        const scaledImageWidth = generatedDimensions.width * scale;
-                        const scaledImageHeight = generatedDimensions.height * scale;
-                        
-                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
-                        
-                        // Position so we skip the left 50% of the original image
-                        const skipWidth = originalWidth * (1 - overlapRatio) * scale; // Skip left 800px
-                        blockElement.style.backgroundPosition = `-${skipWidth}px 0px`;
-                        
-                        console.log(`🔧 Right outpaint UV: skip=${skipWidth.toFixed(1)}px, scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        // Just set the background image with natural sizing - no special positioning
+                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
+                        blockElement.style.backgroundPosition = `0px 0px`;
                         
                     } else if (directions.includes('left')) {
-                        // For left outpaint: similar logic but from the left side
-                        const originalWidth = this.imageWidth;
-                        const overlapRatio = 0.5;
+                        // Simple: left outpaint image extends from 1600px left of original to its right edge
+                        console.log(`🔧 Left outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
                         
-                        const visibleOriginalWidth = originalWidth * overlapRatio;
-                        const outpaintWidth = generatedDimensions.width - originalWidth;
-                        const totalVisibleWidth = visibleOriginalWidth + outpaintWidth;
-                        
-                        const scale = blockWidth / totalVisibleWidth;
-                        const scaledImageWidth = generatedDimensions.width * scale;
-                        const scaledImageHeight = generatedDimensions.height * scale;
-                        
-                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
-                        blockElement.style.backgroundPosition = '0px 0px'; // Show from the left
-                        
-                        console.log(`🔧 Left outpaint UV: scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        // Just set the background image with natural sizing - no special positioning
+                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
+                        blockElement.style.backgroundPosition = `0px 0px`;
                         
                     } else if (directions.includes('bottom')) {
-                        // For bottom outpaint: similar logic for vertical
-                        const originalHeight = this.imageHeight;
-                        const overlapRatio = 0.5;
+                        // Simple: bottom outpaint image extends from top edge of original to 1024px below its bottom
+                        console.log(`🔧 Bottom outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
                         
-                        const visibleOriginalHeight = originalHeight * overlapRatio;
-                        const outpaintHeight = generatedDimensions.height - originalHeight;
-                        const totalVisibleHeight = visibleOriginalHeight + outpaintHeight;
-                        
-                        const scale = blockHeight / totalVisibleHeight;
-                        const scaledImageWidth = generatedDimensions.width * scale;
-                        const scaledImageHeight = generatedDimensions.height * scale;
-                        
-                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
-                        
-                        const skipHeight = originalHeight * (1 - overlapRatio) * scale;
-                        blockElement.style.backgroundPosition = `0px -${skipHeight}px`;
-                        
-                        console.log(`🔧 Bottom outpaint UV: skip=${skipHeight.toFixed(1)}px, scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        // Just set the background image with natural sizing - no special positioning
+                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
+                        blockElement.style.backgroundPosition = `0px -${this.imageHeight}px`; // Skip original height to show outpaint portion
                         
                     } else if (directions.includes('up')) {
-                        // For up outpaint: similar logic for vertical from top
-                        const originalHeight = this.imageHeight;
-                        const overlapRatio = 0.5;
+                        // Simple: up outpaint image extends from 1024px above original to its bottom edge
+                        console.log(`🔧 Up outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, no UV mapping`);
                         
-                        const visibleOriginalHeight = originalHeight * overlapRatio;
-                        const outpaintHeight = generatedDimensions.height - originalHeight;
-                        const totalVisibleHeight = visibleOriginalHeight + outpaintHeight;
-                        
-                        const scale = blockHeight / totalVisibleHeight;
-                        const scaledImageWidth = generatedDimensions.width * scale;
-                        const scaledImageHeight = generatedDimensions.height * scale;
-                        
-                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
-                        blockElement.style.backgroundPosition = '0px 0px'; // Show from the top
-                        
-                        console.log(`🔧 Up outpaint UV: scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        // Just set the background image with natural sizing - no special positioning
+                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
+                        blockElement.style.backgroundPosition = `0px 0px`;
                     }
                     
                     console.log(`✅ Block ${blockKey} background sizing updated`);
