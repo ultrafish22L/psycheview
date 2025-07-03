@@ -1905,23 +1905,25 @@
                     
                     console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
                     
-                    // Keep the full generated image dimensions but scale to match original image height
-                    console.log(`🔧 Scaling outpaint to match original image height while preserving aspect ratio`);
+                    // For block (1,0) - right outpaint: position and size to align with original image
+                    console.log(`🔧 Setting block (1,0) to align with original image`);
                     
-                    // Calculate scale factor to match original image height
-                    const heightScale = this.imageHeight / generatedDimensions.height;
-                    const scaledWidth = generatedDimensions.width * heightScale;
-                    const scaledHeight = this.imageHeight;
-                    
-                    console.log(`🔧 Height scale factor: ${heightScale}, Scaled dimensions: ${scaledWidth}x${scaledHeight}`);
-                    
-                    // Use the scaled dimensions that preserve aspect ratio
-                    blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
-                    blockElement.style.backgroundPosition = `0px 0px`;
-                    
-                    // Set block size to scaled dimensions to maintain aspect ratio
-                    blockElement.style.width = `${scaledWidth}px`;
-                    blockElement.style.height = `${scaledHeight}px`;
+                    if (directions.includes('right')) {
+                        // Block (1,0) should start at original image's top-left corner
+                        blockElement.style.left = `0px`;
+                        blockElement.style.top = `0px`;
+                        
+                        // Block should be twice as wide as original (contains original + outpaint)
+                        // and same height as original
+                        blockElement.style.width = `${this.imageWidth * 2}px`;
+                        blockElement.style.height = `${this.imageHeight}px`;
+                        
+                        // Background should show the full generated image
+                        blockElement.style.backgroundSize = `${this.imageWidth * 2}px ${this.imageHeight}px`;
+                        blockElement.style.backgroundPosition = `0px 0px`;
+                        
+                        console.log(`🔧 Block (1,0) positioned at 0,0 with size ${this.imageWidth * 2}x${this.imageHeight}`);
+                    }
                     
                     console.log(`✅ Block ${blockKey} background sizing updated`);
                 } else {
