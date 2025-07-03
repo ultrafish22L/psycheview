@@ -1905,17 +1905,23 @@
                     
                     console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
                     
-                    // Show the full generated image exactly as it appears in debug preview window
-                    console.log(`🔧 Setting full generated image: ${generatedDimensions.width}x${generatedDimensions.height}`);
+                    // Keep the full generated image dimensions but scale to match original image height
+                    console.log(`🔧 Scaling outpaint to match original image height while preserving aspect ratio`);
                     
-                    // Use the exact generated dimensions - this will show the full outpaint image
-                    // exactly as it appears in the debug preview window
+                    // Calculate scale factor to match original image height
+                    const heightScale = this.imageHeight / generatedDimensions.height;
+                    const scaledWidth = generatedDimensions.width * heightScale;
+                    const scaledHeight = this.imageHeight;
+                    
+                    console.log(`🔧 Height scale factor: ${heightScale}, Scaled dimensions: ${scaledWidth}x${scaledHeight}`);
+                    
+                    // Use the scaled dimensions that preserve aspect ratio
                     blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
                     blockElement.style.backgroundPosition = `0px 0px`;
                     
-                    // Update block size to match generated image dimensions
-                    blockElement.style.width = `${generatedDimensions.width}px`;
-                    blockElement.style.height = `${generatedDimensions.height}px`;
+                    // Set block size to scaled dimensions to maintain aspect ratio
+                    blockElement.style.width = `${scaledWidth}px`;
+                    blockElement.style.height = `${scaledHeight}px`;
                     
                     console.log(`✅ Block ${blockKey} background sizing updated`);
                 } else {
