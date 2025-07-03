@@ -871,7 +871,15 @@
                     // Prepare form data
                     const formData = new FormData();
                     formData.append('image', imageBlob, 'image.jpg');
-                    formData.append('mask', maskBlob, 'mask.png');
+                    
+                    // Only add mask if blockDivisions > 1 (when we need partial masking)
+                    if (this.blockDivisions > 1) {
+                        formData.append('mask', maskBlob, 'mask.png');
+                        console.log('🎭 Adding mask for partial outpaint (blockDivisions > 1)');
+                    } else {
+                        console.log('🎭 Skipping mask for full image outpaint (blockDivisions = 1)');
+                    }
+                    
                     formData.append('prompt', this.config.prompt);
                     formData.append('output_format', this.config.output_format);
                     formData.append('creativity', this.config.creativity.toString());
@@ -1017,14 +1025,21 @@
                     const imageUrl = URL.createObjectURL(imageBlob2);
                     console.log('✅ Generated image URL:', imageUrl);
                     
-                    // Get image dimensions
+                    // Get image dimensions and adjust block positioning
                     const img = new Image();
                     img.onload = () => {
-                        console.log('📏 Generated image dimensions:', {
+                        const generatedDimensions = {
                             width: img.width,
                             height: img.height,
                             aspectRatio: Math.round(img.width / img.height * 100) / 100
-                        });
+                        };
+                        console.log('📏 Generated image dimensions:', generatedDimensions);
+                        
+                        // Adjust block positioning based on actual returned image dimensions
+                        const block = this.outfillBlocks.get(blockKey);
+                        if (block) {
+                            this.adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions);
+                        }
                     };
                     img.src = imageUrl;
                     
@@ -1870,6 +1885,116 @@
                 console.log(`🎯 Block ${blockKey} analysis: gridX=${gridX}, gridY=${gridY}, blockDivisions=${this.blockDivisions}`);
                 console.log(`🎯 Outpaint directions for block ${blockKey}:`, directions);
                 return directions;
+            }
+
+            adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions) {
+                const directions = this.getOutpaintDirections(blockKey);
+                
+                console.log(`🔧 Adjusting block ${blockKey} background sizing for actual dimensions:`, generatedDimensions);
+                console.log(`🔧 Original image dimensions: ${this.imageWidth}x${this.imageHeight}`);
+                console.log(`🔧 Outpaint directions:`, directions);
+                
+                // Update the block element background sizing to account for actual generated image dimensions
+                const blockElement = document.getElementById(`outfill-${blockKey}`);
+                if (blockElement) {
+                    // For outpaint images, we need to position the background correctly
+                    // The generated image contains both the original content and the outpainted content
+                    
+                    // Get current block dimensions
+                    const blockRect = blockElement.getBoundingClientRect();
+                    const blockWidth = parseFloat(blockElement.style.width);
+                    const blockHeight = parseFloat(blockElement.style.height);
+                    
+                    console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
+                    
+                    if (directions.includes('right')) {
+                        // For right outpaint: 
+                        // Generated image (3200x1024) = Original (1600x1024) + Outpaint (1600x1024)
+                        // Block shows 50% overlap + 100% new content
+                        // We need to position the background so the right 50% of original + 100% outpaint shows
+                        
+                        const originalWidth = this.imageWidth; // 1600
+                        const overlapRatio = 0.5; // 50% overlap
+                        
+                        // Calculate the portion of the generated image that should be visible
+                        const visibleOriginalWidth = originalWidth * overlapRatio; // 800px of original
+                        const outpaintWidth = generatedDimensions.width - originalWidth; // 1600px of outpaint
+                        const totalVisibleWidth = visibleOriginalWidth + outpaintWidth; // 2400px total
+                        
+                        // Scale to fit the block
+                        const scale = blockWidth / totalVisibleWidth;
+                        const scaledImageWidth = generatedDimensions.width * scale;
+                        const scaledImageHeight = generatedDimensions.height * scale;
+                        
+                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
+                        
+                        // Position so we skip the left 50% of the original image
+                        const skipWidth = originalWidth * (1 - overlapRatio) * scale; // Skip left 800px
+                        blockElement.style.backgroundPosition = `-${skipWidth}px 0px`;
+                        
+                        console.log(`🔧 Right outpaint UV: skip=${skipWidth.toFixed(1)}px, scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        
+                    } else if (directions.includes('left')) {
+                        // For left outpaint: similar logic but from the left side
+                        const originalWidth = this.imageWidth;
+                        const overlapRatio = 0.5;
+                        
+                        const visibleOriginalWidth = originalWidth * overlapRatio;
+                        const outpaintWidth = generatedDimensions.width - originalWidth;
+                        const totalVisibleWidth = visibleOriginalWidth + outpaintWidth;
+                        
+                        const scale = blockWidth / totalVisibleWidth;
+                        const scaledImageWidth = generatedDimensions.width * scale;
+                        const scaledImageHeight = generatedDimensions.height * scale;
+                        
+                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
+                        blockElement.style.backgroundPosition = '0px 0px'; // Show from the left
+                        
+                        console.log(`🔧 Left outpaint UV: scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        
+                    } else if (directions.includes('bottom')) {
+                        // For bottom outpaint: similar logic for vertical
+                        const originalHeight = this.imageHeight;
+                        const overlapRatio = 0.5;
+                        
+                        const visibleOriginalHeight = originalHeight * overlapRatio;
+                        const outpaintHeight = generatedDimensions.height - originalHeight;
+                        const totalVisibleHeight = visibleOriginalHeight + outpaintHeight;
+                        
+                        const scale = blockHeight / totalVisibleHeight;
+                        const scaledImageWidth = generatedDimensions.width * scale;
+                        const scaledImageHeight = generatedDimensions.height * scale;
+                        
+                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
+                        
+                        const skipHeight = originalHeight * (1 - overlapRatio) * scale;
+                        blockElement.style.backgroundPosition = `0px -${skipHeight}px`;
+                        
+                        console.log(`🔧 Bottom outpaint UV: skip=${skipHeight.toFixed(1)}px, scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                        
+                    } else if (directions.includes('up')) {
+                        // For up outpaint: similar logic for vertical from top
+                        const originalHeight = this.imageHeight;
+                        const overlapRatio = 0.5;
+                        
+                        const visibleOriginalHeight = originalHeight * overlapRatio;
+                        const outpaintHeight = generatedDimensions.height - originalHeight;
+                        const totalVisibleHeight = visibleOriginalHeight + outpaintHeight;
+                        
+                        const scale = blockHeight / totalVisibleHeight;
+                        const scaledImageWidth = generatedDimensions.width * scale;
+                        const scaledImageHeight = generatedDimensions.height * scale;
+                        
+                        blockElement.style.backgroundSize = `${scaledImageWidth}px ${scaledImageHeight}px`;
+                        blockElement.style.backgroundPosition = '0px 0px'; // Show from the top
+                        
+                        console.log(`🔧 Up outpaint UV: scale=${scale.toFixed(3)}, size=${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`);
+                    }
+                    
+                    console.log(`✅ Block ${blockKey} background sizing updated`);
+                } else {
+                    console.error(`❌ Block element outfill-${blockKey} not found for background sizing`);
+                }
             }
 
             async callStabilityAPI(blockKey) {
