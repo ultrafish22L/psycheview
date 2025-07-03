@@ -1564,10 +1564,21 @@
                     this.content.appendChild(blockElement);
                 }
                 
-                blockElement.style.left = blockLeft + 'px';
-                blockElement.style.top = blockTop + 'px';
-                blockElement.style.width = gridSizeX + 'px';
-                blockElement.style.height = gridSizeY + 'px';
+                // Apply special positioning for block (1,0) - right outpaint
+                if (blockKey === '1,0') {
+                    // Block (1,0) should start at original image's top-left corner
+                    blockElement.style.left = `0px`;
+                    blockElement.style.top = `0px`;
+                    // Block should be twice as wide as original and same height as original
+                    blockElement.style.width = `${this.imageWidth * 2}px`;
+                    blockElement.style.height = `${this.imageHeight}px`;
+                } else {
+                    // Default grid positioning for other blocks
+                    blockElement.style.left = blockLeft + 'px';
+                    blockElement.style.top = blockTop + 'px';
+                    blockElement.style.width = gridSizeX + 'px';
+                    blockElement.style.height = gridSizeY + 'px';
+                }
                 
                 if (block.status === 'ready' || block.status === 'completed') {
                     console.log('🖼️ Setting block image:', blockKey, 'imageData:', block.imageData.substring(0, 50) + '...');
@@ -1905,24 +1916,13 @@
                     
                     console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
                     
-                    // For block (1,0) - right outpaint: position and size to align with original image
-                    console.log(`🔧 Setting block (1,0) to align with original image`);
-                    
+                    // For block (1,0) - right outpaint: set background sizing
                     if (directions.includes('right')) {
-                        // Block (1,0) should start at original image's top-left corner
-                        blockElement.style.left = `0px`;
-                        blockElement.style.top = `0px`;
-                        
-                        // Block should be twice as wide as original (contains original + outpaint)
-                        // and same height as original
-                        blockElement.style.width = `${this.imageWidth * 2}px`;
-                        blockElement.style.height = `${this.imageHeight}px`;
-                        
                         // Background should show the full generated image
                         blockElement.style.backgroundSize = `${this.imageWidth * 2}px ${this.imageHeight}px`;
                         blockElement.style.backgroundPosition = `0px 0px`;
                         
-                        console.log(`🔧 Block (1,0) positioned at 0,0 with size ${this.imageWidth * 2}x${this.imageHeight}`);
+                        console.log(`🔧 Block (1,0) background sized to ${this.imageWidth * 2}x${this.imageHeight}`);
                     }
                     
                     console.log(`✅ Block ${blockKey} background sizing updated`);
