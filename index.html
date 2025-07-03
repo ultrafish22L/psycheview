@@ -1906,28 +1906,34 @@
                     console.log(`🔧 Block dimensions: ${blockWidth}x${blockHeight}, Generated: ${generatedDimensions.width}x${generatedDimensions.height}`);
                     
                     if (directions.includes('right')) {
-                        // Simple: outpaint image extends from left edge of original to 1600px past its right side
-                        console.log(`🔧 Right outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
+                        // Right outpaint: show only the new outpaint portion 
+                        console.log(`🔧 Right outpaint: Block width ${this.imageWidth}px, height ${this.imageHeight}px`);
                         
-                        // Use original dimensions - container scaling will be applied automatically
-                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
-                        blockElement.style.backgroundPosition = `0px 0px`;
+                        // The generated image is 3200x1024 (original 1600 + outpaint 1600)
+                        // We want to show only the outpaint portion (right 1600px) in a 1600px wide block
+                        // So background should be sized to 3200px wide, positioned to show right half
+                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${this.imageHeight}px`;
+                        blockElement.style.backgroundPosition = `-${generatedDimensions.width / 2}px 0px`; // Show right half
                         
                     } else if (directions.includes('left')) {
-                        // Simple: left outpaint image extends from 1600px left of original to its right edge
-                        console.log(`🔧 Left outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
+                        // Left outpaint: generated image contains outpaint + original
+                        console.log(`🔧 Left outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, sizing to match original`);
                         
-                        // Use original dimensions - container scaling will be applied automatically
-                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
-                        blockElement.style.backgroundPosition = `0px 0px`;
+                        // Background sized so original portion (right half) matches the actual original
+                        const backgroundWidth = this.imageWidth * 2; // Scale to fit both outpaint + original
+                        const backgroundHeight = this.imageHeight;
+                        blockElement.style.backgroundSize = `${backgroundWidth}px ${backgroundHeight}px`;
+                        blockElement.style.backgroundPosition = `0px 0px`; // Show outpaint portion (left half)
                         
                     } else if (directions.includes('bottom')) {
-                        // Simple: bottom outpaint image extends from top edge of original to 1024px below its bottom
-                        console.log(`🔧 Bottom outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, using original dimensions`);
+                        // Bottom outpaint: generated image contains original + outpaint
+                        console.log(`🔧 Bottom outpaint: Generated ${generatedDimensions.width}x${generatedDimensions.height}, sizing to match original`);
                         
-                        // Use original dimensions - container scaling will be applied automatically
-                        blockElement.style.backgroundSize = `${generatedDimensions.width}px ${generatedDimensions.height}px`;
-                        blockElement.style.backgroundPosition = `0px -${this.imageHeight}px`; // Skip original height to show outpaint portion
+                        // Background sized so original portion (top half) matches the actual original
+                        const backgroundWidth = this.imageWidth;
+                        const backgroundHeight = this.imageHeight * 2; // Scale to fit both original + outpaint
+                        blockElement.style.backgroundSize = `${backgroundWidth}px ${backgroundHeight}px`;
+                        blockElement.style.backgroundPosition = `0px -${this.imageHeight}px`; // Shift up to show outpaint portion
                         
                     } else if (directions.includes('up')) {
                         // Simple: up outpaint image extends from 1024px above original to its bottom edge
