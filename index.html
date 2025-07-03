@@ -492,6 +492,8 @@
             <button id="setApiKeyBtn">Set Key</button>
             <button id="testApiBtn" style="margin-left: 10px; background: #ff6b6b;">Test API</button>
             <button id="debugToggleBtn" style="margin-left: 10px; background: #4CAF50;">Debug: ON</button>
+            <button id="autoGenToggleBtn" style="margin-left: 10px; background: #757575;">Auto-Gen: OFF</button>
+            <button id="testPanBtn" style="margin-left: 10px; background: #ff9500;">Test Pan</button>
             <label style="margin-left: 15px; color: white; font-size: 12px;">
                 Block Size: 
                 <select id="blockSizeSelect" style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
@@ -583,6 +585,8 @@
                 this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
                 this.testApiBtn = document.getElementById('testApiBtn');
                 this.debugToggleBtn = document.getElementById('debugToggleBtn');
+                this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
+                this.testPanBtn = document.getElementById('testPanBtn');
                 this.blockSizeSelect = document.getElementById('blockSizeSelect');
                 
                 // Debug preview elements
@@ -615,7 +619,10 @@
                 this.maxScale = 4;
                 
                 // Block size configuration (1 = same size as image, 4 = quarter size, etc.)
-                this.blockDivisions = 1; // Default: blocks are same size as the image
+                this.blockDivisions = 1; // Default: blocks are same size as image for easier testing
+                
+                // Auto-generation control (default: false - blocks are NOT added automatically)
+                this.autoGenerateBlocks = false;
                 
                 // Mode system
                 this.isLiveMode = true; // Start in live mode by default
@@ -736,6 +743,14 @@
                 if (this.debugToggleBtn) {
                     this.debugToggleBtn.addEventListener('click', () => this.toggleDebugMode());
                 }
+
+                if (this.autoGenToggleBtn) {
+                    this.autoGenToggleBtn.addEventListener('click', () => this.toggleAutoGeneration());
+                }
+
+                if (this.testPanBtn) {
+                    this.testPanBtn.addEventListener('click', () => this.testPan());
+                }
                 
                 if (this.debugPreviewClose) {
                     this.debugPreviewClose.addEventListener('click', () => this.hideDebugPreview());
@@ -802,11 +817,12 @@
                 this.testApiBtn.disabled = true;
                 
                 try {
-                    // Manually trigger an outfill for testing
-                    const testBlockKey = '-1,-1'; // Block to the top-left corner
+                    // Manually trigger an outfill for testing (works regardless of auto-generation setting)
+                    const testBlockKey = '1,0'; // Block to the right of the image (outside image bounds)
                     this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
                     this.updateOutfillBlock(testBlockKey, this.outfillBlocks.get(testBlockKey));
                     
+                    // Use the EXACT same code path as auto-filled blocks
                     const result = await this.generateOutfill(testBlockKey);
                     console.log('✅ API test successful!', result);
                     
@@ -822,6 +838,18 @@
                     this.testApiBtn.textContent = 'Test API';
                     this.testApiBtn.disabled = false;
                 }
+            }
+
+            testPan() {
+                console.log('🧪 Testing pan functionality...');
+                
+                // Pan the image to the right by 200px to expose left edge
+                this.translateX += 200;
+                this.updateTransform();
+                this.updateDebugInfo();
+                this.checkVisibleBlocks();
+                
+                console.log('✅ Pan test completed - image moved right by 200px');
             }
             
             async generateOutfill(blockKey) {
@@ -850,13 +878,18 @@
                     
                     // Add outpaint directions based on block position
                     const directions = this.getOutpaintDirections(blockKey);
-                    const blockSize = Math.round(Math.min(this.imageWidth / this.blockDivisions, this.imageHeight / this.blockDivisions));
+                    const blockSizeX = Math.round(this.imageWidth / this.blockDivisions);
+                    const blockSizeY = Math.round(this.imageHeight / this.blockDivisions);
                     
-                    console.log(`🎯 Block ${blockKey} outpaint directions:`, directions, `(${blockSize}px each)`);
+                    console.log(`🎯 Block ${blockKey} outpaint directions:`, directions, `(${blockSizeX}x${blockSizeY}px)`);
                     
                     // Only add the directions that are needed for this specific block
                     directions.forEach(direction => {
-                        formData.append(direction, blockSize.toString());
+                        if (direction === 'left' || direction === 'right') {
+                            formData.append(direction, blockSizeX.toString());
+                        } else if (direction === 'up' || direction === 'bottom') {
+                            formData.append(direction, blockSizeY.toString());
+                        }
                     });
                     
                     if (this.config.seed) {
@@ -875,18 +908,24 @@
                         }
                     }
                     
+                    // Build request summary with actual directions being sent
                     const requestSummary = {
                         prompt: this.config.prompt,
                         output_format: this.config.output_format,
                         creativity: this.config.creativity,
                         seed: this.config.seed,
-                        left: '32',
-                        right: '32',
-                        up: '32',
-                        bottom: '32',
                         imageSize: imageBlob.size,
                         maskSize: maskBlob.size
                     };
+                    
+                    // Add the actual outpaint directions being sent
+                    directions.forEach(direction => {
+                        if (direction === 'left' || direction === 'right') {
+                            requestSummary[direction] = blockSizeX.toString();
+                        } else if (direction === 'up' || direction === 'bottom') {
+                            requestSummary[direction] = blockSizeY.toString();
+                        }
+                    });
                     console.log('📤 Request parameters summary:', JSON.stringify(requestSummary, null, 2));
                     
                     // Make API call
@@ -977,6 +1016,17 @@
                     // Convert to data URL for display
                     const imageUrl = URL.createObjectURL(imageBlob2);
                     console.log('✅ Generated image URL:', imageUrl);
+                    
+                    // Get image dimensions
+                    const img = new Image();
+                    img.onload = () => {
+                        console.log('📏 Generated image dimensions:', {
+                            width: img.width,
+                            height: img.height,
+                            aspectRatio: Math.round(img.width / img.height * 100) / 100
+                        });
+                    };
+                    img.src = imageUrl;
                     
                     // Update the outfill block with the generated image
                     const block = this.outfillBlocks.get(blockKey);
@@ -1202,7 +1252,7 @@
                     }
                 }
                 
-
+                // Test blocks removed - system is working properly
                 
                 return visibleBlocks;
             }
@@ -1358,6 +1408,19 @@
                     this.hideDebugPreview();
                 }
             }
+
+            // Toggle auto-generation mode
+            toggleAutoGeneration() {
+                this.autoGenerateBlocks = !this.autoGenerateBlocks;
+
+                if (this.autoGenToggleBtn) {
+                    this.autoGenToggleBtn.textContent = this.autoGenerateBlocks ? 'Auto-Gen: ON' : 'Auto-Gen: OFF';
+                    this.autoGenToggleBtn.style.background = this.autoGenerateBlocks ? '#4CAF50' : '#757575';
+                }
+
+                console.log('🔄 Auto-generation:', this.autoGenerateBlocks ? 'ENABLED' : 'DISABLED');
+                console.log('🔄 Blocks will', this.autoGenerateBlocks ? 'be automatically added when visible' : 'NOT be automatically added (manual only)');
+            }
             
             // Update block size configuration
             updateBlockSize() {
@@ -1442,10 +1505,42 @@
                 console.log('🔧 updateOutfillBlock called:', blockKey, 'status:', block.status, 'imageData:', block.imageData ? 'present' : 'null');
                 
                 const [gridX, gridY] = blockKey.split(',').map(Number);
-                const gridSizeX = this.imageWidth / this.blockDivisions;
-                const gridSizeY = this.imageHeight / this.blockDivisions;
-                const blockLeft = gridX * gridSizeX;
-                const blockTop = gridY * gridSizeY;
+                
+                // Calculate grid size in original image coordinates
+                const originalGridSizeX = this.imageWidth / this.blockDivisions;
+                const originalGridSizeY = this.imageHeight / this.blockDivisions;
+                
+                // Calculate scaling factors to match displayed image size
+                const scaleX = this.containerWidth / this.imageWidth;
+                const scaleY = this.containerHeight / this.imageHeight;
+                
+                // Calculate block position in original coordinates with 50% overlap
+                // For outpaint blocks, we need 50% overlap with existing content
+                const overlapX = originalGridSizeX * 0.5;
+                const overlapY = originalGridSizeY * 0.5;
+                
+                // Adjust position to create 50% overlap
+                let originalBlockLeft = gridX * originalGridSizeX;
+                let originalBlockTop = gridY * originalGridSizeY;
+                
+                if (gridX > 0) originalBlockLeft -= overlapX;  // Right blocks: shift left by 50%
+                if (gridX < 0) originalBlockLeft += overlapX;  // Left blocks: shift right by 50%
+                if (gridY > 0) originalBlockTop -= overlapY;   // Bottom blocks: shift up by 50%
+                if (gridY < 0) originalBlockTop += overlapY;   // Top blocks: shift down by 50%
+                
+                console.log(`🔧 Block ${blockKey} positioning:`, {
+                    gridX, gridY,
+                    originalGridSizeX, originalGridSizeY,
+                    overlapX, overlapY,
+                    originalBlockLeft, originalBlockTop,
+                    imageWidth: this.imageWidth, imageHeight: this.imageHeight
+                });
+                
+                // Scale to match displayed image size
+                const blockLeft = originalBlockLeft * scaleX;
+                const blockTop = originalBlockTop * scaleY;
+                const gridSizeX = originalGridSizeX * scaleX;
+                const gridSizeY = originalGridSizeY * scaleY;
                 
                 let blockElement = document.getElementById(`outfill-${blockKey}`);
                 if (!blockElement) {
@@ -1553,25 +1648,29 @@
                     <div>Active: ${this.activeGenerations}</div>
                 `;
                 
-                // Find new blocks that weren't visible before
+                // Find new blocks that weren't visible before (only if auto-generation is enabled)
                 const newBlocks = [];
-                currentVisibleBlocks.forEach(blockKey => {
-                    if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
-                        newBlocks.push(blockKey);
-                        this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
-                        this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
-                        console.log('🎯 New outfill block detected:', blockKey);
+                if (this.autoGenerateBlocks) {
+                    currentVisibleBlocks.forEach(blockKey => {
+                        if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
+                            newBlocks.push(blockKey);
+                            this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
+                            this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                            console.log('🎯 New outfill block detected:', blockKey);
+                        }
+                    });
+                    
+                    // Add new blocks to generation queue
+                    if (newBlocks.length > 0) {
+                        console.log('🚀 Adding blocks to queue:', newBlocks);
+                        this.generationQueue.push(...newBlocks);
+                        this.processGenerationQueue();
+                    } else if (this.generationQueue.length > 0) {
+                        // Resort existing queue when visibility changes
+                        this.updateGenerationQueue();
                     }
-                });
-                
-                // Add new blocks to generation queue
-                if (newBlocks.length > 0) {
-                    console.log('🚀 Adding blocks to queue:', newBlocks);
-                    this.generationQueue.push(...newBlocks);
-                    this.processGenerationQueue();
-                } else if (this.generationQueue.length > 0) {
-                    // Resort existing queue when visibility changes
-                    this.updateGenerationQueue();
+                } else {
+                    console.log('🔄 Auto-generation disabled - not adding visible blocks automatically');
                 }
                 
                 this.lastVisibleBlocks = currentVisibleBlocks;
@@ -1579,13 +1678,14 @@
             
             calculateBlockPriority(blockKey) {
                 const [x, y] = blockKey.split(',').map(Number);
-                const blockSize = Math.min(this.imageWidth / this.blockDivisions, this.imageHeight / this.blockDivisions);
+                const blockSizeX = this.imageWidth / this.blockDivisions;
+                const blockSizeY = this.imageHeight / this.blockDivisions;
                 
                 // Calculate block bounds in image coordinates
-                const blockLeft = x * blockSize;
-                const blockTop = y * blockSize;
-                const blockRight = blockLeft + blockSize;
-                const blockBottom = blockTop + blockSize;
+                const blockLeft = x * blockSizeX;
+                const blockTop = y * blockSizeY;
+                const blockRight = blockLeft + blockSizeX;
+                const blockBottom = blockTop + blockSizeY;
                 
                 // Get current viewport bounds in image coordinates
                 const viewportLeft = -this.translateX / this.scale;
@@ -1603,13 +1703,13 @@
                 let visibilityPercentage = 0;
                 if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
                     const intersectArea = (intersectRight - intersectLeft) * (intersectBottom - intersectTop);
-                    const blockArea = blockSize * blockSize;
+                    const blockArea = blockSizeX * blockSizeY;
                     visibilityPercentage = intersectArea / blockArea;
                 }
                 
                 // Calculate distance from viewport center
-                const blockCenterX = blockLeft + blockSize / 2;
-                const blockCenterY = blockTop + blockSize / 2;
+                const blockCenterX = blockLeft + blockSizeX / 2;
+                const blockCenterY = blockTop + blockSizeY / 2;
                 const viewportCenterX = viewportLeft + (this.containerWidth / this.scale) / 2;
                 const viewportCenterY = viewportTop + (this.containerHeight / this.scale) / 2;
                 const distanceFromCenter = Math.sqrt(
@@ -1715,7 +1815,8 @@
 
             async generateMaskForBlock(blockKey) {
                 const [x, y] = blockKey.split(',').map(Number);
-                const blockSize = Math.min(this.imageWidth / this.blockDivisions, this.imageHeight / this.blockDivisions);
+                const blockSizeX = this.imageWidth / this.blockDivisions;
+                const blockSizeY = this.imageHeight / this.blockDivisions;
                 
                 // Create a canvas for the mask
                 const canvas = document.createElement('canvas');
@@ -1730,10 +1831,10 @@
                 // Fill the block area with white (area to outpaint)
                 ctx.fillStyle = 'white';
                 ctx.fillRect(
-                    x * blockSize,
-                    y * blockSize,
-                    blockSize,
-                    blockSize
+                    x * blockSizeX,
+                    y * blockSizeY,
+                    blockSizeX,
+                    blockSizeY
                 );
                 
                 // Convert canvas to blob
@@ -1746,32 +1847,28 @@
                 const [gridX, gridY] = blockKey.split(',').map(Number);
                 const directions = [];
                 
-                // Calculate number of blocks across width and height based on blockDivisions
-                const blocksAcrossWidth = this.blockDivisions;
-                const blocksAcrossHeight = this.blockDivisions;
+                // Image occupies blocks 0,0 to (blockDivisions-1, blockDivisions-1)
+                // Any block outside this range needs outpainting in specific directions
                 
-                // Determine which directions to outpaint based on block position
-                // Blocks with negative coordinates or beyond image bounds need outpainting
-                
+                // Left side: gridX < 0
                 if (gridX < 0) {
                     directions.push('left');
                 }
-                if (gridX >= blocksAcrossWidth) {
+                // Right side: gridX >= blockDivisions  
+                if (gridX >= this.blockDivisions) {
                     directions.push('right');
                 }
+                // Top side: gridY < 0
                 if (gridY < 0) {
                     directions.push('up');
                 }
-                if (gridY >= blocksAcrossHeight) {
+                // Bottom side: gridY >= blockDivisions
+                if (gridY >= this.blockDivisions) {
                     directions.push('bottom');
                 }
                 
-                // If no specific direction detected, default to all directions
-                if (directions.length === 0) {
-                    directions.push('up', 'bottom', 'left', 'right');
-                }
-                
-                // console.log(`🎯 Outpaint directions for block ${blockKey}:`, directions, '(512px each)');
+                console.log(`🎯 Block ${blockKey} analysis: gridX=${gridX}, gridY=${gridY}, blockDivisions=${this.blockDivisions}`);
+                console.log(`🎯 Outpaint directions for block ${blockKey}:`, directions);
                 return directions;
             }
 
