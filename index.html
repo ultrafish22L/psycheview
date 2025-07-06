@@ -1655,6 +1655,9 @@
                 blockElement.style.width = gridSizeX + 'px';
                 blockElement.style.height = gridSizeY + 'px';
                 
+                console.log(`🔧 Block ${blockKey} sizing: left=${blockLeft}px, top=${blockTop}px, width=${gridSizeX}px, height=${gridSizeY}px`);
+                console.log(`🔧 Block divisions: ${this.blockDivisions}, Image: ${this.imageWidth}x${this.imageHeight}`);
+                
                 if (block.status === 'ready' || block.status === 'completed') {
                     console.log('🖼️ Setting block image:', blockKey, 'imageData:', block.imageData.substring(0, 50) + '...');
                     blockElement.style.backgroundImage = `url(${block.imageData})`;
@@ -2130,9 +2133,21 @@
                 const gridSizeY = this.imageHeight / this.blockDivisions;
                 
                 console.log(`🎨 Positioning outpaint background for block ${blockKey}, directions:`, directions);
+                console.log(`🎨 Block divisions: ${this.blockDivisions}, Grid size: ${gridSizeX} × ${gridSizeY}`);
                 
-                // For outpaint images, the generated image contains both original and new content
-                // We need to position the background so the original part aligns with the actual image
+                // For blockDivisions = 1 (Same as image), each block should be exactly the same size as the original image
+                // The generated image should fill the entire block without any complex positioning
+                if (this.blockDivisions === 1) {
+                    // Simple case: block is same size as image, generated image should fill the entire block
+                    blockElement.style.backgroundSize = `${gridSizeX}px ${gridSizeY}px`;
+                    blockElement.style.backgroundPosition = '0px 0px';
+                    console.log(`🎨 Block size 1: Simple fill - backgroundSize=${gridSizeX}x${gridSizeY}, position=0,0`);
+                    return;
+                }
+                
+                // For smaller block divisions, use the complex positioning logic
+                // (This handles cases where blocks are smaller than the image)
+                console.log(`🎨 Using complex positioning for blockDivisions=${this.blockDivisions}`);
                 
                 if (directions.includes('right') && !directions.includes('left') && !directions.includes('up') && !directions.includes('bottom')) {
                     // Pure right outpaint - original image is on the left side of generated image
@@ -2142,9 +2157,15 @@
                     
                 } else if (directions.includes('left') && !directions.includes('right') && !directions.includes('up') && !directions.includes('bottom')) {
                     // Pure left outpaint - original image is on the right side of generated image
-                    blockElement.style.backgroundSize = `${this.imageWidth + gridSizeX}px ${this.imageHeight}px`;
-                    blockElement.style.backgroundPosition = `${gridSizeX}px 0px`;
-                    console.log(`🎨 Left outpaint: backgroundSize=${this.imageWidth + gridSizeX}x${this.imageHeight}, position=${gridSizeX},0`);
+                    const backgroundWidth = this.imageWidth + gridSizeX;
+                    const backgroundHeight = this.imageHeight;
+                    const positionX = gridSizeX;
+                    const positionY = 0;
+                    
+                    blockElement.style.backgroundSize = `${backgroundWidth}px ${backgroundHeight}px`;
+                    blockElement.style.backgroundPosition = `${positionX}px ${positionY}px`;
+                    console.log(`🎨 Left outpaint: backgroundSize=${backgroundWidth}x${backgroundHeight}, position=${positionX},${positionY}`);
+                    console.log(`🎨 Block element actual size: ${blockElement.offsetWidth}x${blockElement.offsetHeight}`);
                     
                 } else if (directions.includes('bottom') && !directions.includes('top') && !directions.includes('left') && !directions.includes('right')) {
                     // Pure bottom outpaint - original image is on the top of generated image
