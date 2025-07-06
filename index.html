@@ -902,7 +902,7 @@
                 // Pan the image to the right by 200px to expose left edge
                 this.translateX += 200;
                 this.updateTransform();
-                this.updateDebugInfo();
+                updateDebugConsole();
                 this.checkVisibleBlocks();
                 
                 console.log('✅ Pan test completed - image moved right by 200px');
@@ -914,7 +914,7 @@
                 // Set scale to minimum (0.25x)
                 this.scale = 0.25;
                 this.updateTransform();
-                this.updateDebugInfo();
+                updateDebugConsole();
                 this.checkVisibleBlocks();
                 
                 console.log('✅ Zoomed out to maximum scale: 0.25x');
