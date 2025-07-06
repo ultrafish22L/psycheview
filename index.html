@@ -696,12 +696,17 @@
                         
                         // Update grid size to match image dimensions
                         this.updateGridSize();
+                        
+                        // Now that image is loaded, initialize the transform and outfill system
+                        this.updateTransform();
+                        console.log('✅ Image loaded and outfill system initialized');
                     } else {
                         // Fallback size if image not loaded yet
                         this.viewer.style.width = '800px';
                         this.viewer.style.height = '600px';
                         this.containerWidth = 800;
                         this.containerHeight = 600;
+                        console.log('⚠️ Image not loaded yet, using fallback dimensions');
                     }
                 };
                 
