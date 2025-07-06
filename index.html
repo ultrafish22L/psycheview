@@ -1098,6 +1098,9 @@
                         console.log('🔍 About to call updateOutfillBlock with:', blockKey, block.status, block.imageData ? 'imageData present' : 'NO imageData');
                         this.updateOutfillBlock(blockKey, block);
                         console.log('✅ Block', blockKey, 'generation completed');
+                        
+                        // Check for newly adjacent blocks that can now be queued
+                        this.checkForNewlyAdjacentBlocks(blockKey);
                     } else {
                         console.error('❌ Block not found in outfillBlocks map for key:', blockKey);
                         console.log('🔍 Current outfillBlocks keys:', Array.from(this.outfillBlocks.keys()));
@@ -1364,6 +1367,10 @@
                                 imageData: this.image.src 
                             });
                             this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                            
+                            // Check for newly adjacent blocks that can now be queued
+                            this.checkForNewlyAdjacentBlocks(blockKey);
+                            
                             resolve();
                         }
                     }, 200);
@@ -1392,6 +1399,9 @@
                         imageData: imageDataUrl 
                     });
                     this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                    
+                    // Check for newly adjacent blocks that can now be queued
+                    this.checkForNewlyAdjacentBlocks(blockKey);
                     
                 } catch (error) {
                     console.error('API generation failed:', error);
@@ -1734,6 +1744,128 @@
                 }
             }
             
+            isBlockAdjacentToContent(blockKey) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                
+                // Check if block is adjacent to the original image (blocks 0,0 to blockDivisions-1,blockDivisions-1)
+                const isAdjacentToOriginal = this.isBlockAdjacentToOriginalImage(gridX, gridY);
+                
+                if (isAdjacentToOriginal) {
+                    console.log(`✅ Block ${blockKey} is adjacent to original image`);
+                    return true;
+                }
+                
+                // Check if block is adjacent to any completed outpaint blocks
+                const adjacentPositions = [
+                    [gridX - 1, gridY],     // Left
+                    [gridX + 1, gridY],     // Right
+                    [gridX, gridY - 1],     // Top
+                    [gridX, gridY + 1],     // Bottom
+                    [gridX - 1, gridY - 1], // Top-left
+                    [gridX + 1, gridY - 1], // Top-right
+                    [gridX - 1, gridY + 1], // Bottom-left
+                    [gridX + 1, gridY + 1]  // Bottom-right
+                ];
+                
+                for (const [adjX, adjY] of adjacentPositions) {
+                    const adjBlockKey = `${adjX},${adjY}`;
+                    
+                    // Check if adjacent position is part of original image
+                    if (adjX >= 0 && adjX < this.blockDivisions && adjY >= 0 && adjY < this.blockDivisions) {
+                        console.log(`✅ Block ${blockKey} is adjacent to original image block ${adjBlockKey}`);
+                        return true;
+                    }
+                    
+                    // Check if adjacent position has completed outpaint content
+                    const adjBlock = this.outfillBlocks.get(adjBlockKey);
+                    if (adjBlock && (adjBlock.status === 'ready' || adjBlock.status === 'completed')) {
+                        console.log(`✅ Block ${blockKey} is adjacent to completed outpaint block ${adjBlockKey}`);
+                        return true;
+                    }
+                }
+                
+                console.log(`❌ Block ${blockKey} is not adjacent to any existing content`);
+                return false;
+            }
+            
+            checkForNewlyAdjacentBlocks(completedBlockKey) {
+                const [completedX, completedY] = completedBlockKey.split(',').map(Number);
+                
+                // Check all positions adjacent to the completed block
+                const adjacentPositions = [
+                    [completedX - 1, completedY],     // Left
+                    [completedX + 1, completedY],     // Right
+                    [completedX, completedY - 1],     // Top
+                    [completedX, completedY + 1],     // Bottom
+                    [completedX - 1, completedY - 1], // Top-left
+                    [completedX + 1, completedY - 1], // Top-right
+                    [completedX - 1, completedY + 1], // Bottom-left
+                    [completedX + 1, completedY + 1]  // Bottom-right
+                ];
+                
+                const newlyAdjacentBlocks = [];
+                
+                for (const [adjX, adjY] of adjacentPositions) {
+                    const adjBlockKey = `${adjX},${adjY}`;
+                    
+                    // Skip if this position is part of the original image
+                    if (adjX >= 0 && adjX < this.blockDivisions && adjY >= 0 && adjY < this.blockDivisions) {
+                        continue;
+                    }
+                    
+                    // Skip if this block already exists in our system
+                    if (this.outfillBlocks.has(adjBlockKey)) {
+                        continue;
+                    }
+                    
+                    // Check if this position is currently visible
+                    const currentVisibleBlocks = this.getVisibleBlocks();
+                    if (!currentVisibleBlocks.has(adjBlockKey)) {
+                        continue;
+                    }
+                    
+                    // This block is now adjacent to completed content and visible
+                    newlyAdjacentBlocks.push(adjBlockKey);
+                    console.log(`🆕 Found newly adjacent block: ${adjBlockKey} (adjacent to completed ${completedBlockKey})`);
+                }
+                
+                // Add newly adjacent blocks to the system
+                if (newlyAdjacentBlocks.length > 0 && this.autoGenerateBlocks) {
+                    console.log('🚀 Adding newly adjacent blocks to queue:', newlyAdjacentBlocks);
+                    
+                    for (const blockKey of newlyAdjacentBlocks) {
+                        this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
+                        this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                        this.generationQueue.push(blockKey);
+                    }
+                    
+                    this.processGenerationQueue();
+                }
+            }
+
+            isBlockAdjacentToOriginalImage(gridX, gridY) {
+                // Original image occupies blocks from (0,0) to (blockDivisions-1, blockDivisions-1)
+                const originalMinX = 0;
+                const originalMaxX = this.blockDivisions - 1;
+                const originalMinY = 0;
+                const originalMaxY = this.blockDivisions - 1;
+                
+                // Check if block is directly adjacent to the original image bounds
+                const isLeftAdjacent = gridX === originalMinX - 1 && gridY >= originalMinY && gridY <= originalMaxY;
+                const isRightAdjacent = gridX === originalMaxX + 1 && gridY >= originalMinY && gridY <= originalMaxY;
+                const isTopAdjacent = gridY === originalMinY - 1 && gridX >= originalMinX && gridX <= originalMaxX;
+                const isBottomAdjacent = gridY === originalMaxY + 1 && gridX >= originalMinX && gridX <= originalMaxX;
+                
+                // Check corner adjacency
+                const isTopLeftCorner = gridX === originalMinX - 1 && gridY === originalMinY - 1;
+                const isTopRightCorner = gridX === originalMaxX + 1 && gridY === originalMinY - 1;
+                const isBottomLeftCorner = gridX === originalMinX - 1 && gridY === originalMaxY + 1;
+                const isBottomRightCorner = gridX === originalMaxX + 1 && gridY === originalMaxY + 1;
+                
+                return isLeftAdjacent || isRightAdjacent || isTopAdjacent || isBottomAdjacent ||
+                       isTopLeftCorner || isTopRightCorner || isBottomLeftCorner || isBottomRightCorner;
+            }
+
             checkVisibleBlocks() {
                 const currentVisibleBlocks = this.getVisibleBlocks();
                 
@@ -1753,16 +1885,21 @@
                 if (this.autoGenerateBlocks) {
                     currentVisibleBlocks.forEach(blockKey => {
                         if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
-                            newBlocks.push(blockKey);
-                            this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
-                            this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
-                            console.log('🎯 New outfill block detected:', blockKey);
+                            // Only add blocks that are adjacent to existing content
+                            if (this.isBlockAdjacentToContent(blockKey)) {
+                                newBlocks.push(blockKey);
+                                this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
+                                this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                                console.log('🎯 New adjacent outfill block detected:', blockKey);
+                            } else {
+                                console.log('🚫 Skipping isolated block (not adjacent to content):', blockKey);
+                            }
                         }
                     });
                     
                     // Add new blocks to generation queue
                     if (newBlocks.length > 0) {
-                        console.log('🚀 Adding blocks to queue:', newBlocks);
+                        console.log('🚀 Adding adjacent blocks to queue:', newBlocks);
                         this.generationQueue.push(...newBlocks);
                         this.processGenerationQueue();
                     } else if (this.generationQueue.length > 0) {
@@ -1807,29 +1944,44 @@
                     visibilityPercentage = intersectArea / blockArea;
                 }
                 
-                // Calculate distance from viewport center
+                // Calculate distance from original image center (prioritize blocks closer to original content)
+                const originalCenterX = this.imageWidth / 2;
+                const originalCenterY = this.imageHeight / 2;
                 const blockCenterX = blockLeft + blockSizeX / 2;
                 const blockCenterY = blockTop + blockSizeY / 2;
+                const distanceFromOriginal = Math.sqrt(
+                    Math.pow(blockCenterX - originalCenterX, 2) + 
+                    Math.pow(blockCenterY - originalCenterY, 2)
+                );
+                
+                // Calculate distance from viewport center
                 const viewportCenterX = viewportLeft + (this.containerWidth / this.scale) / 2;
                 const viewportCenterY = viewportTop + (this.containerHeight / this.scale) / 2;
-                const distanceFromCenter = Math.sqrt(
+                const distanceFromViewport = Math.sqrt(
                     Math.pow(blockCenterX - viewportCenterX, 2) + 
                     Math.pow(blockCenterY - viewportCenterY, 2)
                 );
                 
-                // Normalize distance (lower is better)
+                // Normalize distances
                 const maxDistance = Math.sqrt(
-                    Math.pow(this.imageWidth, 2) + Math.pow(this.imageHeight, 2)
+                    Math.pow(this.imageWidth * 2, 2) + Math.pow(this.imageHeight * 2, 2)
                 );
-                const normalizedDistance = 1 - (distanceFromCenter / maxDistance);
+                const normalizedDistanceFromOriginal = 1 - (distanceFromOriginal / maxDistance);
+                const normalizedDistanceFromViewport = 1 - (distanceFromViewport / maxDistance);
                 
                 // Calculate priority score
-                let priority = visibilityPercentage * 100; // Base score from visibility
-                priority += normalizedDistance * 20; // Distance bonus
+                let priority = visibilityPercentage * 100; // Base score from visibility (0-100)
+                priority += normalizedDistanceFromOriginal * 50; // Proximity to original content (0-50)
+                priority += normalizedDistanceFromViewport * 20; // Proximity to viewport (0-20)
                 
                 // Bonus for fully visible blocks
                 if (visibilityPercentage >= 0.99) {
-                    priority += 50;
+                    priority += 30;
+                }
+                
+                // Extra bonus for blocks directly adjacent to original image
+                if (this.isBlockAdjacentToOriginalImage(x, y)) {
+                    priority += 100; // High priority for first-ring outpaint
                 }
                 
                 return priority;
