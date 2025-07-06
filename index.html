@@ -513,7 +513,7 @@
             <div class="viewer-content" id="viewerContent">
                 <div class="tiled-background"></div>
                 <div class="grid-overlay"></div>
-                <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false">
+                <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false" crossorigin="anonymous">
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
             <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
@@ -1143,27 +1143,54 @@
             
             async getImageAsBlob() {
                 return new Promise((resolve, reject) => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const img = this.image;
-                    
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    ctx.drawImage(img, 0, 0);
-                    
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            resolve(blob);
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const img = this.image;
+                        
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        
+                        // Try to draw the image to canvas
+                        ctx.drawImage(img, 0, 0);
+                        
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Failed to create image blob'));
+                            }
+                        }, 'image/jpeg', 0.9);
+                        
+                    } catch (error) {
+                        // Handle CORS error for file:// protocol
+                        if (error.name === 'SecurityError' || error.message.includes('tainted')) {
+                            console.warn('🔧 CORS restriction detected, attempting to fetch image as blob...');
+                            
+                            // Try to fetch the image directly as a blob
+                            fetch(this.image.src)
+                                .then(response => response.blob())
+                                .then(resolve)
+                                .catch(() => {
+                                    // Final fallback: reject with helpful message
+                                    reject(new Error('Cannot access image due to CORS restrictions. For standalone usage, serve the file via HTTP server or use a different image source.'));
+                                });
                         } else {
-                            reject(new Error('Failed to create image blob'));
+                            reject(error);
                         }
-                    }, 'image/jpeg', 0.9);
+                    }
                 });
             }
             
             async initializeApiKey() {
                 try {
-                    // Try to get API key from environment variable
+                    // Skip API config fetch for file:// protocol (standalone usage)
+                    if (window.location.protocol === 'file:') {
+                        console.log('🔧 Running in standalone mode (file://), skipping API config fetch');
+                        return;
+                    }
+                    
+                    // Try to get API key from environment variable (server mode only)
                     const response = await fetch('/api/config');
                     const config = await response.json();
                     
