@@ -495,6 +495,7 @@
             <button id="autoGenToggleBtn" style="margin-left: 10px; background: #757575;">Auto-Gen: OFF</button>
             <button id="apiCallsToggleBtn" style="margin-left: 10px; background: #4CAF50;">API: ON</button>
             <button id="testPanBtn" style="margin-left: 10px; background: #ff9500;">Test Pan</button>
+            <button id="zoomOutMaxBtn" style="margin-left: 10px; background: #9c27b0;">Zoom Out Max</button>
             <button id="imageOpacityBtn" style="margin-left: 10px; background: #757575;">Image: 100%</button>
             <button id="blockLayerBtn" style="margin-left: 10px; background: #757575;">Blocks: Under</button>
             <label style="margin-left: 15px; color: white; font-size: 12px;">
@@ -591,6 +592,7 @@
                 this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
                 this.apiCallsToggleBtn = document.getElementById('apiCallsToggleBtn');
                 this.testPanBtn = document.getElementById('testPanBtn');
+                this.zoomOutMaxBtn = document.getElementById('zoomOutMaxBtn');
                 this.imageOpacityBtn = document.getElementById('imageOpacityBtn');
                 this.blockLayerBtn = document.getElementById('blockLayerBtn');
                 this.blockSizeSelect = document.getElementById('blockSizeSelect');
@@ -770,6 +772,10 @@
                 if (this.testPanBtn) {
                     this.testPanBtn.addEventListener('click', () => this.testPan());
                 }
+
+                if (this.zoomOutMaxBtn) {
+                    this.zoomOutMaxBtn.addEventListener('click', () => this.zoomOutMax());
+                }
                 
                 if (this.imageOpacityBtn) {
                     this.imageOpacityBtn.addEventListener('click', () => this.toggleImageOpacity());
@@ -895,6 +901,18 @@
                 this.checkVisibleBlocks();
                 
                 console.log('✅ Pan test completed - image moved right by 200px');
+            }
+
+            zoomOutMax() {
+                console.log('🔍 Zooming out to maximum...');
+                
+                // Set scale to minimum (0.25x)
+                this.scale = 0.25;
+                this.updateTransform();
+                this.updateDebugInfo();
+                this.checkVisibleBlocks();
+                
+                console.log('✅ Zoomed out to maximum scale: 0.25x');
             }
             
             async generateOutfill(blockKey) {
@@ -1646,11 +1664,12 @@
                 
                 const [gridX, gridY] = blockKey.split(',').map(Number);
                 
-                // Calculate grid size in original image coordinates
-                const gridSizeX = this.imageWidth / this.blockDivisions;
-                const gridSizeY = this.imageHeight / this.blockDivisions;
+                // Calculate grid size using container dimensions (actual rendered size)
+                // The image fills the container with width: 100%; height: 100%
+                const gridSizeX = this.containerWidth / this.blockDivisions;
+                const gridSizeY = this.containerHeight / this.blockDivisions;
                 
-                // Calculate block position in original image coordinates
+                // Calculate block position using container coordinates
                 // No overlap - blocks should align perfectly with the grid
                 const blockLeft = gridX * gridSizeX;
                 const blockTop = gridY * gridSizeY;
@@ -1659,7 +1678,7 @@
                     gridX, gridY,
                     gridSizeX, gridSizeY,
                     blockLeft, blockTop,
-                    imageWidth: this.imageWidth, imageHeight: this.imageHeight
+                    containerWidth: this.containerWidth, containerHeight: this.containerHeight
                 });
                 
                 let blockElement = document.getElementById(`outfill-${blockKey}`);
@@ -1678,7 +1697,7 @@
                 blockElement.style.height = gridSizeY + 'px';
                 
                 console.log(`🔧 Block ${blockKey} sizing: left=${blockLeft}px, top=${blockTop}px, width=${gridSizeX}px, height=${gridSizeY}px`);
-                console.log(`🔧 Block divisions: ${this.blockDivisions}, Image: ${this.imageWidth}x${this.imageHeight}`);
+                console.log(`🔧 Block divisions: ${this.blockDivisions}, Container: ${this.containerWidth}x${this.containerHeight}`);
                 
                 if (block.status === 'ready' || block.status === 'completed') {
                     console.log('🖼️ Setting block image:', blockKey, 'imageData:', block.imageData.substring(0, 50) + '...');
