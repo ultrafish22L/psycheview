@@ -1331,6 +1331,28 @@
                 const gridOverlay = document.querySelector('.grid-overlay');
                 if (gridOverlay) {
                     gridOverlay.style.backgroundSize = `${gridCellWidth}px ${gridCellHeight}px`;
+                    
+                    // Align grid lines with image edges for all block divisions
+                    // The grid overlay is positioned at -450% with 1000% size, so we need to calculate
+                    // the background position to align the grid pattern with the image
+                    const containerWidth = this.containerWidth || 800;
+                    const containerHeight = this.containerHeight || 600;
+                    
+                    // Calculate the offset needed to align grid with image
+                    // The image is centered in the container, so we need to account for that
+                    const imageOffsetX = (containerWidth - this.imageWidth) / 2;
+                    const imageOffsetY = (containerHeight - this.imageHeight) / 2;
+                    
+                    // The grid overlay starts at -450% of container, so we need to offset from there
+                    const gridStartX = -4.5 * containerWidth;
+                    const gridStartY = -4.5 * containerHeight;
+                    
+                    // Position background to align grid with image
+                    const backgroundPosX = imageOffsetX - gridStartX;
+                    const backgroundPosY = imageOffsetY - gridStartY;
+                    
+                    gridOverlay.style.backgroundPosition = `${backgroundPosX}px ${backgroundPosY}px`;
+                    console.log('🔧 Grid aligned for ' + this.blockDivisions + 'x' + this.blockDivisions + ' blocks (' + gridCellWidth + 'x' + gridCellHeight + 'px each)');
                 }
             }
             
