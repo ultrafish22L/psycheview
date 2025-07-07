@@ -670,39 +670,43 @@
             init() {
                 // Set up container size based on image aspect ratio - windowed approach
                 const setupSize = () => {
-                    if (this.image.naturalWidth && this.image.naturalHeight) {
+                    // In standalone mode, provide fallback dimensions since image may not load due to CORS
+                    if (window.location.protocol === 'file:' && (!this.image.naturalWidth || !this.image.naturalHeight)) {
+                        console.log('🔧 Standalone mode: Using fallback image dimensions (1600x1024)');
+                        this.imageWidth = 1600;
+                        this.imageHeight = 1024;
+                    } else if (this.image.naturalWidth && this.image.naturalHeight) {
                         this.imageWidth = this.image.naturalWidth;
                         this.imageHeight = this.image.naturalHeight;
-                        const aspectRatio = this.imageWidth / this.imageHeight;
-                        
-                        // Create a window sized to fit the image with some margin for the psychedelic background
-                        const maxHeight = window.innerHeight - 120;
-                        const maxWidth = window.innerWidth - 80;
-                        
-                        let finalWidth, finalHeight;
-                        
-                        if (maxWidth / aspectRatio <= maxHeight) {
-                            finalWidth = maxWidth;
-                            finalHeight = maxWidth / aspectRatio;
-                        } else {
-                            finalHeight = maxHeight;
-                            finalWidth = maxHeight * aspectRatio;
-                        }
-                        
-                        this.viewer.style.width = finalWidth + 'px';
-                        this.viewer.style.height = finalHeight + 'px';
-                        this.containerWidth = finalWidth;
-                        this.containerHeight = finalHeight;
-                        
-                        // Update grid size to match image dimensions
-                        this.updateGridSize();
                     } else {
                         // Fallback size if image not loaded yet
-                        this.viewer.style.width = '800px';
-                        this.viewer.style.height = '600px';
-                        this.containerWidth = 800;
-                        this.containerHeight = 600;
+                        this.imageWidth = 1600;
+                        this.imageHeight = 1024;
                     }
+                    
+                    const aspectRatio = this.imageWidth / this.imageHeight;
+                    
+                    // Create a window sized to fit the image with some margin for the psychedelic background
+                    const maxHeight = window.innerHeight - 120;
+                    const maxWidth = window.innerWidth - 80;
+                    
+                    let finalWidth, finalHeight;
+                    
+                    if (maxWidth / aspectRatio <= maxHeight) {
+                        finalWidth = maxWidth;
+                        finalHeight = maxWidth / aspectRatio;
+                    } else {
+                        finalHeight = maxHeight;
+                        finalWidth = maxHeight * aspectRatio;
+                    }
+                    
+                    this.viewer.style.width = finalWidth + 'px';
+                    this.viewer.style.height = finalHeight + 'px';
+                    this.containerWidth = finalWidth;
+                    this.containerHeight = finalHeight;
+                    
+                    // Update grid size to match image dimensions
+                    this.updateGridSize();
                 };
                 
                 this.image.onload = setupSize;
@@ -897,7 +901,6 @@
                 // Pan the image to the right by 200px to expose left edge
                 this.translateX += 200;
                 this.updateTransform();
-                this.updateDebugInfo();
                 this.checkVisibleBlocks();
                 
                 console.log('✅ Pan test completed - image moved right by 200px');
@@ -909,7 +912,6 @@
                 // Set scale to minimum (0.25x)
                 this.scale = 0.25;
                 this.updateTransform();
-                this.updateDebugInfo();
                 this.checkVisibleBlocks();
                 
                 console.log('✅ Zoomed out to maximum scale: 0.25x');
@@ -917,6 +919,11 @@
             
             async generateOutfill(blockKey) {
                 console.log('🚀 Starting generateOutfill for block:', blockKey);
+                
+                // Prevent API calls in standalone mode
+                if (window.location.protocol === 'file:') {
+                    throw new Error('API calls not available in standalone mode. Please use a web server to enable outfill generation.');
+                }
                 
                 if (!this.apiKey) {
                     throw new Error('No API key set');
@@ -1157,6 +1164,12 @@
             }
             
             async initializeApiKey() {
+                // Skip API config fetch in standalone mode (file:// protocol)
+                if (window.location.protocol === 'file:') {
+                    console.log('Running in standalone mode - skipping API config fetch');
+                    return;
+                }
+                
                 try {
                     // Try to get API key from environment variable
                     const response = await fetch('/api/config');
@@ -2331,6 +2344,13 @@
 
             async getImageAsBlob() {
                 return new Promise((resolve, reject) => {
+                    // In standalone mode (file:// protocol), we can't use crossOrigin
+                    // and we can't access the image data due to CORS restrictions
+                    if (window.location.protocol === 'file:') {
+                        reject(new Error('Image access blocked in standalone mode due to CORS policy. Please use a web server.'));
+                        return;
+                    }
+                    
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
