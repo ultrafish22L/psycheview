@@ -2065,7 +2065,8 @@
                     
                     // Use real API generation in live mode, simulation in demo mode
                     if (this.isLiveMode && this.apiKey) {
-                        this.generateOutfill(blockKey).then(() => {
+                        this.generateOutfill(blockKey).then((result) => {
+                            console.log('✅ generateOutfill completed successfully for block:', blockKey, result);
                             this.activeGenerations--;
                             this.processGenerationQueue();
                         }).catch((error) => {
@@ -2170,75 +2171,91 @@
 
             positionOutpaintBackground(blockElement, blockKey, directions) {
                 const [gridX, gridY] = blockKey.split(',').map(Number);
-                const gridSizeX = this.imageWidth / this.blockDivisions;
-                const gridSizeY = this.imageHeight / this.blockDivisions;
+                const gridSizeX = this.containerWidth / this.blockDivisions;
+                const gridSizeY = this.containerHeight / this.blockDivisions;
                 
                 console.log(`🎨 Positioning outpaint background for block ${blockKey}, directions:`, directions);
                 console.log(`🎨 Block divisions: ${this.blockDivisions}, Grid size: ${gridSizeX} × ${gridSizeY}`);
+                console.log(`🎨 Container size: ${this.containerWidth} × ${this.containerHeight}`);
                 
-                // For blockDivisions = 1 (Same as image), each block should be exactly the same size as the original image
-                // The generated image should fill the entire block without any complex positioning
-                if (this.blockDivisions === 1) {
-                    // Simple case: block is same size as image, generated image should fill the entire block
-                    blockElement.style.backgroundSize = `${gridSizeX}px ${gridSizeY}px`;
-                    blockElement.style.backgroundPosition = '0px 0px';
-                    console.log(`🎨 Block size 1: Simple fill - backgroundSize=${gridSizeX}x${gridSizeY}, position=0,0`);
-                    return;
-                }
-                
-                // For smaller block divisions, use the complex positioning logic
-                // (This handles cases where blocks are smaller than the image)
-                console.log(`🎨 Using complex positioning for blockDivisions=${this.blockDivisions}`);
+                // The Stability AI outpaint API returns an image that contains:
+                // 1. The original image in its original position
+                // 2. The extended content in the requested directions
+                // We need to position this composite image so that:
+                // - The original image portion aligns with the actual original image
+                // - Only the extended portion shows in this block
                 
                 if (directions.includes('right') && !directions.includes('left') && !directions.includes('up') && !directions.includes('bottom')) {
-                    // Pure right outpaint - original image is on the left side of generated image
-                    blockElement.style.backgroundSize = `${this.imageWidth + gridSizeX}px ${this.imageHeight}px`;
-                    blockElement.style.backgroundPosition = `${-this.imageWidth}px 0px`;
-                    console.log(`🎨 Right outpaint: backgroundSize=${this.imageWidth + gridSizeX}x${this.imageHeight}, position=${-this.imageWidth},0`);
+                    // Pure right outpaint
+                    // Generated image = [original image][new content]
+                    // We want to show only the new content in this block
+                    // So we position the background so the new content aligns with this block
+                    blockElement.style.backgroundSize = `${this.containerWidth + gridSizeX}px ${this.containerHeight}px`;
+                    blockElement.style.backgroundPosition = `${-this.containerWidth}px 0px`;
+                    console.log(`🎨 Right outpaint: backgroundSize=${this.containerWidth + gridSizeX}x${this.containerHeight}, position=${-this.containerWidth},0`);
                     
                 } else if (directions.includes('left') && !directions.includes('right') && !directions.includes('up') && !directions.includes('bottom')) {
-                    // Pure left outpaint - original image is on the right side of generated image
-                    const backgroundWidth = this.imageWidth + gridSizeX;
-                    const backgroundHeight = this.imageHeight;
-                    const positionX = gridSizeX;
-                    const positionY = 0;
-                    
-                    blockElement.style.backgroundSize = `${backgroundWidth}px ${backgroundHeight}px`;
-                    blockElement.style.backgroundPosition = `${positionX}px ${positionY}px`;
-                    console.log(`🎨 Left outpaint: backgroundSize=${backgroundWidth}x${backgroundHeight}, position=${positionX},${positionY}`);
-                    console.log(`🎨 Block element actual size: ${blockElement.offsetWidth}x${blockElement.offsetHeight}`);
+                    // Pure left outpaint
+                    // Generated image = [new content][original image]
+                    // We want to show only the new content in this block
+                    blockElement.style.backgroundSize = `${this.containerWidth + gridSizeX}px ${this.containerHeight}px`;
+                    blockElement.style.backgroundPosition = `0px 0px`;
+                    console.log(`🎨 Left outpaint: backgroundSize=${this.containerWidth + gridSizeX}x${this.containerHeight}, position=0,0`);
                     
                 } else if (directions.includes('bottom') && !directions.includes('top') && !directions.includes('left') && !directions.includes('right')) {
-                    // Pure bottom outpaint - original image is on the top of generated image
-                    blockElement.style.backgroundSize = `${this.imageWidth}px ${this.imageHeight + gridSizeY}px`;
-                    blockElement.style.backgroundPosition = `0px ${-this.imageHeight}px`;
-                    console.log(`🎨 Bottom outpaint: backgroundSize=${this.imageWidth}x${this.imageHeight + gridSizeY}, position=0,${-this.imageHeight}`);
+                    // Pure bottom outpaint
+                    // Generated image = [original image]
+                    //                   [new content]
+                    // We want to show only the new content in this block
+                    blockElement.style.backgroundSize = `${this.containerWidth}px ${this.containerHeight + gridSizeY}px`;
+                    blockElement.style.backgroundPosition = `0px ${-this.containerHeight}px`;
+                    console.log(`🎨 Bottom outpaint: backgroundSize=${this.containerWidth}x${this.containerHeight + gridSizeY}, position=0,${-this.containerHeight}`);
                     
                 } else if (directions.includes('up') && !directions.includes('bottom') && !directions.includes('left') && !directions.includes('right')) {
-                    // Pure top outpaint - original image is on the bottom of generated image
-                    blockElement.style.backgroundSize = `${this.imageWidth}px ${this.imageHeight + gridSizeY}px`;
-                    blockElement.style.backgroundPosition = `0px ${gridSizeY}px`;
-                    console.log(`🎨 Top outpaint: backgroundSize=${this.imageWidth}x${this.imageHeight + gridSizeY}, position=0,${gridSizeY}`);
+                    // Pure top outpaint
+                    // Generated image = [new content]
+                    //                   [original image]
+                    // We want to show only the new content in this block
+                    blockElement.style.backgroundSize = `${this.containerWidth}px ${this.containerHeight + gridSizeY}px`;
+                    blockElement.style.backgroundPosition = `0px 0px`;
+                    console.log(`🎨 Top outpaint: backgroundSize=${this.containerWidth}x${this.containerHeight + gridSizeY}, position=0,0`);
                     
-                } else {
-                    // Corner or multi-direction outpaint - use larger background and calculate offset
-                    const extraWidth = directions.includes('left') || directions.includes('right') ? gridSizeX : 0;
-                    const extraHeight = directions.includes('up') || directions.includes('bottom') ? gridSizeY : 0;
+                } else if (directions.length > 1) {
+                    // Multi-direction outpaint (corner blocks)
+                    // Calculate the total size of the generated image
+                    const totalWidth = this.containerWidth + (directions.includes('left') ? gridSizeX : 0) + (directions.includes('right') ? gridSizeX : 0);
+                    const totalHeight = this.containerHeight + (directions.includes('up') ? gridSizeY : 0) + (directions.includes('bottom') ? gridSizeY : 0);
                     
-                    const backgroundWidth = this.imageWidth + extraWidth;
-                    const backgroundHeight = this.imageHeight + extraHeight;
-                    
+                    // Calculate the position offset to align the original image portion
                     let offsetX = 0;
                     let offsetY = 0;
                     
-                    if (directions.includes('left')) offsetX = gridSizeX;
-                    if (directions.includes('right')) offsetX = -this.imageWidth;
-                    if (directions.includes('up')) offsetY = gridSizeY;
-                    if (directions.includes('bottom')) offsetY = -this.imageHeight;
+                    // If there's left extension, the original image is shifted right in the generated image
+                    if (directions.includes('left')) {
+                        offsetX = -gridSizeX;
+                    }
+                    // If there's top extension, the original image is shifted down in the generated image
+                    if (directions.includes('up')) {
+                        offsetY = -gridSizeY;
+                    }
                     
-                    blockElement.style.backgroundSize = `${backgroundWidth}px ${backgroundHeight}px`;
+                    // Adjust offset based on which block we're positioning
+                    if (directions.includes('right') && gridX >= this.blockDivisions) {
+                        offsetX -= this.containerWidth;
+                    }
+                    if (directions.includes('bottom') && gridY >= this.blockDivisions) {
+                        offsetY -= this.containerHeight;
+                    }
+                    
+                    blockElement.style.backgroundSize = `${totalWidth}px ${totalHeight}px`;
                     blockElement.style.backgroundPosition = `${offsetX}px ${offsetY}px`;
-                    console.log(`🎨 Multi-direction outpaint: backgroundSize=${backgroundWidth}x${backgroundHeight}, position=${offsetX},${offsetY}`);
+                    console.log(`🎨 Multi-direction outpaint: backgroundSize=${totalWidth}x${totalHeight}, position=${offsetX},${offsetY}`);
+                    
+                } else {
+                    // Fallback: simple fill
+                    blockElement.style.backgroundSize = `${gridSizeX}px ${gridSizeY}px`;
+                    blockElement.style.backgroundPosition = '0px 0px';
+                    console.log(`🎨 Fallback: Simple fill - backgroundSize=${gridSizeX}x${gridSizeY}, position=0,0`);
                 }
             }
 
