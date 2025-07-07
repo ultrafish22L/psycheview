@@ -2340,47 +2340,91 @@
 
             async getImageAsBlob() {
                 return new Promise(async (resolve, reject) => {
-                    // In standalone mode, load the actual image file as blob
+                    // In standalone mode, use embedded base64 data
                     if (window.location.protocol === 'file:') {
                         try {
-                            console.log('🔧 Loading actual image file for standalone mode');
-                            const response = await fetch('./psychedelic-flora.jpg');
-                            if (!response.ok) {
-                                throw new Error(`Failed to load image: ${response.status}`);
+                            console.log('🔧 Using embedded base64 data for standalone mode');
+                            
+                            // Use the existing image element's src as base64
+                            const imgElement = document.querySelector('img[alt="Psychedelic Flora"]');
+                            if (imgElement && imgElement.src.startsWith('data:')) {
+                                // Image is already a data URL, convert to blob
+                                const response = await fetch(imgElement.src);
+                                const blob = await response.blob();
+                                console.log('🔧 Converted data URL to blob for standalone mode:', blob.size, 'bytes');
+                                resolve(blob);
+                                return;
                             }
-                            const blob = await response.blob();
-                            console.log('🔧 Loaded actual image blob for standalone mode:', blob.size, 'bytes');
-                            resolve(blob);
-                            return;
-                        } catch (error) {
-                            console.error('🚨 Failed to load actual image, falling back to mock:', error);
-                            // Fallback to mock blob if image loading fails
+                            
+                            // Try to fetch the image file directly
+                            try {
+                                const response = await fetch('./psychedelic-flora.jpg');
+                                if (response.ok) {
+                                    const blob = await response.blob();
+                                    console.log('🔧 Successfully fetched image as blob for standalone mode:', blob.size, 'bytes');
+                                    resolve(blob);
+                                    return;
+                                }
+                            } catch (e) {
+                                console.log('🔧 Direct fetch failed, using fallback');
+                            }
+                            
+                            // Fallback: Create a realistic floral pattern instead of gradient
+                            console.log('🔧 Creating realistic floral pattern for standalone mode');
                             const canvas = document.createElement('canvas');
                             const ctx = canvas.getContext('2d');
                             
                             canvas.width = this.imageWidth;
                             canvas.height = this.imageHeight;
                             
-                            // Create a gradient that matches the psychedelic theme
-                            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                            gradient.addColorStop(0, '#ff006e');
-                            gradient.addColorStop(0.25, '#8338ec');
-                            gradient.addColorStop(0.5, '#3a86ff');
-                            gradient.addColorStop(0.75, '#06ffa5');
-                            gradient.addColorStop(1, '#ffbe0b');
+                            // Create a more realistic floral background
+                            const gradient = ctx.createRadialGradient(
+                                canvas.width/2, canvas.height/2, 0,
+                                canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/2
+                            );
+                            gradient.addColorStop(0, '#2d5016');
+                            gradient.addColorStop(0.3, '#4a7c59');
+                            gradient.addColorStop(0.6, '#6b8e23');
+                            gradient.addColorStop(1, '#228b22');
                             
                             ctx.fillStyle = gradient;
                             ctx.fillRect(0, 0, canvas.width, canvas.height);
                             
+                            // Add floral elements
+                            for (let i = 0; i < 50; i++) {
+                                const x = Math.random() * canvas.width;
+                                const y = Math.random() * canvas.height;
+                                const size = Math.random() * 20 + 5;
+                                
+                                // Flower petals
+                                ctx.fillStyle = `hsl(${Math.random() * 60 + 300}, 70%, 60%)`;
+                                for (let j = 0; j < 5; j++) {
+                                    ctx.beginPath();
+                                    ctx.ellipse(x + Math.cos(j * Math.PI * 2 / 5) * size/2, 
+                                              y + Math.sin(j * Math.PI * 2 / 5) * size/2, 
+                                              size/3, size/6, j * Math.PI * 2 / 5, 0, 2 * Math.PI);
+                                    ctx.fill();
+                                }
+                                
+                                // Flower center
+                                ctx.fillStyle = '#ffeb3b';
+                                ctx.beginPath();
+                                ctx.arc(x, y, size/4, 0, 2 * Math.PI);
+                                ctx.fill();
+                            }
+                            
                             canvas.toBlob((blob) => {
                                 if (blob) {
-                                    console.log('🔧 Created fallback mock image blob');
+                                    console.log('🔧 Created realistic floral pattern blob for standalone mode');
                                     resolve(blob);
                                 } else {
-                                    reject(new Error('Failed to create fallback mock blob'));
+                                    reject(new Error('Failed to create floral pattern blob'));
                                 }
                             }, 'image/jpeg', 0.9);
                             return;
+                        } catch (error) {
+                            console.error('🚨 All approaches failed:', error);
+                            reject(error);
                         }
                     }
                     
