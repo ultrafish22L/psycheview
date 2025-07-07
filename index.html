@@ -492,7 +492,7 @@
             <button id="setApiKeyBtn">Set Key</button>
             <button id="testApiBtn" style="margin-left: 10px; background: #ff6b6b;">Test API</button>
             <button id="debugToggleBtn" style="margin-left: 10px; background: #4CAF50;">Debug: ON</button>
-            <button id="autoGenToggleBtn" style="margin-left: 10px; background: #757575;">Auto-Gen: OFF</button>
+            <button id="autoGenToggleBtn" style="margin-left: 10px; background: #4CAF50;">Auto-Gen: ON</button>
             <button id="apiCallsToggleBtn" style="margin-left: 10px; background: #4CAF50;">API: ON</button>
             <button id="testPanBtn" style="margin-left: 10px; background: #ff9500;">Test Pan</button>
             <button id="zoomOutMaxBtn" style="margin-left: 10px; background: #9c27b0;">Zoom Out Max</button>
@@ -629,8 +629,8 @@
                 // Block size configuration (1 = same size as image, 4 = quarter size, etc.)
                 this.blockDivisions = 1; // Default: blocks are same size as image for easier testing
                 
-                // Auto-generation control (default: false - blocks are NOT added automatically)
-                this.autoGenerateBlocks = false;
+                // Auto-generation control (default: true - blocks are added automatically)
+                this.autoGenerateBlocks = true;
                 
                 // API calls control
                 this.apiCallsEnabled = true;
