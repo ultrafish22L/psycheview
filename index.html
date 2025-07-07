@@ -2339,50 +2339,49 @@
             }
 
             async getImageAsBlob() {
-                return new Promise((resolve, reject) => {
-                    // In standalone mode, create a mock blob since canvas gets tainted
+                return new Promise(async (resolve, reject) => {
+                    // In standalone mode, load the actual image file as blob
                     if (window.location.protocol === 'file:') {
-                        // Create a simple colored rectangle as a placeholder
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        canvas.width = this.imageWidth;
-                        canvas.height = this.imageHeight;
-                        
-                        // Create a gradient that matches the psychedelic theme
-                        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                        gradient.addColorStop(0, '#ff006e');
-                        gradient.addColorStop(0.25, '#8338ec');
-                        gradient.addColorStop(0.5, '#3a86ff');
-                        gradient.addColorStop(0.75, '#06ffa5');
-                        gradient.addColorStop(1, '#ffbe0b');
-                        
-                        ctx.fillStyle = gradient;
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        // Add some pattern
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                        for (let i = 0; i < 20; i++) {
-                            ctx.beginPath();
-                            ctx.arc(
-                                Math.random() * canvas.width,
-                                Math.random() * canvas.height,
-                                Math.random() * 50 + 10,
-                                0,
-                                2 * Math.PI
-                            );
-                            ctx.fill();
-                        }
-                        
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                console.log('🔧 Created mock image blob for standalone mode');
-                                resolve(blob);
-                            } else {
-                                reject(new Error('Failed to create mock image blob'));
+                        try {
+                            console.log('🔧 Loading actual image file for standalone mode');
+                            const response = await fetch('./psychedelic-flora.jpg');
+                            if (!response.ok) {
+                                throw new Error(`Failed to load image: ${response.status}`);
                             }
-                        }, 'image/jpeg', 0.9);
-                        return;
+                            const blob = await response.blob();
+                            console.log('🔧 Loaded actual image blob for standalone mode:', blob.size, 'bytes');
+                            resolve(blob);
+                            return;
+                        } catch (error) {
+                            console.error('🚨 Failed to load actual image, falling back to mock:', error);
+                            // Fallback to mock blob if image loading fails
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            canvas.width = this.imageWidth;
+                            canvas.height = this.imageHeight;
+                            
+                            // Create a gradient that matches the psychedelic theme
+                            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                            gradient.addColorStop(0, '#ff006e');
+                            gradient.addColorStop(0.25, '#8338ec');
+                            gradient.addColorStop(0.5, '#3a86ff');
+                            gradient.addColorStop(0.75, '#06ffa5');
+                            gradient.addColorStop(1, '#ffbe0b');
+                            
+                            ctx.fillStyle = gradient;
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    console.log('🔧 Created fallback mock image blob');
+                                    resolve(blob);
+                                } else {
+                                    reject(new Error('Failed to create fallback mock blob'));
+                                }
+                            }, 'image/jpeg', 0.9);
+                            return;
+                        }
                     }
                     
                     // Server mode - standard approach
