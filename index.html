@@ -2339,6 +2339,18 @@
 
             async getImageAsBlob() {
                 return new Promise((resolve, reject) => {
+                    // In standalone mode, canvas becomes tainted when drawing from file:// URLs
+                    // We need to use a different approach
+                    if (window.location.protocol === 'file:') {
+                        // For standalone mode, we'll fetch the image as a blob directly
+                        fetch(this.image.src)
+                            .then(response => response.blob())
+                            .then(resolve)
+                            .catch(reject);
+                        return;
+                    }
+                    
+                    // Server mode - use canvas approach with crossOrigin
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
@@ -2346,10 +2358,7 @@
                     canvas.height = this.imageHeight;
                     
                     const img = new Image();
-                    // Only use crossOrigin when not in standalone mode
-                    if (window.location.protocol !== 'file:') {
-                        img.crossOrigin = 'anonymous';
-                    }
+                    img.crossOrigin = 'anonymous';
                     img.onload = () => {
                         ctx.drawImage(img, 0, 0);
                         canvas.toBlob(resolve, 'image/jpeg', 0.9);
