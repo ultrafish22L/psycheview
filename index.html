@@ -1159,12 +1159,6 @@
             }
             
             async initializeApiKey() {
-                // Skip API config fetch in standalone mode (file:// protocol)
-                if (window.location.protocol === 'file:') {
-                    console.log('Running in standalone mode - skipping API config fetch');
-                    return;
-                }
-                
                 try {
                     // Try to get API key from environment variable
                     const response = await fetch('/api/config');
