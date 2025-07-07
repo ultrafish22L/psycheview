@@ -1010,13 +1010,17 @@
                     
                     // Log all FormData entries for debugging
                     console.log('📤 FormData entries:');
+                    const formDataEntries = {};
                     for (let [key, value] of formData.entries()) {
                         if (value instanceof File || value instanceof Blob) {
                             console.log(`  ${key}: ${value.constructor.name} (${value.size} bytes, type: ${value.type})`);
+                            formDataEntries[key] = `${value.constructor.name} (${value.size} bytes, type: ${value.type})`;
                         } else {
                             console.log(`  ${key}: ${value}`);
+                            formDataEntries[key] = value;
                         }
                     }
+                    console.log('📤 Complete FormData summary:', JSON.stringify(formDataEntries, null, 2));
                     
                     const response = await fetch(this.config.endpoint, {
                         method: 'POST',
@@ -1033,45 +1037,48 @@
                     console.log('📥 API Response content-type:', response.headers.get('content-type'));
                     console.log('📥 API Response content-length:', response.headers.get('content-length'));
                     
-                    // Check if response is JSON (error) or image
+                    // Check response status and content type
                     const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        // It's a JSON response (likely an error)
-                        const jsonResponse = await response.json();
-                        console.log('📥 API JSON Response:', JSON.stringify(jsonResponse, null, 2));
-                        throw new Error(`API returned JSON instead of image: ${JSON.stringify(jsonResponse)}`);
-                    }
+                    console.log('📥 Response status:', response.status, response.statusText);
+                    console.log('📥 Response ok:', response.ok);
                     
                     if (!response.ok) {
-                        // Try to get the error details from the response
-                        let errorMessage = `HTTP error! status: ${response.status}`;
+                        // Handle error responses - read as text to get error details
                         try {
                             const errorText = await response.text();
                             console.error('🚨 API Error Response (raw):', errorText);
                             
                             // Try to parse as JSON for better error details
+                            let errorMessage = `API Error (${response.status}): `;
                             try {
                                 const errorJson = JSON.parse(errorText);
-                                console.error('🚨 API Error Response (parsed):', errorJson);
-                                if (errorJson.message) {
-                                    errorMessage = errorJson.message;
+                                console.error('🚨 API Error Response (parsed):', JSON.stringify(errorJson, null, 2));
+                                if (errorJson.errors && Array.isArray(errorJson.errors)) {
+                                    errorMessage += errorJson.errors.join(', ');
                                 } else if (errorJson.error) {
-                                    errorMessage = errorJson.error;
-                                } else if (errorJson.errors && errorJson.errors.length > 0) {
-                                    errorMessage = errorJson.errors[0];
+                                    errorMessage += errorJson.error;
+                                } else {
+                                    errorMessage += errorText;
                                 }
                             } catch (parseError) {
                                 console.error('🚨 Could not parse error as JSON:', parseError);
-                                errorMessage = errorText || errorMessage;
+                                errorMessage += errorText;
                             }
+                            throw new Error(errorMessage);
                         } catch (textError) {
                             console.error('🚨 Could not read error response:', textError);
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        
-                        throw new Error(errorMessage);
                     }
                     
-                    // Get the generated image
+                    // Check if successful response is JSON (unexpected for image generation)
+                    if (contentType && contentType.includes('application/json')) {
+                        const jsonResponse = await response.json();
+                        console.log('📥 API JSON Response (unexpected success):', JSON.stringify(jsonResponse, null, 2));
+                        throw new Error(`API returned JSON instead of image: ${JSON.stringify(jsonResponse)}`);
+                    }
+                    
+                    // Get the generated image (successful image response)
                     const imageBlob2 = await response.blob();
                     console.log('✅ API Response successful!');
                     const blobDetails = {
