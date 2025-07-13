@@ -1,248 +1,126 @@
-# PsycheView - Complete Reproduction Prompt
+# PsycheView: AI-Powered Infinite Image Outpainting System
 
-Create a super slick, modern, interactive web viewer for a psychedelic floral image with the following **EXACT** specifications:
+## Section 1: Project Overview & User Experience
 
-## 🎨 VISUAL DESIGN & UX
+**PsycheView** is a sophisticated web-based image viewer that enables users to infinitely extend any image in all directions using AI-powered outpainting. The application transforms a single image into an endless explorable canvas through intelligent API integration with Stability AI's outpaint service.
 
-### Background Animation
-- **Psychedelic animating background** that fills the entire page
-- **Gradient animation** with purple, blue, green, and teal colors
-- **Smooth color transitions** with saturation, contrast, brightness, and hue-rotate effects
-- **75-second animation cycle** with ease-in-out timing
-- **Opacity variations** between 0.4-0.7 for trippy effect
+### Core User Experience
 
-### Image Window
-- **Centered window** sized to fit the image with glassmorphism styling
-- **Content clipped** by window edges with `overflow: hidden`
-- **Pan with click and drag** - smooth, fluid mouse interactions
-- **Zoom with mouse wheel** - stops at 4x zoom in both directions (0.25x to 4x)
-- **Zoom maintains cursor position** - image stays under cursor while zooming
-- **Touch support** for mobile devices
+**Initial View**: Users see a psychedelic floral image (1600x1024px) displayed at 50% zoom (0.5x scale) in the center of a dark, animated background. This zoomed-out view provides ample space around the image, immediately suggesting the possibility of extension.
 
-### Image Window Contents (3 Stacked Layers)
-1. **Tiled Background Layer**: Trippy static image that tiles infinitely (clipped by window)
-2. **Grid Overlay Layer**: Grey line grid extending infinitely (clipped by window)
-   - **Dynamic grid sizing**: Horizontal lines spaced at 1/4 image height
-   - **Dynamic grid sizing**: Vertical lines spaced at 1/4 image width
-   - **Perfect alignment** with image boundaries using `updateGridSize()` function
-3. **Main Image Layer**: The psychedelic floral image on top
+**Visual Grid System**: A bright white grid overlay with 2px thick lines provides perfect visual guidance. Each grid cell is exactly the size of the original image (1600x1024px), with the original image positioned at grid coordinates (0,0). The grid extends infinitely in all directions, creating a clear framework for understanding where new content can be generated.
 
-### UI Elements
-- **Glassmorphism effects** throughout with backdrop-blur and semi-transparent backgrounds
-- **Drop shadows** and modern styling
-- **Zoom indicator** showing current zoom level (e.g., "1.00x")
-- **Queue status indicator** showing "Queue: X | Active: Y"
-- **Demo/Live mode toggle switch** with smooth animations
-- **Progress indicators** for block generation (circular progress with percentages)
+**Interactive Navigation**: Users can pan by clicking and dragging anywhere on the canvas, and zoom using scroll wheel or touch gestures (0.25x to 4x range). The grid dynamically updates in real-time, maintaining perfect alignment with the image boundaries at all zoom levels and pan positions.
 
-## 🔧 TECHNICAL IMPLEMENTATION
+**Automatic Content Generation**: As users explore the canvas by panning around, the system intelligently detects when they're viewing empty grid cells adjacent to existing content. It automatically triggers AI generation calls to fill these spaces, creating seamless extensions of the original artwork. Users see real-time progress indicators and can monitor API calls through a comprehensive debug console.
 
-### Core Architecture
-- **Pure HTML/CSS/JavaScript** - No frameworks or dependencies
-- **Modular JavaScript class** (`PsycheViewer`) with clean event handling
-- **Canvas API integration** for precise mask generation
-- **Blob handling** for efficient image data management
-- **Node.js server** for environment variable handling and CORS
+**Seamless Integration**: New content appears as users explore, creating the illusion of an infinite canvas that was always there. Each generated block maintains visual consistency with the original image through carefully crafted prompts that emphasize continuity of style, color, and artistic elements.
 
-### Pan & Zoom System
-```javascript
-// Implement smooth pan with translateX/translateY
-// Implement zoom with scale transform
-// Maintain cursor position during zoom with proper coordinate calculations
-// Use requestAnimationFrame for smooth animations
-```
+**Debug & Control Interface**: A sophisticated control panel provides API key management, generation toggles, block size options, and real-time monitoring of the generation queue. Users can see exactly what's happening behind the scenes while maintaining a clean, uncluttered viewing experience.
 
-### Outfill Generation System
-**CRITICAL**: Implement **dual-mode system** with toggle switch:
+### User Journey
+1. **Discovery**: User opens the application and sees the original image with clear grid boundaries
+2. **Exploration**: User pans around to explore the space, immediately understanding the grid system
+3. **Generation**: System automatically generates adjacent content as user moves to new areas
+4. **Infinite Experience**: User can continue exploring indefinitely as new content generates seamlessly
 
-#### Demo Mode (Default)
-- **Simulated block generation** with trippy gradient patterns
-- **Progress animation** from 0% to 100% over 2-3 seconds
-- **No API calls** - purely visual simulation
-- **Instant fallback** when API fails
+## Section 2: Technical Architecture & Engineering Design
 
-#### Live Mode (Stability AI Integration)
-- **Real Stability AI v2beta outpaint API calls**
-- **Environment variable**: `STABILITY_API_KEY` (with fallback prompt)
-- **API Endpoint**: `https://api.stability.ai/v2beta/stable-image/edit/outpaint`
-- **Parameters**:
-  - `image`: Original image as blob
-  - `mask`: Canvas-generated precise mask for block area
-  - `prompt`: "psychedelic floral pattern, vibrant colors, organic shapes, detailed botanical elements"
-  - `creativity`: 0.35 (balanced coherence/creativity)
-  - `output_format`: "jpeg"
+### Core Architecture Pattern
+Implement a **single-page application** using vanilla JavaScript with a main `ImageViewer` class that manages all functionality. Use **no external dependencies** or build tools - everything should work directly in the browser from a single HTML file with embedded CSS and JavaScript.
 
-### Block Management System
-- **Priority-based queue** with `calculateBlockPriority()` function
-- **Visibility percentage** + **distance from center** + **bonuses**
-- **Dynamic queue sorting** on every pan/zoom operation
-- **Real-time queue updates** with `updateQueueIndicator()`
-- **Error handling** with red error indicators (❌) for failed generations
+### Grid System Implementation
+Create a **dual-layer rendering system**:
+- **Background Layer**: Animated psychedelic tiled background for visual appeal
+- **Grid Layer**: HTML5 Canvas overlay that draws infinite white grid lines
+- **Content Layer**: Standard DOM img elements for the original image and generated blocks
 
-### Grid Alignment System (**CRITICAL FIX**)
-```javascript
-updateGridSize() {
-    if (!this.imageWidth || !this.imageHeight) return;
-    
-    // Calculate grid cell size (quarter of image dimensions)
-    const gridCellWidth = this.imageWidth / 4;
-    const gridCellHeight = this.imageHeight / 4;
-    
-    // Update the grid overlay background-size
-    const gridOverlay = document.querySelector('.grid-overlay');
-    if (gridOverlay) {
-        gridOverlay.style.backgroundSize = `${gridCellWidth}px ${gridCellHeight}px`;
-    }
-}
-```
+The grid system must use **canvas-based rendering** with JavaScript, not CSS backgrounds. Calculate grid line positions based on image dimensions and current viewport transform (scale, translateX, translateY). Redraw the grid on every transform change, window resize, and initialization.
 
-## 📁 FILE STRUCTURE
+### Coordinate System Design
+Implement a **block-based coordinate system** where:
+- Each block is exactly the original image size (1600x1024px)
+- Original image is positioned at coordinates (0,0)
+- Adjacent blocks use integer coordinates: (1,0) for right, (0,1) for down, (-1,0) for left, etc.
+- Use string keys like "1,0" for block identification and storage
+- Convert between screen coordinates and block coordinates using transform math
 
-### index.html
-- **Complete single-file application**
-- **Embedded CSS** with animations and glassmorphism
-- **Embedded JavaScript** with PsycheViewer class
-- **Mode toggle switch** with onclick handler (NOT addEventListener)
-- **Grid overlay** with dynamic background-size
-- **Progress indicators** and queue status display
+### API Integration Architecture
+Design a **direction-based API system** that:
+- Detects which blocks are visible but empty in the current viewport
+- Calculates direction vectors (directionX, directionY) for each needed block
+- Maps direction vectors to Stability AI API parameters (left, right, up, down pixel values)
+- Handles API responses by positioning generated images at correct block coordinates
+- Implements intelligent queueing to avoid duplicate requests and manage rate limits
 
-### server.js
-```javascript
-// Node.js server with Express
-// CORS enabled for all origins
-// /api/config endpoint for API key management
-// Environment variable handling for STABILITY_API_KEY
-// Port 52778 configuration
-```
+### State Management Strategy
+Maintain application state through:
+- **Transform State**: scale, translateX, translateY for viewport positioning
+- **Block Registry**: Map of block coordinates to image data and status
+- **Generation Queue**: Priority queue of pending API requests
+- **API Configuration**: Centralized settings for prompts, creativity, output format
 
-### package.json
-```json
-{
-  "name": "psycheview",
-  "version": "1.0.0",
-  "description": "Interactive psychedelic image viewer with AI outfill",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
-  }
-}
-```
+### Performance Optimization Approach
+- **Lazy Loading**: Only generate blocks when they become visible
+- **Viewport Culling**: Only draw grid lines within screen bounds plus small buffer
+- **Memory Management**: Clean up blob URLs and canvas contexts appropriately
+- **Request Deduplication**: Prevent multiple API calls for the same block
+- **Priority Queuing**: Generate blocks closest to viewport first
 
-### psychedelic-flora.jpg
-- **Main image file** - psychedelic floral artwork with vibrant colors
-- **Serpentine creatures** and **botanical elements**
-- **Rich color palette** with greens, purples, oranges, blues
+### Event Handling Design
+Implement **unified event system** for:
+- Mouse/touch input for pan and zoom with proper coordinate transformation
+- Keyboard shortcuts for common actions
+- Window resize handling with grid redraw
+- API response handling with automatic block placement
+- Error handling with user feedback and retry mechanisms
 
-## 🎯 KEY IMPLEMENTATION DETAILS
+### API Integration Specifications
+Interface with **Stability AI v2beta outpaint API** using:
+- FormData requests with image blob, prompt, and direction parameters
+- Bearer token authentication with environment variable injection
+- Response handling for JPEG/PNG blob data
+- Error handling for rate limits, invalid requests, and network issues
+- Request logging and debugging with comprehensive console output
 
-### Mode Toggle System
-```javascript
-// Use onclick assignment, NOT addEventListener (critical for reliability)
-this.modeToggle.onclick = () => {
-    this.toggleMode();
-};
+### Responsive Design Requirements
+Ensure the application works across:
+- **Desktop browsers** with mouse and keyboard input
+- **Touch devices** with gesture support for pan/zoom
+- **Various screen sizes** with adaptive UI scaling
+- **Different pixel densities** with proper canvas resolution
 
-// Async API key handling with environment variable fallback
-async checkApiKey() {
-    try {
-        const response = await fetch('/api/config');
-        const config = await response.json();
-        return config.apiKey || prompt('Enter your Stability AI API key:');
-    } catch (error) {
-        return prompt('Enter your Stability AI API key:');
-    }
-}
-```
+### Development & Deployment Strategy
+Structure as a **dual-mode application**:
+- **Standalone Mode**: Works via file:// protocol for local development
+- **Server Mode**: Node.js server for API key management and CORS handling
+- **No Build Process**: Direct browser execution with no compilation step
+- **Environment Flexibility**: Automatic detection of available features
 
-### Block Generation Logic
-```javascript
-// Split generation: demo vs API
-async simulateGeneration(blockKey) {
-    if (this.isLiveMode) {
-        return this.generateWithAPI(blockKey);
-    } else {
-        return this.generateDemo(blockKey);
-    }
-}
+## Future Development Opportunities
 
-// Canvas mask generation for API calls
-generateMaskForBlock(blockKey) {
-    // Create precise canvas-based mask for the block area
-    // Return as blob for API submission
-}
-```
+### Enhanced AI Integration
+- **Multiple AI Models**: Support for different outpainting services (DALL-E, Midjourney, etc.)
+- **Style Transfer**: Allow users to change artistic styles while maintaining content
+- **Prompt Customization**: User-defined prompts for different generation styles
+- **Quality Settings**: Variable resolution and quality options
 
-### Stability AI Integration
-```javascript
-async callStabilityAPI(imageBlob, maskBlob, prompt) {
-    const formData = new FormData();
-    formData.append('image', imageBlob);
-    formData.append('mask', maskBlob);
-    formData.append('prompt', prompt);
-    formData.append('creativity', '0.35');
-    formData.append('output_format', 'jpeg');
+### Advanced Grid Features
+- **Variable Block Sizes**: Support for different block dimensions and aspect ratios
+- **Smart Boundaries**: Automatic detection of natural image boundaries for better seaming
+- **Grid Snapping**: Magnetic alignment for precise positioning
+- **Custom Grid Patterns**: Non-rectangular grid systems for artistic effects
 
-    const response = await fetch('https://api.stability.ai/v2beta/stable-image/edit/outpaint', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: formData
-    });
-    
-    return response.blob();
-}
-```
+### User Experience Enhancements
+- **Save/Load Sessions**: Persistent storage of generated canvases
+- **Export Functionality**: High-resolution export of entire generated areas
+- **Collaboration Features**: Shared canvases with multiple users
+- **Animation Support**: Smooth transitions between generated blocks
 
-## 🚀 STARTUP SEQUENCE
+### Performance & Scalability
+- **WebGL Acceleration**: GPU-accelerated rendering for large canvases
+- **Progressive Loading**: Streaming of high-resolution content
+- **Caching System**: Local storage of generated blocks
+- **Background Generation**: Pre-generate likely exploration areas
 
-1. **Create Node.js server** with package.json and dependencies
-2. **Implement index.html** with complete PsycheViewer class
-3. **Add psychedelic-flora.jpg** image file
-4. **Test demo mode** functionality (default mode)
-5. **Verify grid alignment** with updateGridSize() function
-6. **Test live mode** with API key (optional)
-7. **Verify responsive design** and touch support
-
-## ✅ VERIFICATION CHECKLIST
-
-- [ ] Background animation working (purple/green/blue gradients)
-- [ ] Pan and zoom functionality smooth and responsive
-- [ ] Grid overlay perfectly aligned with image boundaries
-- [ ] Demo mode generates simulated blocks with progress
-- [ ] Live mode toggle switches correctly
-- [ ] Queue system shows real-time updates
-- [ ] Mobile touch support working
-- [ ] Glassmorphism effects applied throughout
-- [ ] Error handling graceful with fallback backgrounds
-
-## 🏷️ VERSION TAGS
-
-- **`zelator`** - Sophisticated priority-based queue management system
-- **`zelator2`** - ✅ **FIXED** Perfect block alignment with dynamic grid sizing  
-- **`magister`** - 🎯 **PRODUCTION-READY** Complete demo/live mode system with Stability AI integration
-
-## 🎨 EXACT STYLING REQUIREMENTS
-
-### Colors
-- **Background**: Animated gradients (purple #8B5CF6, blue #3B82F6, green #10B981, teal #14B8A6)
-- **Grid lines**: rgba(128, 128, 128, 0.15) with soft-light blend mode
-- **UI elements**: Semi-transparent with backdrop-blur
-- **Progress indicators**: Circular with percentage display
-
-### Animations
-- **Background**: 75s ease-in-out infinite with hue-rotate and filter effects
-- **Grid**: 75s subtle shift with opacity and hue variations
-- **Transitions**: Smooth 0.3s ease for all interactive elements
-- **Progress**: Real-time updates with smooth circular animation
-
-### Typography
-- **Modern sans-serif** fonts
-- **Glassmorphism text styling** with proper contrast
-- **Responsive sizing** for different screen sizes
-
-This prompt will reproduce the **EXACT** PsycheView implementation with all features, styling, and functionality as currently implemented.
+This architecture provides a solid foundation for infinite image exploration while maintaining simplicity, performance, and extensibility.
