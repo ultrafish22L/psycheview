@@ -1480,8 +1480,7 @@
                         if (progress >= 1) {
                             clearInterval(interval);
                             
-                            // Generate demo blocks using the multi-block system
-                            this.generateDemoBlocks(blockKey);
+                            // Demo mode removed - only live API calls supported
                             
                             resolve();
                         }
@@ -1489,93 +1488,9 @@
                 });
             }
 
-            generateDemoBlocks(originalBlockKey) {
-                const { directionX, directionY } = this.getOutpaintDirections(originalBlockKey);
-                const [originalGridX, originalGridY] = originalBlockKey.split(',').map(Number);
-                
-                // Create demo gradient image for each block
-                const blocksToCreate = [];
-                
-                if (directionX !== 0 && directionY !== 0) {
-                    // Diagonal direction - create 3 blocks
-                    const rightBlockX = originalGridX + (directionX > 0 ? 1 : -1);
-                    const downBlockY = originalGridY + (directionY > 0 ? 1 : -1);
-                    
-                    blocksToCreate.push(`${rightBlockX},${originalGridY}`);
-                    blocksToCreate.push(`${originalGridX},${downBlockY}`);
-                    blocksToCreate.push(`${rightBlockX},${downBlockY}`);
-                    
-                } else if (directionX !== 0) {
-                    // Horizontal direction - create 1 block
-                    const newBlockX = originalGridX + (directionX > 0 ? 1 : -1);
-                    blocksToCreate.push(`${newBlockX},${originalGridY}`);
-                    
-                } else if (directionY !== 0) {
-                    // Vertical direction - create 1 block
-                    const newBlockY = originalGridY + (directionY > 0 ? 1 : -1);
-                    blocksToCreate.push(`${originalGridX},${newBlockY}`);
-                }
-                
-                // Create demo images for each block
-                blocksToCreate.forEach(blockKey => {
-                    const demoImageData = this.createDemoBlockImage(blockKey);
-                    
-                    this.outfillBlocks.set(blockKey, {
-                        status: 'ready',
-                        progress: 1,
-                        imageData: demoImageData
-                    });
-                    
-                    this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
-                    
-                    // Check for newly adjacent blocks
-                    this.checkForNewlyAdjacentBlocks(blockKey);
-                });
-                
-                console.log(`✅ Generated ${blocksToCreate.length} demo blocks from ${originalBlockKey}`);
-            }
 
-            createDemoBlockImage(blockKey) {
-                const [gridX, gridY] = blockKey.split(',').map(Number);
-                const blockSizeX = this.imageWidth / this.blockDivisions;
-                const blockSizeY = this.imageHeight / this.blockDivisions;
-                
-                // Create canvas for demo block
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = blockSizeX;
-                canvas.height = blockSizeY;
-                
-                // Create psychedelic gradient based on block position
-                const gradient = ctx.createLinearGradient(0, 0, blockSizeX, blockSizeY);
-                const hue1 = (gridX * 60 + gridY * 40) % 360;
-                const hue2 = (hue1 + 120) % 360;
-                
-                gradient.addColorStop(0, `hsl(${hue1}, 70%, 60%)`);
-                gradient.addColorStop(0.5, `hsl(${(hue1 + hue2) / 2}, 80%, 50%)`);
-                gradient.addColorStop(1, `hsl(${hue2}, 70%, 60%)`);
-                
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, blockSizeX, blockSizeY);
-                
-                // Add some psychedelic patterns
-                for (let i = 0; i < 5; i++) {
-                    const x = Math.random() * blockSizeX;
-                    const y = Math.random() * blockSizeY;
-                    const radius = Math.random() * 30 + 10;
-                    
-                    const circleGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-                    circleGradient.addColorStop(0, `hsla(${(hue1 + i * 30) % 360}, 80%, 70%, 0.6)`);
-                    circleGradient.addColorStop(1, `hsla(${(hue2 + i * 30) % 360}, 80%, 70%, 0.1)`);
-                    
-                    ctx.fillStyle = circleGradient;
-                    ctx.beginPath();
-                    ctx.arc(x, y, radius, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-                
-                return canvas.toDataURL('image/jpeg', 0.9);
-            }
+
+
 
             async generateWithAPI(blockKey) {
                 try {
@@ -1626,20 +1541,20 @@
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                     const filename = `${description}_block-${blockKey}_${timestamp}.${blob.type.split('/')[1] || 'jpg'}`;
                     
-                    // Create download link
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = filename;
-                    a.style.display = 'none';
+                    // Create download link - COMMENTED OUT
+                    // const url = URL.createObjectURL(blob);
+                    // const a = document.createElement('a');
+                    // a.href = url;
+                    // a.download = filename;
+                    // a.style.display = 'none';
                     
-                    // Trigger download
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                    // // Trigger download
+                    // document.body.appendChild(a);
+                    // a.click();
+                    // document.body.removeChild(a);
                     
-                    // Clean up URL
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    // // Clean up URL
+                    // setTimeout(() => URL.revokeObjectURL(url), 1000);
                     
                     console.log('🐛 DEBUG: Saved blob to file:', filename, {
                         size: blob.size,
