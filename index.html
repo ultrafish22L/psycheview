@@ -427,13 +427,14 @@
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
             <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
-            <div class="debug-info" id="debugInfo" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 1000; max-width: 400px; max-height: 300px; overflow-y: auto;">
+            <!-- Debug windows stacked on right side -->
+            <div class="debug-info" id="debugInfo" style="position: fixed; top: 10px; right: 10px; width: 320px; height: 250px; background: rgba(0,0,0,0.85); color: white; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 11px; z-index: 1000; overflow-y: auto; border: 1px solid #444; backdrop-filter: blur(10px);">
                 Debug Info
             </div>
             
-            <!-- Console capture div -->
-            <div id="consoleCapture" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.9); color: #00ff00; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px; z-index: 1001; max-width: 500px; max-height: 400px; overflow-y: auto; border: 1px solid #333;">
-                <div style="color: #ffff00; margin-bottom: 5px;">🖥️ CONSOLE OUTPUT:</div>
+            <!-- Console capture div stacked below debug info -->
+            <div id="consoleCapture" style="position: fixed; top: 280px; right: 10px; width: 320px; height: 300px; background: rgba(0,0,0,0.9); color: #00ff00; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 10px; z-index: 1001; overflow-y: auto; border: 1px solid #333; backdrop-filter: blur(10px);">
+                <div style="color: #ffff00; margin-bottom: 8px; font-weight: bold;">🖥️ CONSOLE OUTPUT:</div>
                 <div id="consoleLogs"></div>
             </div>
 
