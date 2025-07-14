@@ -278,22 +278,13 @@
             font-family: monospace;
         }
 
-        /* Mode toggle */
-        .mode-toggle {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 1000;
-        }
+
 
         /* API Key Input */
         .api-key-input {
             position: fixed;
             top: 20px;
-            left: 200px;
+            left: 20px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -342,46 +333,7 @@
             cursor: not-allowed;
         }
 
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 24px;
-            background: #333;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
 
-        .toggle-switch.active {
-            background: #4CAF50;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s;
-        }
-
-        .toggle-switch.active .toggle-slider {
-            transform: translateX(26px);
-        }
-
-        .mode-label {
-            font-weight: bold;
-        }
-
-        .mode-label.demo {
-            color: #ff9800;
-        }
-
-        .mode-label.live {
-            color: #4CAF50;
-        }
 
         /* Debug Preview Window */
         .debug-preview {
@@ -474,26 +426,13 @@
             🎨 Click & drag to pan • Scroll to zoom (0.25x - 4x) • Touch supported
         </div>
         
-        <div class="mode-toggle">
-            <span class="mode-label demo" id="modeLabel">DEMO</span>
-            <div class="toggle-switch" id="modeToggle">
-                <div class="toggle-slider"></div>
-            </div>
-        </div>
+
 
         <div class="api-key-input" id="apiKeyContainer">
             <input type="password" id="apiKeyInput" placeholder="Enter Stability AI API Key" />
             <button id="setApiKeyBtn">Set Key</button>
 
-            <label style="margin-left: 15px; color: white; font-size: 12px;">
-                Block Size: 
-                <select id="blockSizeSelect" style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
-                    <option value="1" selected>Same as image (1x1)</option>
-                    <option value="2">Half size (2x2)</option>
-                    <option value="4">Quarter size (4x4)</option>
-                    <option value="8">Eighth size (8x8)</option>
-                </select>
-            </label>
+
         </div>
 
         <div class="image-viewer" id="imageViewer">
@@ -594,8 +533,7 @@
                 };
                 this.zoomIndicator = document.getElementById('zoomIndicator');
                 this.queueIndicator = document.getElementById('queueIndicator');
-                this.modeToggle = document.getElementById('modeToggle');
-                this.modeLabel = document.getElementById('modeLabel');
+
                 this.debugInfo = document.getElementById('debugInfo');
                 this.apiKeyInput = document.getElementById('apiKeyInput');
                 this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
@@ -607,7 +545,7 @@
                 this.zoomOutMaxBtn = document.getElementById('zoomOutMaxBtn');
                 this.imageOpacityBtn = document.getElementById('imageOpacityBtn');
                 this.blockLayerBtn = document.getElementById('blockLayerBtn');
-                this.blockSizeSelect = document.getElementById('blockSizeSelect');
+
                 
                 // Debug preview elements
                 this.debugPreview = document.getElementById('debugPreview');
@@ -619,8 +557,7 @@
                 
 
                 
-                console.log('modeToggle found:', !!this.modeToggle);
-                console.log('modeLabel found:', !!this.modeLabel);
+
                 
 
                 
@@ -741,14 +678,7 @@
                 // Prevent context menu
                 this.viewer.addEventListener('contextmenu', e => e.preventDefault());
                 
-                // Mode toggle
-                if (this.modeToggle) {
-                    this.modeToggle.onclick = () => {
-                        this.toggleMode();
-                    };
-                } else {
-                    console.error('modeToggle element not found!');
-                }
+
                 
                 // API key input
                 if (this.setApiKeyBtn) {
@@ -805,9 +735,7 @@
                     this.debugPreviewClose.addEventListener('click', () => this.hideDebugPreview());
                 }
                 
-                if (this.blockSizeSelect) {
-                    this.blockSizeSelect.addEventListener('change', () => this.updateBlockSize());
-                }
+
                 
                 // Try to load API key from environment on startup
                 this.initializeApiKey();
@@ -850,8 +778,7 @@
                     this.setApiKeyBtn.textContent = 'Update';
                 }
                 
-                // Update mode UI to show live mode
-                this.updateModeUI();
+                // Live mode is always enabled
                 
                 console.log('🔑 API key pre-configured and live mode enabled');
             }
@@ -864,11 +791,7 @@
                     this.apiKeyInput.placeholder = 'API Key Set ✓';
                     this.setApiKeyBtn.textContent = 'Update';
                     
-                    // Enable live mode if API key is set
-                    if (!this.isLiveMode) {
-                        this.isLiveMode = true;
-                        this.updateModeUI();
-                    }
+                    // Live mode is always enabled
                     
                     console.log('API key set successfully');
                 } else {
@@ -1213,24 +1136,14 @@
                         this.apiKeyInput.placeholder = 'API Key Set ✓';
                         this.setApiKeyBtn.textContent = 'Update';
                         console.log('API key loaded from environment variable');
-                        this.updateModeUI();
+                        // Live mode is always enabled
                     }
                 } catch (error) {
                     console.error('Failed to fetch API config:', error);
                 }
             }
             
-            updateModeUI() {
-                if (this.isLiveMode) {
-                    this.modeToggle.classList.add('active');
-                    this.modeLabel.textContent = 'LIVE';
-                    this.modeLabel.className = 'mode-label live';
-                } else {
-                    this.modeToggle.classList.remove('active');
-                    this.modeLabel.textContent = 'DEMO';
-                    this.modeLabel.className = 'mode-label demo';
-                }
-            }
+
             
             handleMouseDown(e) {
                 this.isDragging = true;
@@ -1654,28 +1567,7 @@
                 console.log('🔄 Block layer:', this.blocksOverImage ? 'OVER image' : 'UNDER image');
             }
             
-            // Update block size configuration
-            updateBlockSize() {
-                const newBlockDivisions = parseInt(this.blockSizeSelect.value);
-                console.log(`🔧 Updating block size from ${this.blockDivisions} to ${newBlockDivisions}`);
-                
-                this.blockDivisions = newBlockDivisions;
-                
-                // Update grid size to reflect new block divisions
-                this.updateGridSize();
-                
-                // Clear existing outfill blocks since they're now invalid
-                this.outfillBlocks.clear();
-                
-                // Remove all existing outfill block elements from DOM
-                const existingBlocks = document.querySelectorAll('[id^="outfill-"]');
-                existingBlocks.forEach(block => block.remove());
-                
-                // Update visible blocks with new block size
-                this.checkVisibleBlocks();
-                
-                console.log(`✅ Block size updated! Each block is now ${this.imageWidth / this.blockDivisions}x${this.imageHeight / this.blockDivisions}px`);
-            }
+
 
             // Show debug preview with blob
             showDebugPreview(blob, blockKey, description = 'api-response') {
@@ -2521,15 +2413,7 @@
                 this.queueIndicator.textContent = `Queue: ${queueCount} | Active: ${activeCount}`;
             }
 
-            async toggleMode() {
-                if (!this.isLiveMode && !this.apiKey) {
-                    alert('Please enter your Stability AI API key first to enable live mode.');
-                    return;
-                }
-                
-                this.isLiveMode = !this.isLiveMode;
-                this.updateModeUI();
-            }
+
 
 
 
