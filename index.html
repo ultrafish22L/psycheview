@@ -427,13 +427,13 @@
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
             <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
-            <!-- Debug windows filling right side of browser window -->
-            <div class="debug-info" id="debugInfo" style="position: fixed; top: 0; right: 0; width: 350px; height: 50vh; background: rgba(0,0,0,0.85); color: white; padding: 15px; font-family: monospace; font-size: 11px; z-index: 1000; overflow-y: auto; border-left: 2px solid #444; backdrop-filter: blur(10px);">
+            <!-- Debug windows right-justified to browser window, narrower width -->
+            <div class="debug-info" id="debugInfo" style="position: fixed; top: 0; right: 0; width: 280px; height: 50vh; background: rgba(0,0,0,0.85); color: white; padding: 12px; font-family: monospace; font-size: 10px; z-index: 1000; overflow-y: auto; border-left: 2px solid #444; backdrop-filter: blur(10px);">
                 Debug Info
             </div>
             
-            <!-- Console capture div filling bottom half of right side -->
-            <div id="consoleCapture" style="position: fixed; top: 50vh; right: 0; width: 350px; height: 50vh; background: rgba(0,0,0,0.9); color: #00ff00; padding: 15px; font-family: monospace; font-size: 10px; z-index: 1001; overflow-y: auto; border-left: 2px solid #333; backdrop-filter: blur(10px);">
+            <!-- Console capture div right-justified to browser window, bottom half -->
+            <div id="consoleCapture" style="position: fixed; top: 50vh; right: 0; width: 280px; height: 50vh; background: rgba(0,0,0,0.9); color: #00ff00; padding: 12px; font-family: monospace; font-size: 9px; z-index: 1001; overflow-y: auto; border-left: 2px solid #333; backdrop-filter: blur(10px);">
                 <div style="color: #ffff00; margin-bottom: 8px; font-weight: bold;">🖥️ CONSOLE OUTPUT:</div>
                 <div id="consoleLogs"></div>
             </div>
