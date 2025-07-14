@@ -1481,6 +1481,23 @@
                         this.zoomIndicator.style.display = newDisplay;
                     }
 
+                    // Toggle debug preview window visibility (show/hide with debug mode)
+                    if (this.debugPreview) {
+                        if (newDisplay === 'block') {
+                            // Show debug preview window when debug mode is enabled
+                            this.debugPreview.classList.add('visible');
+                            // Show placeholder content if no image is loaded
+                            if (!this.debugPreviewImage.src || this.debugPreviewImage.src === '') {
+                                this.debugPreviewTitle.textContent = 'Downloaded Images Preview';
+                                this.debugPreviewInfo.textContent = 'Generated images will appear here...';
+                                this.debugPreviewImage.style.display = 'none';
+                            }
+                        } else {
+                            // Hide debug preview window when debug mode is disabled
+                            this.debugPreview.classList.remove('visible');
+                        }
+                    }
+
                     console.log(`🔧 Debug windows ${isVisible ? 'hidden' : 'shown'} (F12 or Ctrl+D to toggle)`);
                 }
             }
