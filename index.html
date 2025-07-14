@@ -348,9 +348,9 @@
         }
 
         .debug-preview-image {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
             display: block;
         }
     </style>
@@ -1577,14 +1577,18 @@
                         let width = tempImg.width;
                         let height = tempImg.height;
                         
+                        console.log(`🐛 DEBUG PREVIEW: Original image dimensions: ${width}x${height}, aspect ratio: ${(width/height).toFixed(3)}`);
+                        
                         // Scale down if too large
                         if (width > maxWidth || height > maxHeight) {
                             const scaleX = maxWidth / width;
                             const scaleY = maxHeight / height;
                             const scale = Math.min(scaleX, scaleY);
-                            width = width * scale;
-                            height = height * scale;
+                            width = Math.round(width * scale);
+                            height = Math.round(height * scale);
                         }
+                        
+                        console.log(`🐛 DEBUG PREVIEW: Scaled dimensions: ${width}x${height}, aspect ratio: ${(width/height).toFixed(3)}`);
                         
                         // Resize debug preview window to scaled dimensions
                         this.debugPreview.style.width = width + 'px';
