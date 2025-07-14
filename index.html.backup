@@ -1,0 +1,2808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsycheView - Standalone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* Animated Background */
+        .animated-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff, #06ffa5, #ffbe0b, #fb5607);
+            background-size: 400% 400%;
+            animation: psychedelicFlow 120s ease-in-out infinite;
+        }
+
+        @keyframes psychedelicFlow {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 100% 50%; }
+            50% { background-position: 50% 100%; }
+            75% { background-position: 50% 0%; }
+        }
+
+        /* Floating elements */
+        .psychedelic-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(2px);
+            animation: psychedelicFloat 20s ease-in-out infinite;
+        }
+
+        .psychedelic-orb:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 0, 110, 0.8), transparent);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .psychedelic-orb:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(131, 56, 236, 0.8), transparent);
+            top: 60%;
+            right: 15%;
+            animation-delay: -5s;
+        }
+
+        .psychedelic-orb:nth-child(3) {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(58, 134, 255, 0.8), transparent);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        .psychedelic-orb:nth-child(4) {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(6, 255, 165, 0.8), transparent);
+            top: 30%;
+            right: 40%;
+            animation-delay: -15s;
+        }
+
+        @keyframes psychedelicFloat {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            25% { transform: translate(50px, -30px) scale(1.2) rotate(90deg); }
+            50% { transform: translate(-30px, 40px) scale(0.8) rotate(180deg); }
+            75% { transform: translate(40px, 20px) scale(1.1) rotate(270deg); }
+        }
+
+        /* Main container */
+        .app-container {
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Instructions */
+        .instructions {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 15px 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* Image Viewer */
+        .image-viewer {
+            position: relative;
+            margin: 60px auto;
+            overflow: hidden;
+            cursor: grab;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .image-viewer:active {
+            cursor: grabbing;
+        }
+
+        .viewer-content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Tiled Background */
+        .tiled-background {
+            position: absolute;
+            width: 1000%;
+            height: 1000%;
+            top: -450%;
+            left: -450%;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.15) 20%, transparent 25%),
+                radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.12) 15%, transparent 20%),
+                radial-gradient(circle at 100% 0%, rgba(255, 255, 0, 0.12) 15%, transparent 20%),
+                radial-gradient(circle at 0% 100%, rgba(255, 100, 0, 0.12) 15%, transparent 20%),
+                radial-gradient(circle at 100% 100%, rgba(100, 255, 100, 0.12) 15%, transparent 20%),
+                linear-gradient(0deg, transparent 45%, rgba(255, 0, 100, 0.08) 47%, rgba(255, 0, 100, 0.08) 53%, transparent 55%),
+                linear-gradient(60deg, transparent 45%, rgba(100, 0, 255, 0.08) 47%, rgba(100, 0, 255, 0.08) 53%, transparent 55%),
+                linear-gradient(120deg, transparent 45%, rgba(0, 255, 150, 0.08) 47%, rgba(0, 255, 150, 0.08) 53%, transparent 55%),
+                radial-gradient(ellipse 30px 52px at 50% 50%, rgba(255, 150, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 30px 52px at 0% 0%, rgba(150, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 30px 52px at 100% 100%, rgba(255, 0, 150, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 40px 20px at 25% 25%, rgba(255, 255, 0, 0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 40px 20px at 75% 75%, rgba(0, 255, 255, 0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 20px 40px at 75% 25%, rgba(255, 0, 255, 0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 20px 40px at 25% 75%, rgba(100, 255, 100, 0.06) 0%, transparent 70%);
+            background-size: 
+                120px 120px,
+                240px 240px,
+                240px 240px,
+                240px 240px,
+                240px 240px,
+                80px 138px,
+                80px 138px,
+                80px 138px,
+                60px 104px,
+                120px 208px,
+                120px 208px,
+                160px 160px,
+                160px 160px,
+                160px 160px,
+                160px 160px;
+            background-position:
+                60px 60px,
+                0px 0px,
+                120px 0px,
+                0px 120px,
+                120px 120px,
+                0px 0px,
+                40px 69px,
+                80px 0px,
+                30px 52px,
+                60px 104px,
+                90px 156px,
+                0px 0px,
+                80px 80px,
+                40px 120px,
+                120px 40px;
+            background-repeat: repeat;
+            opacity: 0.5;
+            mix-blend-mode: multiply;
+            filter: saturate(1.3) contrast(1.1) brightness(1.2);
+            animation: islamicShift 90s ease-in-out infinite;
+        }
+
+        @keyframes islamicShift {
+            0%, 100% { 
+                filter: saturate(1.3) contrast(1.1) brightness(1.2) hue-rotate(0deg);
+                opacity: 0.5;
+            }
+            25% { 
+                filter: saturate(1.6) contrast(1.3) brightness(1.0) hue-rotate(90deg);
+                opacity: 0.6;
+            }
+            50% { 
+                filter: saturate(1.4) contrast(1.4) brightness(1.3) hue-rotate(180deg);
+                opacity: 0.4;
+            }
+            75% { 
+                filter: saturate(1.8) contrast(1.2) brightness(1.1) hue-rotate(270deg);
+                opacity: 0.7;
+            }
+        }
+
+        /* Grid Overlay */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @keyframes subtleGridShift {
+            0%, 100% { 
+                opacity: 0.3;
+                filter: hue-rotate(0deg) saturate(1.2);
+            }
+            33% { 
+                opacity: 0.4;
+                filter: hue-rotate(120deg) saturate(1.4);
+            }
+            66% { 
+                opacity: 0.2;
+                filter: hue-rotate(240deg) saturate(1.1);
+            }
+        }
+
+        /* Main Image - Fill container for consistent sizing */
+        .main-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;  /* Maintain aspect ratio, fit within container */
+            z-index: 3;
+        }
+
+        /* Zoom indicator */
+        .zoom-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        /* Queue indicator */
+        .queue-indicator {
+            position: absolute;
+            top: 35px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        /* Mode toggle */
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        /* API Key Input */
+        .api-key-input {
+            position: fixed;
+            top: 20px;
+            left: 200px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .api-key-input input {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 12px;
+            width: 200px;
+            outline: none;
+        }
+
+        .api-key-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .api-key-input input:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .api-key-input button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .api-key-input button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .api-key-input button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+
+        .mode-label {
+            font-weight: bold;
+        }
+
+        .mode-label.demo {
+            color: #ff9800;
+        }
+
+        .mode-label.live {
+            color: #4CAF50;
+        }
+
+        /* Debug Preview Window */
+        .debug-preview {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 2000;
+            display: none;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .debug-preview.visible {
+            display: block;
+        }
+
+        .debug-preview-header {
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .debug-preview-close {
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 16px;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .debug-preview-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .debug-preview-content {
+            width: 100%;
+            height: calc(100% - 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .debug-preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 5px;
+        }
+
+        .debug-preview-info {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.8);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 10px;
+            padding: 5px;
+            border-radius: 3px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-background">
+        <div class="psychedelic-orb"></div>
+        <div class="psychedelic-orb"></div>
+        <div class="psychedelic-orb"></div>
+        <div class="psychedelic-orb"></div>
+    </div>
+
+    <div class="app-container">
+        <div class="instructions">
+            🎨 Click & drag to pan • Scroll to zoom (0.25x - 4x) • Touch supported
+        </div>
+        
+        <div class="mode-toggle">
+            <span class="mode-label demo" id="modeLabel">DEMO</span>
+            <div class="toggle-switch" id="modeToggle">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+
+        <div class="api-key-input" id="apiKeyContainer">
+            <input type="password" id="apiKeyInput" placeholder="Enter Stability AI API Key" />
+            <button id="setApiKeyBtn">Set Key</button>
+            <button id="testApiBtn" style="margin-left: 10px; background: #ff6b6b;">Test API</button>
+            <button id="debugToggleBtn" style="margin-left: 10px; background: #4CAF50;">Debug: ON</button>
+            <button id="autoGenToggleBtn" style="margin-left: 10px; background: #4CAF50;">Auto-Gen: ON</button>
+            <button id="apiCallsToggleBtn" style="margin-left: 10px; background: #4CAF50;">API: ON</button>
+            <button id="testPanBtn" style="margin-left: 10px; background: #ff9500;">Test Pan</button>
+            <button id="zoomOutMaxBtn" style="margin-left: 10px; background: #9c27b0;">Zoom Out Max</button>
+            <button id="imageOpacityBtn" style="margin-left: 10px; background: #757575;">Image: 100%</button>
+            <button id="blockLayerBtn" style="margin-left: 10px; background: #757575;">Blocks: Under</button>
+            <label style="margin-left: 15px; color: white; font-size: 12px;">
+                Block Size: 
+                <select id="blockSizeSelect" style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                    <option value="1" selected>Same as image (1x1)</option>
+                    <option value="2">Half size (2x2)</option>
+                    <option value="4">Quarter size (4x4)</option>
+                    <option value="8">Eighth size (8x8)</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="image-viewer" id="imageViewer">
+            <div class="viewer-content" id="viewerContent">
+                <div class="tiled-background"></div>
+                <canvas class="grid-overlay" id="gridCanvas"></canvas>
+                <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false">
+            </div>
+            <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
+            <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
+            <div class="debug-info" id="debugInfo" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 1000; max-width: 400px; max-height: 300px; overflow-y: auto;">
+                Debug Info
+            </div>
+
+
+
+        </div>
+    </div>
+
+    <!-- Debug Preview Window -->
+    <div class="debug-preview" id="debugPreview">
+        <div class="debug-preview-header">
+            <span id="debugPreviewTitle">API Response Preview</span>
+            <span class="debug-preview-close" id="debugPreviewClose">×</span>
+        </div>
+        <div class="debug-preview-content">
+            <img class="debug-preview-image" id="debugPreviewImage" alt="API Response">
+            <div class="debug-preview-info" id="debugPreviewInfo">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Override console to capture logs
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const logs = [];
+        
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' '), time: new Date().toLocaleTimeString()});
+            originalConsoleLog.apply(console, args);
+            updateDebugConsole();
+        };
+        
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' '), time: new Date().toLocaleTimeString()});
+            originalConsoleError.apply(console, args);
+            updateDebugConsole();
+        };
+        
+        function updateDebugConsole() {
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                const lastLogs = logs.slice(-10); // Show last 10 logs
+                debugInfo.innerHTML = 'Debug Console:<br>' + lastLogs.map(log => 
+                    `<span style="color: ${log.type === 'error' ? '#ff4444' : '#44ff44'}">[${log.time}] ${log.message}</span>`
+                ).join('<br>');
+            }
+        }
+        
+        class ImageViewer {
+            constructor() {
+                this.viewer = document.getElementById('imageViewer');
+                this.content = document.getElementById('viewerContent');
+                this.image = document.getElementById('mainImage');
+                
+                // API Configuration
+                this.config = {
+                    endpoint: 'https://api.stability.ai/v2beta/stable-image/edit/outpaint',
+                    prompt: 'Extend this psychedelic floral pattern with vibrant colors, intricate botanical details, and flowing organic shapes that seamlessly blend with the existing artwork',
+                    output_format: 'jpeg',
+                    creativity: 0.35,
+                    seed: null
+                };
+                this.zoomIndicator = document.getElementById('zoomIndicator');
+                this.queueIndicator = document.getElementById('queueIndicator');
+                this.modeToggle = document.getElementById('modeToggle');
+                this.modeLabel = document.getElementById('modeLabel');
+                this.debugInfo = document.getElementById('debugInfo');
+                this.apiKeyInput = document.getElementById('apiKeyInput');
+                this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
+                this.testApiBtn = document.getElementById('testApiBtn');
+                this.debugToggleBtn = document.getElementById('debugToggleBtn');
+                this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
+                this.apiCallsToggleBtn = document.getElementById('apiCallsToggleBtn');
+                this.testPanBtn = document.getElementById('testPanBtn');
+                this.zoomOutMaxBtn = document.getElementById('zoomOutMaxBtn');
+                this.imageOpacityBtn = document.getElementById('imageOpacityBtn');
+                this.blockLayerBtn = document.getElementById('blockLayerBtn');
+                this.blockSizeSelect = document.getElementById('blockSizeSelect');
+                
+                // Debug preview elements
+                this.debugPreview = document.getElementById('debugPreview');
+                this.debugPreviewImage = document.getElementById('debugPreviewImage');
+                this.debugPreviewInfo = document.getElementById('debugPreviewInfo');
+                this.debugPreviewTitle = document.getElementById('debugPreviewTitle');
+                this.debugPreviewClose = document.getElementById('debugPreviewClose');
+
+                
+
+                
+                console.log('modeToggle found:', !!this.modeToggle);
+                console.log('modeLabel found:', !!this.modeLabel);
+                
+
+                
+
+                
+
+                
+                this.scale = 0.5;
+                this.translateX = 0;
+                this.translateY = 0;
+                this.isDragging = false;
+                this.lastX = 0;
+                this.lastY = 0;
+                
+                this.minScale = 0.25;
+                this.maxScale = 4;
+                
+                // Block size configuration (1 = same size as image, 4 = quarter size, etc.)
+                this.blockDivisions = 1; // Default: blocks are same size as image for easier testing
+                
+                // Auto-generation control (default: true - blocks are added automatically)
+                this.autoGenerateBlocks = true;
+                
+                // API calls control
+                this.apiCallsEnabled = true;
+                
+                // Image opacity control (false = 100%, true = 50%)
+                this.imageTranslucent = false;
+                
+                // Block layer control (false = under image, true = over image)
+                this.blocksOverImage = false;
+                
+                // Mode system
+                this.isLiveMode = true; // Start in live mode by default
+                this.apiKey = 'sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8';
+                this.debugMode = true; // Enable debug mode to save API responses
+                
+                // Stability AI API Configuration
+                this.apiConfig = {
+                    endpoint: 'https://api.stability.ai/v2beta/stable-image/edit/outpaint',
+                    prompt: 'Extend this psychedelic floral pattern with vibrant colors, intricate botanical details, and flowing organic shapes that seamlessly blend with the existing artwork',
+                    seed: null, // null for random seed
+                    output_format: 'jpeg',
+                    creativity: 0.35,
+                    style_preset: null // null for default style
+                };
+                
+                // Outfill properties
+                this.outfillBlocks = new Map();
+                this.generationQueue = [];
+                this.activeGenerations = 0;
+                this.lastVisibleBlocks = new Set();
+                this.imageWidth = 0;
+                this.imageHeight = 0;
+                
+                this.init();
+            }
+            
+            init() {
+                // Set up container size based on image aspect ratio - windowed approach
+                const setupSize = () => {
+                    // In standalone mode, provide fallback dimensions since image may not load due to CORS
+                    if (window.location.protocol === 'file:' && (!this.image.naturalWidth || !this.image.naturalHeight)) {
+                        console.log('🔧 Standalone mode: Using fallback image dimensions (1600x1024)');
+                        this.imageWidth = 1600;
+                        this.imageHeight = 1024;
+                    } else if (this.image.naturalWidth && this.image.naturalHeight) {
+                        this.imageWidth = this.image.naturalWidth;
+                        this.imageHeight = this.image.naturalHeight;
+                    } else {
+                        // Fallback size if image not loaded yet
+                        this.imageWidth = 1600;
+                        this.imageHeight = 1024;
+                    }
+                    
+                    const aspectRatio = this.imageWidth / this.imageHeight;
+                    
+                    // Create a window sized to fit the image with some margin for the psychedelic background
+                    const maxHeight = window.innerHeight - 120;
+                    const maxWidth = window.innerWidth - 80;
+                    
+                    let finalWidth, finalHeight;
+                    
+                    if (maxWidth / aspectRatio <= maxHeight) {
+                        finalWidth = maxWidth;
+                        finalHeight = maxWidth / aspectRatio;
+                    } else {
+                        finalHeight = maxHeight;
+                        finalWidth = maxHeight * aspectRatio;
+                    }
+                    
+                    this.viewer.style.width = finalWidth + 'px';
+                    this.viewer.style.height = finalHeight + 'px';
+                    this.containerWidth = finalWidth;
+                    this.containerHeight = finalHeight;
+                    
+                    // Update grid size to match image dimensions
+                    this.updateGridSize();
+                };
+                
+                this.image.onload = setupSize;
+                // Also call immediately in case image is already loaded
+                setupSize();
+                
+                // Mouse events
+                this.viewer.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                
+                // Wheel event for zooming
+                this.viewer.addEventListener('wheel', this.handleWheel.bind(this));
+                
+                // Touch events for mobile
+                this.viewer.addEventListener('touchstart', this.handleTouchStart.bind(this));
+                this.viewer.addEventListener('touchmove', this.handleTouchMove.bind(this));
+                this.viewer.addEventListener('touchend', this.handleTouchEnd.bind(this));
+                
+                // Prevent context menu
+                this.viewer.addEventListener('contextmenu', e => e.preventDefault());
+                
+                // Mode toggle
+                if (this.modeToggle) {
+                    this.modeToggle.onclick = () => {
+                        this.toggleMode();
+                    };
+                } else {
+                    console.error('modeToggle element not found!');
+                }
+                
+                // API key input
+                if (this.setApiKeyBtn) {
+                    this.setApiKeyBtn.onclick = () => {
+                        this.setApiKey();
+                    };
+                }
+                
+                if (this.apiKeyInput) {
+                    this.apiKeyInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            this.setApiKey();
+                        }
+                    });
+                }
+                
+                if (this.setApiKeyBtn) {
+                    this.setApiKeyBtn.addEventListener('click', () => this.setApiKey());
+                }
+                
+                if (this.testApiBtn) {
+                    this.testApiBtn.addEventListener('click', () => this.testApiCall());
+                }
+                
+                if (this.debugToggleBtn) {
+                    this.debugToggleBtn.addEventListener('click', () => this.toggleDebugMode());
+                }
+
+                if (this.autoGenToggleBtn) {
+                    this.autoGenToggleBtn.addEventListener('click', () => this.toggleAutoGeneration());
+                }
+
+                if (this.apiCallsToggleBtn) {
+                    this.apiCallsToggleBtn.addEventListener('click', () => this.toggleApiCalls());
+                }
+
+                if (this.testPanBtn) {
+                    this.testPanBtn.addEventListener('click', () => this.testPan());
+                }
+
+                if (this.zoomOutMaxBtn) {
+                    this.zoomOutMaxBtn.addEventListener('click', () => this.zoomOutMax());
+                }
+                
+                if (this.imageOpacityBtn) {
+                    this.imageOpacityBtn.addEventListener('click', () => this.toggleImageOpacity());
+                }
+                
+                if (this.blockLayerBtn) {
+                    this.blockLayerBtn.addEventListener('click', () => this.toggleBlockLayer());
+                }
+                
+                if (this.debugPreviewClose) {
+                    this.debugPreviewClose.addEventListener('click', () => this.hideDebugPreview());
+                }
+                
+                if (this.blockSizeSelect) {
+                    this.blockSizeSelect.addEventListener('change', () => this.updateBlockSize());
+                }
+                
+                // Try to load API key from environment on startup
+                this.initializeApiKey();
+                
+                // Set initial UI state for pre-configured API key
+                this.updateInitialUIState();
+                
+                this.updateTransform();
+                
+                // Add resize handler to redraw grid
+                window.addEventListener('resize', () => {
+                    setTimeout(() => this.drawGrid(), 100);
+                });
+            }
+            
+            updateInitialUIState() {
+                // Update API key input UI
+                if (this.apiKey && this.apiKeyInput) {
+                    this.apiKeyInput.placeholder = 'API Key Set ✓';
+                    this.apiKeyInput.value = '';
+                }
+                
+                if (this.setApiKeyBtn) {
+                    this.setApiKeyBtn.textContent = 'Update';
+                }
+                
+                // Update mode UI to show live mode
+                this.updateModeUI();
+                
+                console.log('🔑 API key pre-configured and live mode enabled');
+            }
+            
+            setApiKey() {
+                const apiKey = this.apiKeyInput.value.trim();
+                if (apiKey) {
+                    this.apiKey = apiKey;
+                    this.apiKeyInput.value = '';
+                    this.apiKeyInput.placeholder = 'API Key Set ✓';
+                    this.setApiKeyBtn.textContent = 'Update';
+                    
+                    // Enable live mode if API key is set
+                    if (!this.isLiveMode) {
+                        this.isLiveMode = true;
+                        this.updateModeUI();
+                    }
+                    
+                    console.log('API key set successfully');
+                } else {
+                    alert('Please enter a valid API key');
+                }
+            }
+            
+            async testApiCall() {
+                if (!this.apiKey) {
+                    alert('Please set an API key first');
+                    return;
+                }
+
+                if (!this.apiCallsEnabled) {
+                    console.log('🚫 API calls disabled - creating grey loading block only');
+                    this.testApiBtn.textContent = 'Test API';
+                    this.testApiBtn.disabled = false;
+                    
+                    // Clear existing blocks first to test new sizing
+                    this.outfillBlocks.clear();
+                    const existingBlocks = document.querySelectorAll('[id^="outfill-"]');
+                    existingBlocks.forEach(block => block.remove());
+                    
+                    // Create grey loading block for testing scaling
+                    const testBlockKey = '1,0';
+                    this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
+                    this.updateOutfillBlock(testBlockKey, this.outfillBlocks.get(testBlockKey));
+                    console.log('🎯 Grey loading block created for scaling test');
+                    return;
+                }
+                
+                console.log('🧪 Testing API call...');
+                this.testApiBtn.textContent = 'Testing...';
+                this.testApiBtn.disabled = true;
+                
+                try {
+                    // Manually trigger an outfill for testing (works regardless of auto-generation setting)
+                    const testBlockKey = '1,0'; // Block to the right of the image (outside image bounds)
+                    this.outfillBlocks.set(testBlockKey, { status: 'generating', progress: 0, imageData: null });
+                    this.updateOutfillBlock(testBlockKey, this.outfillBlocks.get(testBlockKey));
+                    
+                    // Use the EXACT same code path as auto-filled blocks
+                    const result = await this.generateOutfill(testBlockKey);
+                    console.log('✅ API test successful!', result);
+                    
+                    // The debug preview is already shown by generateOutfill, just log success
+                    console.log('🎯 Test API completed - check debug preview window for results');
+                    
+                } catch (error) {
+                    console.error('❌ API test failed:', error);
+                    
+                    // Show error in debug preview window
+                    this.showDebugError('API Test Failed', error.message);
+                } finally {
+                    this.testApiBtn.textContent = 'Test API';
+                    this.testApiBtn.disabled = false;
+                }
+            }
+
+            testPan() {
+                console.log('🧪 Testing pan functionality...');
+                
+                // Pan the image to the right by 200px to expose left edge
+                this.translateX += 200;
+                this.updateTransform();
+                this.checkVisibleBlocks();
+                
+                console.log('✅ Pan test completed - image moved right by 200px');
+            }
+
+            zoomOutMax() {
+                console.log('🔍 Zooming out to maximum...');
+                
+                // Set scale to minimum (0.25x)
+                this.scale = 0.25;
+                this.updateTransform();
+                this.checkVisibleBlocks();
+                
+                console.log('✅ Zoomed out to maximum scale: 0.25x');
+            }
+            
+            async generateOutfill(blockKey) {
+                console.log('🚀 Starting generateOutfill for block:', blockKey);
+                
+                if (!this.apiKey) {
+                    throw new Error('No API key set');
+                }
+                
+                try {
+                    // Get the current image as a blob
+                    const imageBlob = await this.getImageAsBlob();
+                    console.log('📸 Image blob size:', imageBlob.size, 'bytes');
+                    
+                    // Generate mask for the block
+                    const maskBlob = await this.generateMaskForBlock(blockKey);
+                    console.log('🎭 Mask blob size:', maskBlob.size, 'bytes');
+                    
+                    // Prepare form data
+                    const formData = new FormData();
+                    formData.append('image', imageBlob, 'image.jpg');
+                    
+                    // Only add mask if blockDivisions > 1 (when we need partial masking)
+                    if (this.blockDivisions > 1) {
+                        formData.append('mask', maskBlob, 'mask.png');
+                        console.log('🎭 Adding mask for partial outpaint (blockDivisions > 1)');
+                    } else {
+                        console.log('🎭 Skipping mask for full image outpaint (blockDivisions = 1)');
+                    }
+                    
+                    formData.append('prompt', this.config.prompt);
+                    formData.append('output_format', this.config.output_format);
+                    formData.append('creativity', this.config.creativity.toString());
+                    
+                    // Add outpaint directions based on block position
+                    const { directionX, directionY, gridX, gridY } = this.getOutpaintDirections(blockKey);
+                    const blockSizeX = Math.round(this.imageWidth / this.blockDivisions);
+                    const blockSizeY = Math.round(this.imageHeight / this.blockDivisions);
+                    
+                    console.log(`🎯 Block ${blockKey} outpaint directions: directionX=${directionX}, directionY=${directionY} (${blockSizeX}x${blockSizeY}px)`);
+                    
+                    // Add direction-based outpaint parameters
+                    if (directionX > 0) {
+                        formData.append('right', blockSizeX.toString());
+                    } else if (directionX < 0) {
+                        formData.append('left', blockSizeX.toString());
+                    }
+                    
+                    if (directionY > 0) {
+                        formData.append('down', blockSizeY.toString());
+                    } else if (directionY < 0) {
+                        formData.append('up', blockSizeY.toString());
+                    }
+                    
+                    if (this.config.seed) {
+                        formData.append('seed', this.config.seed.toString());
+                    }
+                    
+                    console.log('📤 Sending API request to:', this.config.endpoint);
+                    
+                    // Log detailed FormData contents
+                    console.log('📤 Request FormData contents:');
+                    for (let [key, value] of formData.entries()) {
+                        if (value instanceof File || value instanceof Blob) {
+                            console.log(`  ${key}: ${value.constructor.name} (${value.size} bytes, type: ${value.type})`);
+                        } else {
+                            console.log(`  ${key}: ${JSON.stringify(value)}`);
+                        }
+                    }
+                    
+                    // Build request summary with actual directions being sent
+                    const requestSummary = {
+                        prompt: this.config.prompt,
+                        output_format: this.config.output_format,
+                        creativity: this.config.creativity,
+                        seed: this.config.seed,
+                        imageSize: imageBlob.size,
+                        maskSize: maskBlob.size
+                    };
+                    
+                    // Add the actual outpaint directions being sent
+                    if (directionX > 0) {
+                        requestSummary['right'] = blockSizeX.toString();
+                    } else if (directionX < 0) {
+                        requestSummary['left'] = blockSizeX.toString();
+                    }
+                    
+                    if (directionY > 0) {
+                        requestSummary['down'] = blockSizeY.toString();
+                    } else if (directionY < 0) {
+                        requestSummary['up'] = blockSizeY.toString();
+                    }
+                    console.log('📤 Request parameters summary:', JSON.stringify(requestSummary, null, 2));
+                    
+                    // Make API call
+                    const requestHeaders = {
+                        'Authorization': `Bearer ${this.apiKey.substring(0, 10)}...${this.apiKey.substring(this.apiKey.length - 4)}`,
+                        'Accept': 'image/*'
+                    };
+                    console.log('📤 Request headers:', JSON.stringify(requestHeaders, null, 2));
+                    
+                    // Log all FormData entries for debugging
+                    console.log('📤 FormData entries:');
+                    const formDataEntries = {};
+                    for (let [key, value] of formData.entries()) {
+                        if (value instanceof File || value instanceof Blob) {
+                            console.log(`  ${key}: ${value.constructor.name} (${value.size} bytes, type: ${value.type})`);
+                            formDataEntries[key] = `${value.constructor.name} (${value.size} bytes, type: ${value.type})`;
+                        } else {
+                            console.log(`  ${key}: ${value}`);
+                            formDataEntries[key] = value;
+                        }
+                    }
+                    console.log('📤 Complete FormData summary:', JSON.stringify(formDataEntries, null, 2));
+                    
+                    const response = await fetch(this.config.endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.apiKey}`,
+                            'Accept': 'image/*'
+                        },
+                        body: formData
+                    });
+                    
+                    const responseHeaders = Object.fromEntries(response.headers.entries());
+                    console.log('📥 API Response status:', response.status);
+                    console.log('📥 API Response headers:', JSON.stringify(responseHeaders, null, 2));
+                    console.log('📥 API Response content-type:', response.headers.get('content-type'));
+                    console.log('📥 API Response content-length:', response.headers.get('content-length'));
+                    
+                    // Check response status and content type
+                    const contentType = response.headers.get('content-type');
+                    console.log('📥 Response status:', response.status, response.statusText);
+                    console.log('📥 Response ok:', response.ok);
+                    
+                    if (!response.ok) {
+                        // Handle error responses - read as text to get error details
+                        try {
+                            const errorText = await response.text();
+                            console.error('🚨 API Error Response (raw):', errorText);
+                            
+                            // Try to parse as JSON for better error details
+                            let errorMessage = `API Error (${response.status}): `;
+                            try {
+                                const errorJson = JSON.parse(errorText);
+                                console.error('🚨 API Error Response (parsed):', JSON.stringify(errorJson, null, 2));
+                                if (errorJson.errors && Array.isArray(errorJson.errors)) {
+                                    errorMessage += errorJson.errors.join(', ');
+                                } else if (errorJson.error) {
+                                    errorMessage += errorJson.error;
+                                } else {
+                                    errorMessage += errorText;
+                                }
+                            } catch (parseError) {
+                                console.error('🚨 Could not parse error as JSON:', parseError);
+                                errorMessage += errorText;
+                            }
+                            throw new Error(errorMessage);
+                        } catch (textError) {
+                            console.error('🚨 Could not read error response:', textError);
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                    }
+                    
+                    // Check if successful response is JSON (unexpected for image generation)
+                    if (contentType && contentType.includes('application/json')) {
+                        const jsonResponse = await response.json();
+                        console.log('📥 API JSON Response (unexpected success):', JSON.stringify(jsonResponse, null, 2));
+                        throw new Error(`API returned JSON instead of image: ${JSON.stringify(jsonResponse)}`);
+                    }
+                    
+                    // Get the generated image (successful image response)
+                    const imageBlob2 = await response.blob();
+                    console.log('✅ API Response successful!');
+                    const blobDetails = {
+                        size: imageBlob2.size,
+                        type: imageBlob2.type,
+                        sizeKB: Math.round(imageBlob2.size / 1024),
+                        sizeMB: Math.round(imageBlob2.size / 1024 / 1024 * 100) / 100
+                    };
+                    console.log('✅ Generated image blob details:', JSON.stringify(blobDetails, null, 2));
+                    
+                    // Save debug blob to file and show preview if debug mode is enabled
+                    this.saveDebugBlob(imageBlob2, blockKey, 'stability-ai-outpaint');
+                    this.showDebugPreview(imageBlob2, blockKey, 'Stability AI Outpaint');
+                    
+                    // Convert to data URL for display
+                    const imageUrl = URL.createObjectURL(imageBlob2);
+                    console.log('✅ Generated image URL:', imageUrl);
+                    
+                    // Get image dimensions and adjust block positioning
+                    const img = new Image();
+                    img.onload = () => {
+                        const generatedDimensions = {
+                            width: img.width,
+                            height: img.height,
+                            aspectRatio: Math.round(img.width / img.height * 100) / 100
+                        };
+                        console.log('📏 Generated image dimensions:', generatedDimensions);
+                        
+                        // Adjust block positioning based on actual returned image dimensions
+                        const block = this.outfillBlocks.get(blockKey);
+                        if (block) {
+                            this.adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions);
+                        }
+                    };
+                    img.src = imageUrl;
+                    
+                    // Update the outfill block with the generated image
+                    const block = this.outfillBlocks.get(blockKey);
+                    console.log('🔍 Block lookup for', blockKey, ':', block ? 'found' : 'NOT FOUND');
+                    if (block) {
+                        console.log('🔍 Block before update:', JSON.stringify(block, null, 2));
+                        block.status = 'completed';
+                        block.imageData = imageUrl;
+                        console.log('🔍 About to call updateOutfillBlock with:', blockKey, block.status, block.imageData ? 'imageData present' : 'NO imageData');
+                        this.updateOutfillBlock(blockKey, block);
+                        console.log('✅ Block', blockKey, 'generation completed');
+                        
+                        // Check for newly adjacent blocks that can now be queued
+                        this.checkForNewlyAdjacentBlocks(blockKey);
+                    } else {
+                        console.error('❌ Block not found in outfillBlocks map for key:', blockKey);
+                        console.log('🔍 Current outfillBlocks keys:', Array.from(this.outfillBlocks.keys()));
+                    }
+                    
+                    return {
+                        imageUrl,
+                        blockKey,
+                        size: imageBlob2.size
+                    };
+                    
+                } catch (error) {
+                    console.error('❌ generateOutfill error:', error);
+                    throw error;
+                }
+            }
+            
+            async getImageAsBlob() {
+                return new Promise((resolve, reject) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = this.image;
+                    
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to create image blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
+            }
+            
+            async initializeApiKey() {
+                try {
+                    // Try to get API key from environment variable
+                    const response = await fetch('/api/config');
+                    const config = await response.json();
+                    
+                    if (config.hasApiKey && config.apiKey && config.apiKey !== 'test-key-for-demo') {
+                        this.apiKey = config.apiKey;
+                        this.apiKeyInput.placeholder = 'API Key Set ✓';
+                        this.setApiKeyBtn.textContent = 'Update';
+                        console.log('API key loaded from environment variable');
+                        this.updateModeUI();
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch API config:', error);
+                }
+            }
+            
+            updateModeUI() {
+                if (this.isLiveMode) {
+                    this.modeToggle.classList.add('active');
+                    this.modeLabel.textContent = 'LIVE';
+                    this.modeLabel.className = 'mode-label live';
+                } else {
+                    this.modeToggle.classList.remove('active');
+                    this.modeLabel.textContent = 'DEMO';
+                    this.modeLabel.className = 'mode-label demo';
+                }
+            }
+            
+            handleMouseDown(e) {
+                this.isDragging = true;
+                this.lastX = e.clientX;
+                this.lastY = e.clientY;
+                this.content.style.transition = 'none';
+                e.preventDefault();
+            }
+            
+            handleMouseMove(e) {
+                if (!this.isDragging) return;
+                
+                const deltaX = e.clientX - this.lastX;
+                const deltaY = e.clientY - this.lastY;
+                
+                this.translateX += deltaX;
+                this.translateY += deltaY;
+                
+                console.log('🖱️ Mouse move:', { deltaX, deltaY, translateX: this.translateX, translateY: this.translateY });
+                
+                this.lastX = e.clientX;
+                this.lastY = e.clientY;
+                
+                this.updateTransform();
+            }
+            
+            handleMouseUp() {
+                this.isDragging = false;
+                this.content.style.transition = 'transform 0.1s ease-out';
+            }
+            
+            handleWheel(e) {
+                e.preventDefault();
+                
+                const rect = this.viewer.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const mouseX = e.clientX - centerX;
+                const mouseY = e.clientY - centerY;
+                
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
+                
+                if (newScale !== this.scale) {
+                    const scaleDiff = newScale / this.scale;
+                    
+                    this.translateX = mouseX - (mouseX - this.translateX) * scaleDiff;
+                    this.translateY = mouseY - (mouseY - this.translateY) * scaleDiff;
+                    
+                    console.log('🔍 Wheel zoom:', { newScale, translateX: this.translateX, translateY: this.translateY });
+                    
+                    this.scale = newScale;
+                    this.updateTransform();
+                }
+            }
+            
+            handleTouchStart(e) {
+                if (e.touches.length === 1) {
+                    this.isDragging = true;
+                    this.lastX = e.touches[0].clientX;
+                    this.lastY = e.touches[0].clientY;
+                    this.content.style.transition = 'none';
+                }
+                e.preventDefault();
+            }
+            
+            handleTouchMove(e) {
+                if (!this.isDragging || e.touches.length !== 1) return;
+                
+                const deltaX = e.touches[0].clientX - this.lastX;
+                const deltaY = e.touches[0].clientY - this.lastY;
+                
+                this.translateX += deltaX;
+                this.translateY += deltaY;
+                
+                this.lastX = e.touches[0].clientX;
+                this.lastY = e.touches[0].clientY;
+                
+                this.updateTransform();
+                e.preventDefault();
+            }
+            
+            handleTouchEnd() {
+                this.isDragging = false;
+                this.content.style.transition = 'transform 0.1s ease-out';
+            }
+            
+            getVisibleBlocks() {
+                if (!this.containerWidth || !this.containerHeight || !this.imageWidth || !this.imageHeight) {
+                    console.log('❌ Missing dimensions:', {
+                        containerWidth: this.containerWidth,
+                        containerHeight: this.containerHeight,
+                        imageWidth: this.imageWidth,
+                        imageHeight: this.imageHeight
+                    });
+                    return new Set();
+                }
+                
+                const visibleBlocks = new Set();
+                // INFINITE GRID SYSTEM: Each grid cell is exactly the image size
+                const gridSizeX = this.imageWidth;   // 1600px
+                const gridSizeY = this.imageHeight;  // 1024px
+                
+                // Calculate the viewport bounds in world coordinates
+                // The original image is positioned at (0,0) in world coordinates
+                const viewportLeft = -this.translateX / this.scale;
+                const viewportTop = -this.translateY / this.scale;
+                const viewportRight = viewportLeft + this.containerWidth / this.scale;
+                const viewportBottom = viewportTop + this.containerHeight / this.scale;
+                
+
+                
+
+                
+                // Calculate which grid cells are visible
+                // Grid cell (0,0) contains the original image at coordinates (0,0) to (1600,1024)
+                // Grid cell (-1,0) is to the left at (-1600,0) to (0,1024)
+                // Grid cell (1,0) is to the right at (1600,0) to (3200,1024), etc.
+                const startGridX = Math.floor(viewportLeft / gridSizeX);
+                const endGridX = Math.ceil(viewportRight / gridSizeX);
+                const startGridY = Math.floor(viewportTop / gridSizeY);
+                const endGridY = Math.ceil(viewportBottom / gridSizeY);
+                
+                console.log('🔍 Infinite Grid Viewport:', {
+                    viewportLeft, viewportTop, viewportRight, viewportBottom,
+                    gridSizeX, gridSizeY,
+                    startGridX, endGridX, startGridY, endGridY
+                });
+                
+                // Add all visible grid blocks that are NOT the original image
+                for (let gridX = startGridX; gridX < endGridX; gridX++) {
+                    for (let gridY = startGridY; gridY < endGridY; gridY++) {
+                        // Skip the original image at grid cell (0,0)
+                        if (gridX === 0 && gridY === 0) {
+                            continue;
+                        }
+                        
+                        // All other grid cells need AI generation
+                        console.log('🎯 Found outfill block:', `${gridX},${gridY}`, {
+                            worldLeft: gridX * gridSizeX,
+                            worldTop: gridY * gridSizeY,
+                            worldRight: (gridX + 1) * gridSizeX,
+                            worldBottom: (gridY + 1) * gridSizeY
+                        });
+                        visibleBlocks.add(`${gridX},${gridY}`);
+                    }
+                }
+                
+                // Test blocks removed - system is working properly
+                
+                return visibleBlocks;
+            }
+            
+            updateGridSize() {
+                this.drawGrid();
+            }
+            
+            drawGrid() {
+                const canvas = document.getElementById('gridCanvas');
+                if (!canvas) return;
+                
+                // Set canvas size to match container
+                const container = document.getElementById('viewerContent');
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // SIMPLE BLOCK SYSTEM: Each block = exactly the displayed image size
+                
+                // The image is displayed with object-fit: contain, so calculate actual size
+                const imageAspectRatio = this.imageWidth / this.imageHeight;
+                const containerAspectRatio = this.containerWidth / this.containerHeight;
+                
+                let actualImageWidth, actualImageHeight;
+                if (containerAspectRatio > imageAspectRatio) {
+                    // Container wider - image height = container height
+                    actualImageHeight = this.containerHeight;
+                    actualImageWidth = actualImageHeight * imageAspectRatio;
+                } else {
+                    // Container taller - image width = container width  
+                    actualImageWidth = this.containerWidth;
+                    actualImageHeight = actualImageWidth / imageAspectRatio;
+                }
+                
+                // Block size = actual displayed image size
+                const blockWidth = actualImageWidth;
+                const blockHeight = actualImageHeight;
+                
+                // Calculate where the image is positioned (centered in container)
+                const imageLeft = (this.containerWidth - actualImageWidth) / 2;
+                const imageTop = (this.containerHeight - actualImageHeight) / 2;
+                
+                // Transform to screen coordinates
+                const screenImageLeft = (canvas.width - this.containerWidth * this.scale) / 2 + this.translateX + imageLeft * this.scale;
+                const screenImageTop = (canvas.height - this.containerHeight * this.scale) / 2 + this.translateY + imageTop * this.scale;
+                
+                // Grid spacing in screen coordinates
+                const screenBlockWidth = blockWidth * this.scale;
+                const screenBlockHeight = blockHeight * this.scale;
+                
+                // Set grid line style
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                
+                // Draw vertical grid lines (every block width)
+                const startX = Math.floor((0 - screenImageLeft) / screenBlockWidth) - 2;
+                const endX = Math.ceil((canvas.width - screenImageLeft) / screenBlockWidth) + 2;
+                
+                for (let i = startX; i <= endX; i++) {
+                    const x = screenImageLeft + i * screenBlockWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Draw horizontal grid lines (every block height)
+                const startY = Math.floor((0 - screenImageTop) / screenBlockHeight) - 2;
+                const endY = Math.ceil((canvas.height - screenImageTop) / screenBlockHeight) + 2;
+                
+                for (let i = startY; i <= endY; i++) {
+                    const y = screenImageTop + i * screenBlockHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                console.log('🔧 Simple grid: blockSize=' + Math.round(blockWidth) + 'x' + Math.round(blockHeight) + ', imagePos=' + Math.round(imageLeft) + ',' + Math.round(imageTop));
+            }
+            
+            // Helper method to update API configuration
+            updateApiConfig(newConfig) {
+                this.apiConfig = { ...this.apiConfig, ...newConfig };
+                console.log('🔧 API Configuration Updated:', this.apiConfig);
+            }
+            
+            async simulateGeneration(blockKey) {
+                if (this.isLiveMode) {
+                    return this.generateWithAPI(blockKey);
+                } else {
+                    return this.generateDemo(blockKey);
+                }
+            }
+
+            generateDemo(blockKey) {
+                return new Promise((resolve) => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 0.05;
+                        const block = this.outfillBlocks.get(blockKey);
+                        if (block) {
+                            block.progress = progress;
+                            this.updateOutfillBlock(blockKey, block);
+                        }
+                        
+                        if (progress >= 1) {
+                            clearInterval(interval);
+                            
+                            // Generate demo blocks using the multi-block system
+                            this.generateDemoBlocks(blockKey);
+                            
+                            resolve();
+                        }
+                    }, 200);
+                });
+            }
+
+            generateDemoBlocks(originalBlockKey) {
+                const { directionX, directionY } = this.getOutpaintDirections(originalBlockKey);
+                const [originalGridX, originalGridY] = originalBlockKey.split(',').map(Number);
+                
+                // Create demo gradient image for each block
+                const blocksToCreate = [];
+                
+                if (directionX !== 0 && directionY !== 0) {
+                    // Diagonal direction - create 3 blocks
+                    const rightBlockX = originalGridX + (directionX > 0 ? 1 : -1);
+                    const downBlockY = originalGridY + (directionY > 0 ? 1 : -1);
+                    
+                    blocksToCreate.push(`${rightBlockX},${originalGridY}`);
+                    blocksToCreate.push(`${originalGridX},${downBlockY}`);
+                    blocksToCreate.push(`${rightBlockX},${downBlockY}`);
+                    
+                } else if (directionX !== 0) {
+                    // Horizontal direction - create 1 block
+                    const newBlockX = originalGridX + (directionX > 0 ? 1 : -1);
+                    blocksToCreate.push(`${newBlockX},${originalGridY}`);
+                    
+                } else if (directionY !== 0) {
+                    // Vertical direction - create 1 block
+                    const newBlockY = originalGridY + (directionY > 0 ? 1 : -1);
+                    blocksToCreate.push(`${originalGridX},${newBlockY}`);
+                }
+                
+                // Create demo images for each block
+                blocksToCreate.forEach(blockKey => {
+                    const demoImageData = this.createDemoBlockImage(blockKey);
+                    
+                    this.outfillBlocks.set(blockKey, {
+                        status: 'ready',
+                        progress: 1,
+                        imageData: demoImageData
+                    });
+                    
+                    this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                    
+                    // Check for newly adjacent blocks
+                    this.checkForNewlyAdjacentBlocks(blockKey);
+                });
+                
+                console.log(`✅ Generated ${blocksToCreate.length} demo blocks from ${originalBlockKey}`);
+            }
+
+            createDemoBlockImage(blockKey) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                const blockSizeX = this.imageWidth / this.blockDivisions;
+                const blockSizeY = this.imageHeight / this.blockDivisions;
+                
+                // Create canvas for demo block
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = blockSizeX;
+                canvas.height = blockSizeY;
+                
+                // Create psychedelic gradient based on block position
+                const gradient = ctx.createLinearGradient(0, 0, blockSizeX, blockSizeY);
+                const hue1 = (gridX * 60 + gridY * 40) % 360;
+                const hue2 = (hue1 + 120) % 360;
+                
+                gradient.addColorStop(0, `hsl(${hue1}, 70%, 60%)`);
+                gradient.addColorStop(0.5, `hsl(${(hue1 + hue2) / 2}, 80%, 50%)`);
+                gradient.addColorStop(1, `hsl(${hue2}, 70%, 60%)`);
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, blockSizeX, blockSizeY);
+                
+                // Add some psychedelic patterns
+                for (let i = 0; i < 5; i++) {
+                    const x = Math.random() * blockSizeX;
+                    const y = Math.random() * blockSizeY;
+                    const radius = Math.random() * 30 + 10;
+                    
+                    const circleGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+                    circleGradient.addColorStop(0, `hsla(${(hue1 + i * 30) % 360}, 80%, 70%, 0.6)`);
+                    circleGradient.addColorStop(1, `hsla(${(hue2 + i * 30) % 360}, 80%, 70%, 0.1)`);
+                    
+                    ctx.fillStyle = circleGradient;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                
+                return canvas.toDataURL('image/jpeg', 0.9);
+            }
+
+            async generateWithAPI(blockKey) {
+                try {
+                    // Update progress to show API call in progress
+                    const block = this.outfillBlocks.get(blockKey);
+                    if (block) {
+                        block.progress = 0.1;
+                        this.updateOutfillBlock(blockKey, block);
+                    }
+
+                    console.log(`🚀 Starting API generation for block ${blockKey}`);
+                    
+                    // Call Stability AI API - this now handles multi-block responses internally
+                    await this.callStabilityAPI(blockKey);
+                    
+                    console.log(`✅ API generation completed for block ${blockKey} and adjacent blocks`);
+                    
+                } catch (error) {
+                    console.error('API generation failed:', error);
+                    
+                    // Mark as failed
+                    this.outfillBlocks.set(blockKey, { 
+                        status: 'failed', 
+                        progress: 0, 
+                        error: error.message 
+                    });
+                    this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                    
+                    // Show error to user
+                    alert(`Generation failed: ${error.message}`);
+                }
+            }
+
+            blobToDataUrl(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            // Debug function to save blob to file
+            saveDebugBlob(blob, blockKey, description = 'api-response') {
+                if (!this.debugMode) return;
+                
+                try {
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    const filename = `${description}_block-${blockKey}_${timestamp}.${blob.type.split('/')[1] || 'jpg'}`;
+                    
+                    // Create download link
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.style.display = 'none';
+                    
+                    // Trigger download
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Clean up URL
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    
+                    console.log('🐛 DEBUG: Saved blob to file:', filename, {
+                        size: blob.size,
+                        type: blob.type,
+                        sizeKB: Math.round(blob.size / 1024)
+                    });
+                } catch (error) {
+                    console.error('❌ Failed to save debug blob:', error);
+                }
+            }
+
+            // Toggle debug mode
+            toggleDebugMode() {
+                this.debugMode = !this.debugMode;
+                
+                if (this.debugToggleBtn) {
+                    this.debugToggleBtn.textContent = this.debugMode ? 'Debug: ON' : 'Debug: OFF';
+                    this.debugToggleBtn.style.background = this.debugMode ? '#4CAF50' : '#757575';
+                }
+                
+                console.log('🐛 Debug mode:', this.debugMode ? 'ENABLED' : 'DISABLED');
+                console.log('🐛 API response blobs will', this.debugMode ? 'be saved to files AND previewed' : 'NOT be saved or previewed');
+                
+                // Hide preview if debug mode is turned off
+                if (!this.debugMode) {
+                    this.hideDebugPreview();
+                }
+            }
+
+            // Toggle auto-generation mode
+            toggleAutoGeneration() {
+                this.autoGenerateBlocks = !this.autoGenerateBlocks;
+
+                if (this.autoGenToggleBtn) {
+                    this.autoGenToggleBtn.textContent = this.autoGenerateBlocks ? 'Auto-Gen: ON' : 'Auto-Gen: OFF';
+                    this.autoGenToggleBtn.style.background = this.autoGenerateBlocks ? '#4CAF50' : '#757575';
+                }
+
+                console.log('🔄 Auto-generation:', this.autoGenerateBlocks ? 'ENABLED' : 'DISABLED');
+                console.log('🔄 Blocks will', this.autoGenerateBlocks ? 'be automatically added when visible' : 'NOT be automatically added (manual only)');
+            }
+
+            // Toggle API calls
+            toggleApiCalls() {
+                this.apiCallsEnabled = !this.apiCallsEnabled;
+
+                if (this.apiCallsToggleBtn) {
+                    this.apiCallsToggleBtn.textContent = this.apiCallsEnabled ? 'API: ON' : 'API: OFF';
+                    this.apiCallsToggleBtn.style.background = this.apiCallsEnabled ? '#4CAF50' : '#757575';
+                }
+
+                console.log('🔄 API calls:', this.apiCallsEnabled ? 'ENABLED' : 'DISABLED');
+                console.log('🔄 Blocks will', this.apiCallsEnabled ? 'make real API calls' : 'show grey loading blocks only');
+            }
+            
+            // Toggle image opacity
+            toggleImageOpacity() {
+                this.imageTranslucent = !this.imageTranslucent;
+                
+                if (this.imageOpacityBtn) {
+                    this.imageOpacityBtn.textContent = this.imageTranslucent ? 'Image: 50%' : 'Image: 100%';
+                    this.imageOpacityBtn.style.background = this.imageTranslucent ? '#4CAF50' : '#757575';
+                }
+                
+                // Apply opacity to main image
+                if (this.image) {
+                    this.image.style.opacity = this.imageTranslucent ? '0.5' : '1.0';
+                }
+                
+                console.log('🔄 Image opacity:', this.imageTranslucent ? '50%' : '100%');
+            }
+            
+            // Toggle block layer (under/over image)
+            toggleBlockLayer() {
+                this.blocksOverImage = !this.blocksOverImage;
+                
+                if (this.blockLayerBtn) {
+                    this.blockLayerBtn.textContent = this.blocksOverImage ? 'Blocks: Over' : 'Blocks: Under';
+                    this.blockLayerBtn.style.background = this.blocksOverImage ? '#4CAF50' : '#757575';
+                }
+                
+                // Update z-index of all existing outfill blocks
+                const existingBlocks = document.querySelectorAll('[id^="outfill-"]');
+                existingBlocks.forEach(block => {
+                    block.style.zIndex = this.blocksOverImage ? '4' : '2';
+                });
+                
+                console.log('🔄 Block layer:', this.blocksOverImage ? 'OVER image' : 'UNDER image');
+            }
+            
+            // Update block size configuration
+            updateBlockSize() {
+                const newBlockDivisions = parseInt(this.blockSizeSelect.value);
+                console.log(`🔧 Updating block size from ${this.blockDivisions} to ${newBlockDivisions}`);
+                
+                this.blockDivisions = newBlockDivisions;
+                
+                // Update grid size to reflect new block divisions
+                this.updateGridSize();
+                
+                // Clear existing outfill blocks since they're now invalid
+                this.outfillBlocks.clear();
+                
+                // Remove all existing outfill block elements from DOM
+                const existingBlocks = document.querySelectorAll('[id^="outfill-"]');
+                existingBlocks.forEach(block => block.remove());
+                
+                // Update visible blocks with new block size
+                this.checkVisibleBlocks();
+                
+                console.log(`✅ Block size updated! Each block is now ${this.imageWidth / this.blockDivisions}x${this.imageHeight / this.blockDivisions}px`);
+            }
+
+            // Show debug preview with blob
+            showDebugPreview(blob, blockKey, description = 'api-response') {
+                if (!this.debugMode || !this.debugPreview) return;
+                
+                try {
+                    // Create object URL for the blob
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    // Update preview content
+                    this.debugPreviewImage.src = imageUrl;
+                    this.debugPreviewTitle.textContent = `${description} - Block ${blockKey}`;
+                    this.debugPreviewInfo.textContent = `${Math.round(blob.size / 1024)}KB • ${blob.type} • ${new Date().toLocaleTimeString()}`;
+                    
+                    // Show the preview window
+                    this.debugPreview.classList.add('visible');
+                    
+                    // Clean up the URL after a delay
+                    setTimeout(() => {
+                        URL.revokeObjectURL(imageUrl);
+                    }, 30000); // Keep for 30 seconds
+                    
+                    console.log('🐛 DEBUG: Preview window updated with blob:', {
+                        size: blob.size,
+                        type: blob.type,
+                        blockKey: blockKey,
+                        description: description
+                    });
+                } catch (error) {
+                    console.error('❌ Failed to show debug preview:', error);
+                }
+            }
+
+            // Hide debug preview
+            hideDebugPreview() {
+                if (this.debugPreview) {
+                    this.debugPreview.classList.remove('visible');
+                    
+                    // Clear the image source to free memory
+                    if (this.debugPreviewImage) {
+                        this.debugPreviewImage.src = '';
+                    }
+                }
+            }
+            
+            showDebugError(title, errorMessage) {
+                if (!this.debugMode || !this.debugPreview) return;
+                
+                this.debugPreview.classList.add('visible');
+                this.debugPreviewTitle.textContent = title;
+                this.debugPreviewImage.style.display = 'none';
+                this.debugPreviewInfo.innerHTML = `
+                    <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 8px;">❌ Error:</div>
+                    <div style="font-size: 12px; line-height: 1.4; color: #ffffff;">${errorMessage}</div>
+                `;
+            }
+            
+            updateOutfillBlock(blockKey, block) {
+                console.log('🔧 updateOutfillBlock called:', blockKey, 'status:', block.status, 'imageData:', block.imageData ? 'present' : 'null');
+                
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                
+                // INFINITE GRID SYSTEM: Each grid cell is exactly the original image size
+                // Original image occupies grid cell (0,0)
+                // Adjacent blocks are at (-1,0), (1,0), (0,-1), (0,1), etc.
+                const gridSizeX = this.imageWidth;   // Each cell = full image width (1600px)
+                const gridSizeY = this.imageHeight;  // Each cell = full image height (1024px)
+                
+                // Calculate block position in infinite grid coordinates
+                // Grid (0,0) contains the original image
+                // Grid (-1,0) is to the left, (1,0) is to the right, etc.
+                const blockLeft = gridX * gridSizeX;
+                const blockTop = gridY * gridSizeY;
+                
+                console.log(`🔧 Block ${blockKey} positioning:`, {
+                    gridX, gridY,
+                    gridSizeX, gridSizeY,
+                    blockLeft, blockTop,
+                    imageWidth: this.imageWidth, imageHeight: this.imageHeight,
+                    blockDivisions: this.blockDivisions
+                });
+                
+                let blockElement = document.getElementById(`outfill-${blockKey}`);
+                if (!blockElement) {
+                    blockElement = document.createElement('div');
+                    blockElement.id = `outfill-${blockKey}`;
+                    blockElement.style.position = 'absolute';
+                    blockElement.style.zIndex = this.blocksOverImage ? '4' : '2';
+                    this.content.appendChild(blockElement);
+                }
+                
+                // Set positioning using image coordinates (blocks align with grid)
+                blockElement.style.left = blockLeft + 'px';
+                blockElement.style.top = blockTop + 'px';
+                blockElement.style.width = gridSizeX + 'px';
+                blockElement.style.height = gridSizeY + 'px';
+                
+                console.log(`🔧 Block ${blockKey} sizing: left=${blockLeft}px, top=${blockTop}px, width=${gridSizeX}px, height=${gridSizeY}px`);
+                console.log(`🔧 Grid cell size: ${gridSizeX}x${gridSizeY}px, Block divisions: ${this.blockDivisions}`);
+                
+                if (block.status === 'ready' || block.status === 'completed') {
+                    console.log('🖼️ Setting block image:', blockKey, 'imageData:', block.imageData.substring(0, 50) + '...');
+                    blockElement.style.backgroundImage = `url(${block.imageData})`;
+                    
+                    // For the new system, each block contains its own extracted image
+                    // So we just need to size it to fill the block exactly
+                    blockElement.style.backgroundSize = `${gridSizeX}px ${gridSizeY}px`;
+                    blockElement.style.backgroundPosition = '0px 0px';
+                    blockElement.style.backgroundRepeat = 'no-repeat';
+                    
+                    blockElement.style.backgroundColor = 'transparent';
+                    blockElement.innerHTML = '';
+                    console.log('🖼️ Block element updated:', blockElement.id, 'background:', blockElement.style.backgroundImage.substring(0, 50) + '...');
+                } else if (block.status === 'generating') {
+                    blockElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                    const progressPercent = Math.round(block.progress * 100);
+                    const circumference = 2 * Math.PI * 20; // radius = 20
+                    const strokeDashoffset = circumference - (block.progress * circumference);
+                    
+                    blockElement.innerHTML = `
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 50px;
+                            height: 50px;
+                        ">
+                            <svg width="50" height="50" style="transform: rotate(-90deg);">
+                                <circle cx="25" cy="25" r="20" 
+                                    fill="none" 
+                                    stroke="rgba(255, 255, 255, 0.2)" 
+                                    stroke-width="3"/>
+                                <circle cx="25" cy="25" r="20" 
+                                    fill="none" 
+                                    stroke="rgba(0, 255, 255, 0.8)" 
+                                    stroke-width="3"
+                                    stroke-dasharray="${circumference}"
+                                    stroke-dashoffset="${strokeDashoffset}"
+                                    stroke-linecap="round"
+                                    style="transition: stroke-dashoffset 0.2s ease;"/>
+                            </svg>
+                            <div style="
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                color: rgba(255, 255, 255, 0.9);
+                                font-size: 10px;
+                                font-weight: bold;
+                                text-align: center;
+                            ">${progressPercent}%</div>
+                        </div>
+                    `;
+                } else if (block.status === 'queued') {
+                    blockElement.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                    blockElement.innerHTML = `
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            color: rgba(255, 255, 255, 0.6);
+                            font-size: 12px;
+                            text-align: center;
+                        ">⏳</div>
+                    `;
+                } else if (block.status === 'failed') {
+                    blockElement.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+                    blockElement.innerHTML = `
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            color: rgba(255, 255, 255, 0.9);
+                            font-size: 12px;
+                            text-align: center;
+                        ">❌</div>
+                    `;
+                }
+            }
+            
+            isBlockAdjacentToContent(blockKey) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                
+                // Check if block is adjacent to the original image (blocks 0,0 to blockDivisions-1,blockDivisions-1)
+                const isAdjacentToOriginal = this.isBlockAdjacentToOriginalImage(gridX, gridY);
+                
+                if (isAdjacentToOriginal) {
+                    console.log(`✅ Block ${blockKey} is adjacent to original image`);
+                    return true;
+                }
+                
+                // Check if block is adjacent to any completed outpaint blocks
+                const adjacentPositions = [
+                    [gridX - 1, gridY],     // Left
+                    [gridX + 1, gridY],     // Right
+                    [gridX, gridY - 1],     // Top
+                    [gridX, gridY + 1],     // Bottom
+                    [gridX - 1, gridY - 1], // Top-left
+                    [gridX + 1, gridY - 1], // Top-right
+                    [gridX - 1, gridY + 1], // Bottom-left
+                    [gridX + 1, gridY + 1]  // Bottom-right
+                ];
+                
+                for (const [adjX, adjY] of adjacentPositions) {
+                    const adjBlockKey = `${adjX},${adjY}`;
+                    
+                    // Check if adjacent position is part of original image
+                    if (adjX >= 0 && adjX < this.blockDivisions && adjY >= 0 && adjY < this.blockDivisions) {
+                        console.log(`✅ Block ${blockKey} is adjacent to original image block ${adjBlockKey}`);
+                        return true;
+                    }
+                    
+                    // Check if adjacent position has completed outpaint content
+                    const adjBlock = this.outfillBlocks.get(adjBlockKey);
+                    if (adjBlock && (adjBlock.status === 'ready' || adjBlock.status === 'completed')) {
+                        console.log(`✅ Block ${blockKey} is adjacent to completed outpaint block ${adjBlockKey}`);
+                        return true;
+                    }
+                }
+                
+                console.log(`❌ Block ${blockKey} is not adjacent to any existing content`);
+                return false;
+            }
+            
+            checkForNewlyAdjacentBlocks(completedBlockKey) {
+                const [completedX, completedY] = completedBlockKey.split(',').map(Number);
+                
+                // Check all positions adjacent to the completed block
+                const adjacentPositions = [
+                    [completedX - 1, completedY],     // Left
+                    [completedX + 1, completedY],     // Right
+                    [completedX, completedY - 1],     // Top
+                    [completedX, completedY + 1],     // Bottom
+                    [completedX - 1, completedY - 1], // Top-left
+                    [completedX + 1, completedY - 1], // Top-right
+                    [completedX - 1, completedY + 1], // Bottom-left
+                    [completedX + 1, completedY + 1]  // Bottom-right
+                ];
+                
+                const newlyAdjacentBlocks = [];
+                
+                for (const [adjX, adjY] of adjacentPositions) {
+                    const adjBlockKey = `${adjX},${adjY}`;
+                    
+                    // Skip if this position is part of the original image
+                    if (adjX >= 0 && adjX < this.blockDivisions && adjY >= 0 && adjY < this.blockDivisions) {
+                        continue;
+                    }
+                    
+                    // Skip if this block already exists in our system
+                    if (this.outfillBlocks.has(adjBlockKey)) {
+                        continue;
+                    }
+                    
+                    // Check if this position is currently visible
+                    const currentVisibleBlocks = this.getVisibleBlocks();
+                    if (!currentVisibleBlocks.has(adjBlockKey)) {
+                        continue;
+                    }
+                    
+                    // This block is now adjacent to completed content and visible
+                    newlyAdjacentBlocks.push(adjBlockKey);
+                    console.log(`🆕 Found newly adjacent block: ${adjBlockKey} (adjacent to completed ${completedBlockKey})`);
+                }
+                
+                // Add newly adjacent blocks to the system
+                if (newlyAdjacentBlocks.length > 0 && this.autoGenerateBlocks) {
+                    console.log('🚀 Adding newly adjacent blocks to queue:', newlyAdjacentBlocks);
+                    
+                    for (const blockKey of newlyAdjacentBlocks) {
+                        this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
+                        this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                        this.generationQueue.push(blockKey);
+                    }
+                    
+                    this.processGenerationQueue();
+                }
+            }
+
+            isBlockAdjacentToOriginalImage(gridX, gridY) {
+                // Original image occupies blocks from (0,0) to (blockDivisions-1, blockDivisions-1)
+                const originalMinX = 0;
+                const originalMaxX = this.blockDivisions - 1;
+                const originalMinY = 0;
+                const originalMaxY = this.blockDivisions - 1;
+                
+                // Check if block is directly adjacent to the original image bounds
+                const isLeftAdjacent = gridX === originalMinX - 1 && gridY >= originalMinY && gridY <= originalMaxY;
+                const isRightAdjacent = gridX === originalMaxX + 1 && gridY >= originalMinY && gridY <= originalMaxY;
+                const isTopAdjacent = gridY === originalMinY - 1 && gridX >= originalMinX && gridX <= originalMaxX;
+                const isBottomAdjacent = gridY === originalMaxY + 1 && gridX >= originalMinX && gridX <= originalMaxX;
+                
+                // Check corner adjacency
+                const isTopLeftCorner = gridX === originalMinX - 1 && gridY === originalMinY - 1;
+                const isTopRightCorner = gridX === originalMaxX + 1 && gridY === originalMinY - 1;
+                const isBottomLeftCorner = gridX === originalMinX - 1 && gridY === originalMaxY + 1;
+                const isBottomRightCorner = gridX === originalMaxX + 1 && gridY === originalMaxY + 1;
+                
+                return isLeftAdjacent || isRightAdjacent || isTopAdjacent || isBottomAdjacent ||
+                       isTopLeftCorner || isTopRightCorner || isBottomLeftCorner || isBottomRightCorner;
+            }
+
+            checkVisibleBlocks() {
+                const currentVisibleBlocks = this.getVisibleBlocks();
+                
+                // Update debug info
+                this.debugInfo.innerHTML = `
+                    <div>Image: ${this.imageWidth}x${this.imageHeight}</div>
+                    <div>Container: ${this.containerWidth}x${this.containerHeight}</div>
+                    <div>Transform: ${this.translateX.toFixed(1)}, ${this.translateY.toFixed(1)}</div>
+                    <div>Scale: ${this.scale.toFixed(2)}</div>
+                    <div>Visible Blocks: ${currentVisibleBlocks.size}</div>
+                    <div>Queue: ${this.generationQueue.length}</div>
+                    <div>Active: ${this.activeGenerations}</div>
+                `;
+                
+                // Find new blocks that weren't visible before (only if auto-generation is enabled)
+                const newBlocks = [];
+                if (this.autoGenerateBlocks) {
+                    currentVisibleBlocks.forEach(blockKey => {
+                        if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
+                            // Only add blocks that are adjacent to existing content
+                            if (this.isBlockAdjacentToContent(blockKey)) {
+                                newBlocks.push(blockKey);
+                                this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
+                                this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
+                                console.log('🎯 New adjacent outfill block detected:', blockKey);
+                            } else {
+                                console.log('🚫 Skipping isolated block (not adjacent to content):', blockKey);
+                            }
+                        }
+                    });
+                    
+                    // Add new blocks to generation queue
+                    if (newBlocks.length > 0) {
+                        console.log('🚀 Adding adjacent blocks to queue:', newBlocks);
+                        this.generationQueue.push(...newBlocks);
+                        this.processGenerationQueue();
+                    } else if (this.generationQueue.length > 0) {
+                        // Resort existing queue when visibility changes
+                        this.updateGenerationQueue();
+                    }
+                } else {
+                    console.log('🔄 Auto-generation disabled - not adding visible blocks automatically');
+                }
+                
+                this.lastVisibleBlocks = currentVisibleBlocks;
+            }
+            
+            calculateBlockPriority(blockKey) {
+                const [x, y] = blockKey.split(',').map(Number);
+                const blockSizeX = this.imageWidth / this.blockDivisions;
+                const blockSizeY = this.imageHeight / this.blockDivisions;
+                
+                // Calculate block bounds in image coordinates
+                const blockLeft = x * blockSizeX;
+                const blockTop = y * blockSizeY;
+                const blockRight = blockLeft + blockSizeX;
+                const blockBottom = blockTop + blockSizeY;
+                
+                // Get current viewport bounds in image coordinates
+                const viewportLeft = -this.translateX / this.scale;
+                const viewportTop = -this.translateY / this.scale;
+                const viewportRight = viewportLeft + (this.containerWidth / this.scale);
+                const viewportBottom = viewportTop + (this.containerHeight / this.scale);
+                
+                // Calculate intersection
+                const intersectLeft = Math.max(blockLeft, viewportLeft);
+                const intersectTop = Math.max(blockTop, viewportTop);
+                const intersectRight = Math.min(blockRight, viewportRight);
+                const intersectBottom = Math.min(blockBottom, viewportBottom);
+                
+                // Calculate visibility percentage
+                let visibilityPercentage = 0;
+                if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
+                    const intersectArea = (intersectRight - intersectLeft) * (intersectBottom - intersectTop);
+                    const blockArea = blockSizeX * blockSizeY;
+                    visibilityPercentage = intersectArea / blockArea;
+                }
+                
+                // Calculate distance from original image center (prioritize blocks closer to original content)
+                const originalCenterX = this.imageWidth / 2;
+                const originalCenterY = this.imageHeight / 2;
+                const blockCenterX = blockLeft + blockSizeX / 2;
+                const blockCenterY = blockTop + blockSizeY / 2;
+                const distanceFromOriginal = Math.sqrt(
+                    Math.pow(blockCenterX - originalCenterX, 2) + 
+                    Math.pow(blockCenterY - originalCenterY, 2)
+                );
+                
+                // Calculate distance from viewport center
+                const viewportCenterX = viewportLeft + (this.containerWidth / this.scale) / 2;
+                const viewportCenterY = viewportTop + (this.containerHeight / this.scale) / 2;
+                const distanceFromViewport = Math.sqrt(
+                    Math.pow(blockCenterX - viewportCenterX, 2) + 
+                    Math.pow(blockCenterY - viewportCenterY, 2)
+                );
+                
+                // Normalize distances
+                const maxDistance = Math.sqrt(
+                    Math.pow(this.imageWidth * 2, 2) + Math.pow(this.imageHeight * 2, 2)
+                );
+                const normalizedDistanceFromOriginal = 1 - (distanceFromOriginal / maxDistance);
+                const normalizedDistanceFromViewport = 1 - (distanceFromViewport / maxDistance);
+                
+                // Calculate priority score
+                let priority = visibilityPercentage * 100; // Base score from visibility (0-100)
+                priority += normalizedDistanceFromOriginal * 50; // Proximity to original content (0-50)
+                priority += normalizedDistanceFromViewport * 20; // Proximity to viewport (0-20)
+                
+                // Bonus for fully visible blocks
+                if (visibilityPercentage >= 0.99) {
+                    priority += 30;
+                }
+                
+                // Extra bonus for blocks directly adjacent to original image
+                if (this.isBlockAdjacentToOriginalImage(x, y)) {
+                    priority += 100; // High priority for first-ring outpaint
+                }
+                
+                return priority;
+            }
+
+            updateGenerationQueue() {
+                // Calculate priorities for all queued blocks
+                const queuedBlocks = this.generationQueue.map(blockKey => ({
+                    blockKey,
+                    priority: this.calculateBlockPriority(blockKey)
+                }));
+                
+                // Sort by priority (highest first)
+                queuedBlocks.sort((a, b) => b.priority - a.priority);
+                
+                // Update the queue with sorted block keys
+                this.generationQueue = queuedBlocks.map(item => item.blockKey);
+                
+                // Update queue indicator
+                this.updateQueueIndicator();
+            }
+
+            processGenerationQueue() {
+                // Resort queue before processing
+                this.updateGenerationQueue();
+                
+                if (this.generationQueue.length > 0 && this.activeGenerations < 2) {
+                    const blockKey = this.generationQueue.shift();
+                    this.activeGenerations++;
+                    
+                    // Change status from 'queued' to 'generating'
+                    const block = this.outfillBlocks.get(blockKey);
+                    if (block) {
+                        block.status = 'generating';
+                        this.updateOutfillBlock(blockKey, block);
+                    }
+                    
+                    // Use real API generation in live mode, simulation in demo mode
+                    if (this.isLiveMode && this.apiKey) {
+                        this.generateOutfill(blockKey).then((result) => {
+                            console.log('✅ generateOutfill completed successfully for block:', blockKey, result);
+                            this.activeGenerations--;
+                            this.processGenerationQueue();
+                        }).catch((error) => {
+                            console.error('❌ Generation failed for block:', blockKey, error);
+                            // Mark block as failed and continue
+                            const block = this.outfillBlocks.get(blockKey);
+                            if (block) {
+                                block.status = 'failed';
+                                this.updateOutfillBlock(blockKey, block);
+                            }
+                            this.activeGenerations--;
+                            this.processGenerationQueue();
+                        });
+                    } else {
+                        this.simulateGeneration(blockKey).then(() => {
+                            this.activeGenerations--;
+                            this.processGenerationQueue();
+                        });
+                    }
+                }
+                
+                // Update queue indicator
+                this.updateQueueIndicator();
+            }
+
+            updateQueueIndicator() {
+                const queueCount = this.generationQueue.length;
+                const activeCount = this.activeGenerations;
+                this.queueIndicator.textContent = `Queue: ${queueCount} | Active: ${activeCount}`;
+            }
+
+            async toggleMode() {
+                if (!this.isLiveMode && !this.apiKey) {
+                    alert('Please enter your Stability AI API key first to enable live mode.');
+                    return;
+                }
+                
+                this.isLiveMode = !this.isLiveMode;
+                this.updateModeUI();
+            }
+
+
+
+            async generateMaskForBlock(blockKey) {
+                const [x, y] = blockKey.split(',').map(Number);
+                const blockSizeX = this.imageWidth / this.blockDivisions;
+                const blockSizeY = this.imageHeight / this.blockDivisions;
+                
+                // Create a canvas for the mask
+                const canvas = document.createElement('canvas');
+                canvas.width = this.imageWidth;
+                canvas.height = this.imageHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Fill with black (keep existing content)
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Fill the block area with white (area to outpaint)
+                ctx.fillStyle = 'white';
+                ctx.fillRect(
+                    x * blockSizeX,
+                    y * blockSizeY,
+                    blockSizeX,
+                    blockSizeY
+                );
+                
+                // Convert canvas to blob
+                return new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/png');
+                });
+            }
+
+            getOutpaintDirections(blockKey) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                
+                // For blocksize=1, original image is at (0,0) and each block is full image size
+                // For blocksize=4, original image occupies (0,0) to (3,3) and each block is 1/4 image size
+                
+                // Calculate direction vector from original image center
+                const originalCenterX = (this.blockDivisions - 1) / 2;
+                const originalCenterY = (this.blockDivisions - 1) / 2;
+                
+                let directionX = 0;
+                let directionY = 0;
+                
+                // Determine horizontal direction
+                if (gridX < 0) {
+                    directionX = -1; // Left
+                } else if (gridX >= this.blockDivisions) {
+                    directionX = 1;  // Right
+                }
+                
+                // Determine vertical direction  
+                if (gridY < 0) {
+                    directionY = -1; // Up
+                } else if (gridY >= this.blockDivisions) {
+                    directionY = 1;  // Down
+                }
+                
+                console.log(`🎯 Block ${blockKey}: gridPos=(${gridX},${gridY}), direction=(${directionX},${directionY}), blockDivisions=${this.blockDivisions}`);
+                
+                return { directionX, directionY, gridX, gridY };
+            }
+
+            positionOutpaintBackground(blockElement, blockKey, directions) {
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                const gridSizeX = this.containerWidth / this.blockDivisions;
+                const gridSizeY = this.containerHeight / this.blockDivisions;
+                
+                console.log(`🎨 Positioning outpaint background for block ${blockKey}, directions:`, directions);
+                console.log(`🎨 Block divisions: ${this.blockDivisions}, Grid size: ${gridSizeX} × ${gridSizeY}`);
+                console.log(`🎨 Container size: ${this.containerWidth} × ${this.containerHeight}`);
+                
+                // The Stability AI outpaint API returns an image that contains:
+                // 1. The original image in its original position
+                // 2. The extended content in the requested directions
+                // We need to position this composite image so that:
+                // - The original image portion aligns with the actual original image
+                // - Only the extended portion shows in this block
+                
+                if (directions.includes('right') && !directions.includes('left') && !directions.includes('up') && !directions.includes('bottom')) {
+                    // Pure right outpaint
+                    // Generated image = [original image][new content]
+                    // We want to show only the new content in this block
+                    // So we position the background so the new content aligns with this block
+                    blockElement.style.backgroundSize = `${this.containerWidth + gridSizeX}px ${this.containerHeight}px`;
+                    blockElement.style.backgroundPosition = `${-this.containerWidth}px 0px`;
+                    console.log(`🎨 Right outpaint: backgroundSize=${this.containerWidth + gridSizeX}x${this.containerHeight}, position=${-this.containerWidth},0`);
+                    
+                } else if (directions.includes('left') && !directions.includes('right') && !directions.includes('up') && !directions.includes('bottom')) {
+                    // Pure left outpaint
+                    // Generated image = [new content][original image]
+                    // We want to show only the new content in this block
+                    blockElement.style.backgroundSize = `${this.containerWidth + gridSizeX}px ${this.containerHeight}px`;
+                    blockElement.style.backgroundPosition = `0px 0px`;
+                    console.log(`🎨 Left outpaint: backgroundSize=${this.containerWidth + gridSizeX}x${this.containerHeight}, position=0,0`);
+                    
+                } else if (directions.includes('bottom') && !directions.includes('top') && !directions.includes('left') && !directions.includes('right')) {
+                    // Pure bottom outpaint
+                    // Generated image = [original image]
+                    //                   [new content]
+                    // We want to show only the new content in this block
+                    blockElement.style.backgroundSize = `${this.containerWidth}px ${this.containerHeight + gridSizeY}px`;
+                    blockElement.style.backgroundPosition = `0px ${-this.containerHeight}px`;
+                    console.log(`🎨 Bottom outpaint: backgroundSize=${this.containerWidth}x${this.containerHeight + gridSizeY}, position=0,${-this.containerHeight}`);
+                    
+                } else if (directions.includes('up') && !directions.includes('bottom') && !directions.includes('left') && !directions.includes('right')) {
+                    // Pure top outpaint
+                    // Generated image = [new content]
+                    //                   [original image]
+                    // We want to show only the new content in this block
+                    blockElement.style.backgroundSize = `${this.containerWidth}px ${this.containerHeight + gridSizeY}px`;
+                    blockElement.style.backgroundPosition = `0px 0px`;
+                    console.log(`🎨 Top outpaint: backgroundSize=${this.containerWidth}x${this.containerHeight + gridSizeY}, position=0,0`);
+                    
+                } else if (directions.length > 1) {
+                    // Multi-direction outpaint (corner blocks)
+                    // Calculate the total size of the generated image
+                    const totalWidth = this.containerWidth + (directions.includes('left') ? gridSizeX : 0) + (directions.includes('right') ? gridSizeX : 0);
+                    const totalHeight = this.containerHeight + (directions.includes('up') ? gridSizeY : 0) + (directions.includes('bottom') ? gridSizeY : 0);
+                    
+                    // Calculate the position offset to align the original image portion
+                    let offsetX = 0;
+                    let offsetY = 0;
+                    
+                    // If there's left extension, the original image is shifted right in the generated image
+                    if (directions.includes('left')) {
+                        offsetX = -gridSizeX;
+                    }
+                    // If there's top extension, the original image is shifted down in the generated image
+                    if (directions.includes('up')) {
+                        offsetY = -gridSizeY;
+                    }
+                    
+                    // Adjust offset based on which block we're positioning
+                    if (directions.includes('right') && gridX >= this.blockDivisions) {
+                        offsetX -= this.containerWidth;
+                    }
+                    if (directions.includes('bottom') && gridY >= this.blockDivisions) {
+                        offsetY -= this.containerHeight;
+                    }
+                    
+                    blockElement.style.backgroundSize = `${totalWidth}px ${totalHeight}px`;
+                    blockElement.style.backgroundPosition = `${offsetX}px ${offsetY}px`;
+                    console.log(`🎨 Multi-direction outpaint: backgroundSize=${totalWidth}x${totalHeight}, position=${offsetX},${offsetY}`);
+                    
+                } else {
+                    // Fallback: simple fill
+                    blockElement.style.backgroundSize = `${gridSizeX}px ${gridSizeY}px`;
+                    blockElement.style.backgroundPosition = '0px 0px';
+                    console.log(`🎨 Fallback: Simple fill - backgroundSize=${gridSizeX}x${gridSizeY}, position=0,0`);
+                }
+            }
+
+            adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions) {
+                // This method is now deprecated - positioning is handled in positionOutpaintBackground
+                console.log(`🔧 adjustBlockPositionForActualDimensions called for ${blockKey} - using new positioning system`);
+            }
+
+            async callStabilityAPI(blockKey) {
+                if (!this.apiCallsEnabled) {
+                    console.log('🚫 API calls disabled - keeping grey loading block');
+                    return;
+                }
+                
+                if (!this.apiKey) {
+                    throw new Error('No API key available');
+                }
+
+                try {
+                    const { directionX, directionY, gridX, gridY } = this.getOutpaintDirections(blockKey);
+                    
+                    // Calculate the pixel dimensions for outpaint directions
+                    const blockSizeX = this.imageWidth / this.blockDivisions;
+                    const blockSizeY = this.imageHeight / this.blockDivisions;
+                    
+                    console.log(`🎨 API Call for block ${blockKey}: direction=(${directionX},${directionY}), blockSize=${blockSizeX}x${blockSizeY}`);
+                    
+                    // Get the original image as blob
+                    const imageBlob = await this.getImageAsBlob();
+                    
+                    // Prepare form data
+                    const formData = new FormData();
+                    formData.append('image', imageBlob, 'image.jpg');
+                    formData.append('prompt', this.apiConfig.prompt);
+                    formData.append('creativity', this.apiConfig.creativity.toString());
+                    formData.append('output_format', this.apiConfig.output_format);
+                    
+                    // Add direction-based outpaint parameters
+                    if (directionX > 0) {
+                        formData.append('right', blockSizeX.toString());
+                    } else if (directionX < 0) {
+                        formData.append('left', blockSizeX.toString());
+                    }
+                    
+                    if (directionY > 0) {
+                        formData.append('down', blockSizeY.toString());
+                    } else if (directionY < 0) {
+                        formData.append('up', blockSizeY.toString());
+                    }
+                    
+                    // Add optional parameters
+                    if (this.apiConfig.seed !== null) {
+                        formData.append('seed', this.apiConfig.seed.toString());
+                    }
+                    if (this.apiConfig.style_preset !== null) {
+                        formData.append('style_preset', this.apiConfig.style_preset);
+                    }
+                    
+                    console.log(`📤 API Request: ${directionX > 0 ? 'right=' + blockSizeX : ''}${directionX < 0 ? 'left=' + blockSizeX : ''}${directionY > 0 ? ' down=' + blockSizeY : ''}${directionY < 0 ? ' up=' + blockSizeY : ''}`);
+                    
+                    // Make API call
+                    const response = await fetch(this.apiConfig.endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.apiKey}`,
+                            'Accept': 'image/*'
+                        },
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`API call failed: ${response.status} - ${errorText}`);
+                    }
+                    
+                    // Get the response blob
+                    const responseBlob = await response.blob();
+                    
+                    // Process multi-block response
+                    return await this.processMultiBlockResponse(responseBlob, blockKey, directionX, directionY);
+                    
+                } catch (error) {
+                    console.error('Stability API error:', error);
+                    throw error;
+                }
+            }
+
+            async processMultiBlockResponse(responseBlob, originalBlockKey, directionX, directionY) {
+                try {
+                    console.log(`🔄 Processing multi-block response for ${originalBlockKey}, direction=(${directionX},${directionY})`);
+                    
+                    // Create image from response blob to extract blocks
+                    const responseImage = new Image();
+                    const imageUrl = URL.createObjectURL(responseBlob);
+                    
+                    return new Promise((resolve, reject) => {
+                        responseImage.onload = () => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                
+                                // Calculate expected response dimensions
+                                const originalWidth = this.imageWidth / this.blockDivisions;
+                                const originalHeight = this.imageHeight / this.blockDivisions;
+                                
+                                let responseWidth = originalWidth;
+                                let responseHeight = originalHeight;
+                                
+                                if (directionX !== 0) responseWidth *= 2;
+                                if (directionY !== 0) responseHeight *= 2;
+                                
+                                console.log(`📐 Expected response: ${responseWidth}x${responseHeight}, actual: ${responseImage.width}x${responseImage.height}`);
+                                
+                                // Set canvas to response image size
+                                canvas.width = responseImage.width;
+                                canvas.height = responseImage.height;
+                                ctx.drawImage(responseImage, 0, 0);
+                                
+                                // Extract and place blocks based on direction
+                                this.extractAndPlaceBlocks(canvas, originalBlockKey, directionX, directionY);
+                                
+                                // Clean up
+                                URL.revokeObjectURL(imageUrl);
+                                
+                                // Return the original block's data URL for backward compatibility
+                                resolve(imageUrl);
+                                
+                            } catch (error) {
+                                console.error('Error processing multi-block response:', error);
+                                reject(error);
+                            }
+                        };
+                        
+                        responseImage.onerror = () => {
+                            reject(new Error('Failed to load response image'));
+                        };
+                        
+                        responseImage.src = imageUrl;
+                    });
+                    
+                } catch (error) {
+                    console.error('Error in processMultiBlockResponse:', error);
+                    throw error;
+                }
+            }
+
+            extractAndPlaceBlocks(sourceCanvas, originalBlockKey, directionX, directionY) {
+                const [originalGridX, originalGridY] = originalBlockKey.split(',').map(Number);
+                const blockSizeX = this.imageWidth / this.blockDivisions;
+                const blockSizeY = this.imageHeight / this.blockDivisions;
+                
+                console.log(`🧩 Extracting blocks from ${sourceCanvas.width}x${sourceCanvas.height} canvas`);
+                
+                // Calculate which blocks to extract based on direction
+                const blocksToExtract = [];
+                
+                if (directionX !== 0 && directionY !== 0) {
+                    // Diagonal direction - extracts 3 blocks
+                    const rightBlockX = originalGridX + (directionX > 0 ? 1 : -1);
+                    const downBlockY = originalGridY + (directionY > 0 ? 1 : -1);
+                    
+                    blocksToExtract.push({
+                        blockKey: `${rightBlockX},${originalGridY}`,
+                        sourceX: directionX > 0 ? blockSizeX : 0,
+                        sourceY: 0,
+                        width: blockSizeX,
+                        height: blockSizeY
+                    });
+                    
+                    blocksToExtract.push({
+                        blockKey: `${originalGridX},${downBlockY}`,
+                        sourceX: 0,
+                        sourceY: directionY > 0 ? blockSizeY : 0,
+                        width: blockSizeX,
+                        height: blockSizeY
+                    });
+                    
+                    blocksToExtract.push({
+                        blockKey: `${rightBlockX},${downBlockY}`,
+                        sourceX: directionX > 0 ? blockSizeX : 0,
+                        sourceY: directionY > 0 ? blockSizeY : 0,
+                        width: blockSizeX,
+                        height: blockSizeY
+                    });
+                    
+                } else if (directionX !== 0) {
+                    // Horizontal direction - extracts 1 block
+                    const newBlockX = originalGridX + (directionX > 0 ? 1 : -1);
+                    blocksToExtract.push({
+                        blockKey: `${newBlockX},${originalGridY}`,
+                        sourceX: directionX > 0 ? blockSizeX : 0,
+                        sourceY: 0,
+                        width: blockSizeX,
+                        height: blockSizeY
+                    });
+                    
+                } else if (directionY !== 0) {
+                    // Vertical direction - extracts 1 block
+                    const newBlockY = originalGridY + (directionY > 0 ? 1 : -1);
+                    blocksToExtract.push({
+                        blockKey: `${originalGridX},${newBlockY}`,
+                        sourceX: 0,
+                        sourceY: directionY > 0 ? blockSizeY : 0,
+                        width: blockSizeX,
+                        height: blockSizeY
+                    });
+                }
+                
+                // Extract each block and update the system
+                blocksToExtract.forEach(block => {
+                    this.extractAndUpdateBlock(sourceCanvas, block);
+                });
+                
+                console.log(`✅ Extracted ${blocksToExtract.length} blocks from API response`);
+            }
+
+            extractAndUpdateBlock(sourceCanvas, blockInfo) {
+                try {
+                    // Create canvas for this block
+                    const blockCanvas = document.createElement('canvas');
+                    const blockCtx = blockCanvas.getContext('2d');
+                    
+                    blockCanvas.width = blockInfo.width;
+                    blockCanvas.height = blockInfo.height;
+                    
+                    // Extract the block area from source canvas
+                    blockCtx.drawImage(
+                        sourceCanvas,
+                        blockInfo.sourceX, blockInfo.sourceY, blockInfo.width, blockInfo.height,
+                        0, 0, blockInfo.width, blockInfo.height
+                    );
+                    
+                    // Convert to data URL
+                    const blockDataUrl = blockCanvas.toDataURL('image/jpeg', 0.9);
+                    
+                    // Update the block in our system
+                    this.outfillBlocks.set(blockInfo.blockKey, {
+                        status: 'ready',
+                        progress: 1,
+                        imageData: blockDataUrl
+                    });
+                    
+                    this.updateOutfillBlock(blockInfo.blockKey, this.outfillBlocks.get(blockInfo.blockKey));
+                    
+                    console.log(`🎯 Block ${blockInfo.blockKey} extracted and updated`);
+                    
+                    // Check for newly adjacent blocks
+                    this.checkForNewlyAdjacentBlocks(blockInfo.blockKey);
+                    
+                } catch (error) {
+                    console.error(`Error extracting block ${blockInfo.blockKey}:`, error);
+                }
+            }
+
+            async getImageAsBlob() {
+                return new Promise(async (resolve, reject) => {
+                    // In standalone mode, use embedded base64 data
+                    if (window.location.protocol === 'file:') {
+                        try {
+                            console.log('🔧 Using embedded base64 data for standalone mode');
+                            
+                            // Use the existing image element's src as base64
+                            const imgElement = document.querySelector('img[alt="Psychedelic Flora"]');
+                            if (imgElement && imgElement.src.startsWith('data:')) {
+                                // Image is already a data URL, convert to blob
+                                const response = await fetch(imgElement.src);
+                                const blob = await response.blob();
+                                console.log('🔧 Converted data URL to blob for standalone mode:', blob.size, 'bytes');
+                                resolve(blob);
+                                return;
+                            }
+                            
+                            // Try to fetch the image file directly
+                            try {
+                                const response = await fetch('./psychedelic-flora.jpg');
+                                if (response.ok) {
+                                    const blob = await response.blob();
+                                    console.log('🔧 Successfully fetched image as blob for standalone mode:', blob.size, 'bytes');
+                                    resolve(blob);
+                                    return;
+                                }
+                            } catch (e) {
+                                console.log('🔧 Direct fetch failed, using fallback');
+                            }
+                            
+                            // Fallback: Create a realistic floral pattern instead of gradient
+                            console.log('🔧 Creating realistic floral pattern for standalone mode');
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            canvas.width = this.imageWidth;
+                            canvas.height = this.imageHeight;
+                            
+                            // Create a more realistic floral background
+                            const gradient = ctx.createRadialGradient(
+                                canvas.width/2, canvas.height/2, 0,
+                                canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/2
+                            );
+                            gradient.addColorStop(0, '#2d5016');
+                            gradient.addColorStop(0.3, '#4a7c59');
+                            gradient.addColorStop(0.6, '#6b8e23');
+                            gradient.addColorStop(1, '#228b22');
+                            
+                            ctx.fillStyle = gradient;
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Add floral elements
+                            for (let i = 0; i < 50; i++) {
+                                const x = Math.random() * canvas.width;
+                                const y = Math.random() * canvas.height;
+                                const size = Math.random() * 20 + 5;
+                                
+                                // Flower petals
+                                ctx.fillStyle = `hsl(${Math.random() * 60 + 300}, 70%, 60%)`;
+                                for (let j = 0; j < 5; j++) {
+                                    ctx.beginPath();
+                                    ctx.ellipse(x + Math.cos(j * Math.PI * 2 / 5) * size/2, 
+                                              y + Math.sin(j * Math.PI * 2 / 5) * size/2, 
+                                              size/3, size/6, j * Math.PI * 2 / 5, 0, 2 * Math.PI);
+                                    ctx.fill();
+                                }
+                                
+                                // Flower center
+                                ctx.fillStyle = '#ffeb3b';
+                                ctx.beginPath();
+                                ctx.arc(x, y, size/4, 0, 2 * Math.PI);
+                                ctx.fill();
+                            }
+                            
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    console.log('🔧 Created realistic floral pattern blob for standalone mode');
+                                    resolve(blob);
+                                } else {
+                                    reject(new Error('Failed to create floral pattern blob'));
+                                }
+                            }, 'image/jpeg', 0.9);
+                            return;
+                        } catch (error) {
+                            console.error('🚨 All approaches failed:', error);
+                            reject(error);
+                        }
+                    }
+                    
+                    // Server mode - standard approach
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = this.image;
+
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    ctx.drawImage(img, 0, 0);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to create image blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
+            }
+
+            updateTransform() {
+                this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+                this.zoomIndicator.textContent = `${this.scale.toFixed(2)}x`;
+                this.drawGrid(); // Redraw grid when transform changes
+                this.checkVisibleBlocks();
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // In standalone mode, convert image to data URL to avoid canvas tainting
+            if (window.location.protocol === 'file:') {
+                const img = document.getElementById('mainImage');
+                
+                // Wait for image to load, then convert to data URL before initializing viewer
+                if (img.complete) {
+                    convertAndInitialize();
+                } else {
+                    img.onload = convertAndInitialize;
+                }
+                
+                function convertAndInitialize() {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        ctx.drawImage(img, 0, 0);
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                        img.src = dataURL;
+                        console.log('🔧 Converted image to data URL for standalone mode');
+                        
+                        // Initialize viewer after conversion
+                        setTimeout(() => {
+                            window.viewer = new ImageViewer();
+                        }, 100);
+                    } catch (error) {
+                        console.log('🔧 Could not convert image to data URL:', error.message);
+                        // Initialize viewer anyway
+                        window.viewer = new ImageViewer();
+                    }
+                }
+            } else {
+                // Server mode - initialize normally
+                window.viewer = new ImageViewer();
+            }
+        });
+        
+        // Replace the placeholder image with your actual image
+        // Just change the src attribute of the img element to your image path
+        // document.getElementById('mainImage').src = 'path/to/your/psychedelic-flora.jpg';
+    </script>
+</body>
+</html>
