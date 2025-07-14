@@ -558,6 +558,8 @@
                 debugInfo.innerHTML = 'Debug Console:<br>' + lastLogs.map(log => 
                     `<span style="color: ${log.type === 'error' ? '#ff4444' : '#44ff44'}">[${log.time}] ${log.message}</span>`
                 ).join('<br>');
+                // Auto-scroll to bottom
+                debugInfo.scrollTop = debugInfo.scrollHeight;
             }
         }
         
