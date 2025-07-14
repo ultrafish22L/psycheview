@@ -1319,11 +1319,67 @@
                         if (progress >= 1) {
                             clearInterval(interval);
                             
-                            // Demo mode removed - only live API calls supported
-                            
-                            resolve();
+                            // Generate demo image and show in debug preview
+                            this.createDemoImage(blockKey).then((demoBlob) => {
+                                // Show in debug preview window
+                                this.showDebugPreview(demoBlob, blockKey, 'Demo Generation');
+                                
+                                // Update block with demo image
+                                const imageUrl = URL.createObjectURL(demoBlob);
+                                const block = this.outfillBlocks.get(blockKey);
+                                if (block) {
+                                    block.status = 'completed';
+                                    block.imageUrl = imageUrl;
+                                    this.updateOutfillBlock(blockKey, block);
+                                }
+                                
+                                resolve();
+                            });
                         }
                     }, 200);
+                });
+            }
+            // Create demo image blob for testing
+            async createDemoImage(blockKey) {
+                return new Promise((resolve) => {
+                    // Create canvas for demo image
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 512;
+                    canvas.height = 512;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Create psychedelic gradient pattern
+                    const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+                    gradient.addColorStop(0, `hsl(${Math.random() * 360}, 80%, 60%)`);
+                    gradient.addColorStop(0.3, `hsl(${Math.random() * 360}, 70%, 50%)`);
+                    gradient.addColorStop(0.6, `hsl(${Math.random() * 360}, 90%, 40%)`);
+                    gradient.addColorStop(1, `hsl(${Math.random() * 360}, 60%, 30%)`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 512, 512);
+                    
+                    // Add some organic shapes
+                    for (let i = 0; i < 20; i++) {
+                        ctx.beginPath();
+                        ctx.fillStyle = `hsla(${Math.random() * 360}, 70%, 50%, 0.3)`;
+                        const x = Math.random() * 512;
+                        const y = Math.random() * 512;
+                        const radius = Math.random() * 50 + 10;
+                        ctx.arc(x, y, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // Add block key text
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`Block ${blockKey}`, 256, 256);
+                    ctx.fillText('DEMO', 256, 290);
+                    
+                    // Convert to blob
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/jpeg', 0.8);
                 });
             }
 
@@ -2185,6 +2241,9 @@
             async processStrategicMultiBlockResponse(responseBlob, strategicCall) {
                 try {
                     console.log(`🔄 Processing strategic multi-block response for ${strategicCall.generatedBlocks.length} blocks`);
+                    
+                    // Show downloaded image in debug preview
+                    this.showDebugPreview(responseBlob, strategicCall.generatedBlocks.join(','), 'Strategic API Response');
                     
                     // Create image from response blob
                     const responseImage = new Image();
