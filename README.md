@@ -2,6 +2,19 @@
 
 A super slick, modern, interactive web viewer for psychedelic imagery with AI-powered outfill capabilities, featuring both demo and live generation modes.
 
+## 🎉 v1.4 BREAKTHROUGH: Perfect Seamless Layering System
+
+**MAJOR MILESTONE ACHIEVED!** The seamless image display issue has been completely solved with an elegant layering approach:
+
+✅ **Perfect Seamless Display**: Content window now matches preview window exactly  
+✅ **Full Image Layering**: Entire downloaded images displayed as positioned layers (UV 0,0 to 1,1)  
+✅ **Natural Stacking**: Each generation stacks naturally on top of previous layers  
+✅ **Flawless Continuity**: Perfect psychedelic pattern flow across all boundaries  
+✅ **Grid Toggle**: Hidden by default, press **G** key to show/hide grid lines  
+✅ **Optimized View**: Default zoom set to 0.25x for better infinite canvas overview  
+
+**Key Insight**: Instead of extracting individual blocks, display entire downloaded images as complete layers positioned over the original. This eliminates all seams and creates perfect visual continuity.
+
 ## ✨ Features
 
 ### 🖼️ Interactive Image Viewer
@@ -72,6 +85,7 @@ node server.js
 - **Mouse**: Click and drag to pan, scroll wheel to zoom
 - **Touch**: Single finger drag to pan, pinch to zoom
 - **Mode Toggle**: Click the switch in top-left to toggle Demo/Live modes
+- **Grid Toggle**: Press **G** key to show/hide grid lines
 - **Zoom Range**: 0.25x (25%) to 4x (400%)
 - **Queue Status**: Top-right shows current queue and active generations
 - **Smooth Animations**: All movements are fluid and responsive

@@ -2394,60 +2394,8 @@
                 });
             }
 
-            extractStrategicBlocks(sourceCanvas, strategicCall) {
-                const blockSizeX = this.imageWidth;
-                const blockSizeY = this.imageHeight;
-                
-                console.log(`🧩 Extracting ${strategicCall.generatedBlocks.length} strategic blocks from ${sourceCanvas.width}x${sourceCanvas.height} canvas`);
-                
-                // Calculate extraction coordinates for each block
-                const blocksToExtract = [];
-                
-                strategicCall.generatedBlocks.forEach(blockKey => {
-                    const [gridX, gridY] = blockKey.split(',').map(Number);
-                    
-                    // Calculate source coordinates in the 2x2 response
-                    let sourceX, sourceY;
-                    
-                    if (strategicCall.directionX > 0 && strategicCall.directionY > 0) {
-                        // Down-right diagonal call
-                        if (gridX === 1 && gridY === 0) {
-                            sourceX = blockSizeX; sourceY = 0; // Top-right
-                        } else if (gridX === 0 && gridY === 1) {
-                            sourceX = 0; sourceY = blockSizeY; // Bottom-left
-                        } else if (gridX === 1 && gridY === 1) {
-                            sourceX = blockSizeX; sourceY = blockSizeY; // Bottom-right
-                        }
-                    } else if (strategicCall.directionX < 0 && strategicCall.directionY > 0) {
-                        // Down-left diagonal call
-                        if (gridX === -1 && gridY === 0) {
-                            sourceX = 0; sourceY = 0; // Top-left
-                        } else if (gridX === 0 && gridY === 1) {
-                            sourceX = blockSizeX; sourceY = blockSizeY; // Bottom-right
-                        } else if (gridX === -1 && gridY === 1) {
-                            sourceX = 0; sourceY = blockSizeY; // Bottom-left
-                        }
-                    }
-                    // Add more direction combinations as needed
-                    
-                    if (sourceX !== undefined && sourceY !== undefined) {
-                        blocksToExtract.push({
-                            blockKey: blockKey,
-                            sourceX: sourceX,
-                            sourceY: sourceY,
-                            width: blockSizeX,
-                            height: blockSizeY
-                        });
-                    }
-                });
-                
-                // Extract each block using existing system
-                blocksToExtract.forEach(block => {
-                    this.extractAndUpdateBlock(sourceCanvas, block);
-                });
-                
-                console.log(`✅ Extracted ${blocksToExtract.length} strategic blocks from API response`);
-            }
+            // Legacy function - replaced by positionEntireImageAsLayer()
+            // Kept for reference but no longer used
 
             processGenerationQueue() {
                 // Resort queue before processing
