@@ -223,7 +223,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 1;
+            z-index: 10;
         }
 
         @keyframes subtleGridShift {
@@ -241,14 +241,14 @@
             }
         }
 
-        /* Main Image */
+        /* Main Image - Fill container for consistent sizing */
         .main-image {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;  /* Maintain aspect ratio, fit within container */
             z-index: 3;
         }
 
@@ -504,15 +504,21 @@
         </div>
 
         <div class="image-viewer" id="imageViewer">
+            <canvas class="grid-overlay" id="gridCanvas"></canvas>
             <div class="viewer-content" id="viewerContent">
                 <div class="tiled-background"></div>
-                <canvas class="grid-overlay" id="gridCanvas"></canvas>
                 <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false">
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
             <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
             <div class="debug-info" id="debugInfo" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 1000; max-width: 400px; max-height: 300px; overflow-y: auto;">
                 Debug Info
+            </div>
+            
+            <!-- Console capture div -->
+            <div id="consoleCapture" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.9); color: #00ff00; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px; z-index: 1001; max-width: 500px; max-height: 400px; overflow-y: auto; border: 1px solid #333;">
+                <div style="color: #ffff00; margin-bottom: 5px;">🖥️ CONSOLE OUTPUT:</div>
+                <div id="consoleLogs"></div>
             </div>
 
 
@@ -542,12 +548,14 @@
             logs.push({type: 'log', message: args.join(' '), time: new Date().toLocaleTimeString()});
             originalConsoleLog.apply(console, args);
             updateDebugConsole();
+            updateConsoleCapture();
         };
         
         console.error = function(...args) {
             logs.push({type: 'error', message: args.join(' '), time: new Date().toLocaleTimeString()});
             originalConsoleError.apply(console, args);
             updateDebugConsole();
+            updateConsoleCapture();
         };
         
         function updateDebugConsole() {
@@ -557,6 +565,21 @@
                 debugInfo.innerHTML = 'Debug Console:<br>' + lastLogs.map(log => 
                     `<span style="color: ${log.type === 'error' ? '#ff4444' : '#44ff44'}">[${log.time}] ${log.message}</span>`
                 ).join('<br>');
+            }
+        }
+        
+        function updateConsoleCapture() {
+            const consoleDiv = document.getElementById('consoleLogs');
+            if (consoleDiv) {
+                const lastLogs = logs.slice(-20); // Show last 20 logs
+                consoleDiv.innerHTML = lastLogs.map(log =>
+                    `<div style="color: ${log.type === 'error' ? '#ff4444' : '#00ff00'}; margin-bottom: 2px; font-size: 10px;">[${log.time}] ${log.message}</div>`
+                ).join('');
+                // Auto-scroll to bottom
+                const captureDiv = document.getElementById('consoleCapture');
+                if (captureDiv) {
+                    captureDiv.scrollTop = captureDiv.scrollHeight;
+                }
             }
         }
         
@@ -797,11 +820,27 @@
                 // Set initial UI state for pre-configured API key
                 this.updateInitialUIState();
                 
+                // Hide debug windows by default
+                const debugInfo = document.getElementById('debugInfo');
+                const consoleCapture = document.getElementById('consoleCapture');
+                if (debugInfo && consoleCapture) {
+                    debugInfo.style.display = 'none';
+                    consoleCapture.style.display = 'none';
+                }
+                
                 this.updateTransform();
                 
                 // Add resize handler to redraw grid
                 window.addEventListener('resize', () => {
                     setTimeout(() => this.drawGrid(), 100);
+                });
+                
+                // Add keyboard shortcut to toggle debug windows
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'F12' || (e.ctrlKey && e.key === 'd')) {
+                        e.preventDefault();
+                        this.toggleDebugWindows();
+                    }
                 });
             }
             
@@ -1301,10 +1340,12 @@
                 }
                 
                 const visibleBlocks = new Set();
-                const gridSizeX = this.imageWidth / this.blockDivisions;
-                const gridSizeY = this.imageHeight / this.blockDivisions;
+                // INFINITE GRID SYSTEM: Each grid cell is exactly the image size
+                const gridSizeX = this.imageWidth;   // 1600px
+                const gridSizeY = this.imageHeight;  // 1024px
                 
-                // Calculate the viewport bounds in image coordinates
+                // Calculate the viewport bounds in world coordinates
+                // The original image is positioned at (0,0) in world coordinates
                 const viewportLeft = -this.translateX / this.scale;
                 const viewportTop = -this.translateY / this.scale;
                 const viewportRight = viewportLeft + this.containerWidth / this.scale;
@@ -1314,38 +1355,37 @@
                 
 
                 
-                // Calculate grid bounds that are visible
+                // Calculate which grid cells are visible
+                // Grid cell (0,0) contains the original image at coordinates (0,0) to (1600,1024)
+                // Grid cell (-1,0) is to the left at (-1600,0) to (0,1024)
+                // Grid cell (1,0) is to the right at (1600,0) to (3200,1024), etc.
                 const startGridX = Math.floor(viewportLeft / gridSizeX);
                 const endGridX = Math.ceil(viewportRight / gridSizeX);
                 const startGridY = Math.floor(viewportTop / gridSizeY);
                 const endGridY = Math.ceil(viewportBottom / gridSizeY);
                 
-                console.log('🔍 Viewport bounds:', {
+                console.log('🔍 Infinite Grid Viewport:', {
                     viewportLeft, viewportTop, viewportRight, viewportBottom,
                     gridSizeX, gridSizeY,
-                    startGridX, endGridX, startGridY, endGridY,
-                    imageWidth: this.imageWidth, imageHeight: this.imageHeight
+                    startGridX, endGridX, startGridY, endGridY
                 });
                 
-                // Add all visible grid blocks, including those outside the original image
+                // Add all visible grid blocks that are NOT the original image
                 for (let gridX = startGridX; gridX < endGridX; gridX++) {
                     for (let gridY = startGridY; gridY < endGridY; gridY++) {
-                        const blockLeft = gridX * gridSizeX;
-                        const blockRight = (gridX + 1) * gridSizeX;
-                        const blockTop = gridY * gridSizeY;
-                        const blockBottom = (gridY + 1) * gridSizeY;
-                        
-                        // Check if this block extends beyond the original image (needs outfill)
-                        const needsOutfill = blockLeft < 0 || blockTop < 0 || 
-                                           blockRight > this.imageWidth || blockBottom > this.imageHeight;
-                        
-                        if (needsOutfill) {
-                            console.log('🎯 Found outfill block:', `${gridX},${gridY}`, {
-                                blockLeft, blockTop, blockRight, blockBottom,
-                                needsOutfill, imageWidth: this.imageWidth, imageHeight: this.imageHeight
-                            });
-                            visibleBlocks.add(`${gridX},${gridY}`);
+                        // Skip the original image at grid cell (0,0)
+                        if (gridX === 0 && gridY === 0) {
+                            continue;
                         }
+                        
+                        // All other grid cells need AI generation
+                        console.log('🎯 Found outfill block:', `${gridX},${gridY}`, {
+                            worldLeft: gridX * gridSizeX,
+                            worldTop: gridY * gridSizeY,
+                            worldRight: (gridX + 1) * gridSizeX,
+                            worldBottom: (gridY + 1) * gridSizeY
+                        });
+                        visibleBlocks.add(`${gridX},${gridY}`);
                     }
                 }
                 
@@ -1359,57 +1399,96 @@
             }
             
             drawGrid() {
-                const canvas = document.getElementById('gridCanvas');
-                if (!canvas || !this.imageWidth || !this.imageHeight) return;
+                // GRID ALIGNMENT: Grid lines should align with actual image boundaries
+                // Need to account for how the image is positioned within the container
                 
-                // Set canvas size to match container
-                const container = document.getElementById('viewerContent');
-                canvas.width = container.clientWidth;
-                canvas.height = container.clientHeight;
+                const canvas = document.getElementById('gridCanvas');
+                if (!canvas) return;
                 
                 const ctx = canvas.getContext('2d');
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                // Grid spacing equals image dimensions (each grid cell = one image size)
-                const gridSpacingX = this.imageWidth;
-                const gridSpacingY = this.imageHeight;
+                // Block dimensions (each block = full image size)
+                const blockWidth = this.imageWidth || 1600;   // 1600px
+                const blockHeight = this.imageHeight || 1024; // 1024px
                 
-                // Calculate image position in container (centered)
-                const imageX = (canvas.width - this.imageWidth * this.scale) / 2 + this.translateX;
-                const imageY = (canvas.height - this.imageHeight * this.scale) / 2 + this.translateY;
+                // Calculate where the actual image is positioned within the container
+                // The image uses object-fit: contain, so it's centered and scaled to fit
+                const containerWidth = this.containerWidth;
+                const containerHeight = this.containerHeight;
+                const imageAspect = blockWidth / blockHeight;
+                const containerAspect = containerWidth / containerHeight;
                 
-                // Draw white grid lines - fully opaque and thick
+                let actualImageWidth, actualImageHeight, imageOffsetX, imageOffsetY;
+                
+                if (imageAspect > containerAspect) {
+                    // Image is wider - fits to container width
+                    actualImageWidth = containerWidth;
+                    actualImageHeight = containerWidth / imageAspect;
+                    imageOffsetX = 0;
+                    imageOffsetY = (containerHeight - actualImageHeight) / 2;
+                } else {
+                    // Image is taller - fits to container height
+                    actualImageWidth = containerHeight * imageAspect;
+                    actualImageHeight = containerHeight;
+                    imageOffsetX = (containerWidth - actualImageWidth) / 2;
+                    imageOffsetY = 0;
+                }
+                
+                console.log(`🔍 IMAGE POSITIONING: container=${containerWidth}x${containerHeight}, actual=${actualImageWidth}x${actualImageHeight}, offset=(${imageOffsetX},${imageOffsetY})`);
+                
+                // Set grid line style
                 ctx.strokeStyle = 'rgba(255, 255, 255, 1.0)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([]);
+                ctx.lineWidth = 1;
                 
-                // Calculate grid origin (top-left corner of image in world coordinates)
-                const originX = imageX;
-                const originY = imageY;
+                // Draw complete infinite grid with image boundaries as reference
+                // Image occupies one grid cell, bounded by grid lines
                 
-                // Draw vertical lines
-                for (let i = -20; i <= 20; i++) {
-                    const x = originX + i * gridSpacingX * this.scale;
-                    if (x >= -10 && x <= canvas.width + 10) {
+                // Calculate the center of the container (where image is positioned before transform)
+                const containerCenterX = canvas.width / 2;
+                const containerCenterY = canvas.height / 2;
+                
+                // Calculate where the top-left corner of the actual image appears
+                // Image is centered, so top-left is at center minus half the scaled image size
+                const scaledImageWidth = actualImageWidth * this.scale;
+                const scaledImageHeight = actualImageHeight * this.scale;
+                
+                const imageTopLeftX = containerCenterX - (scaledImageWidth / 2) + this.translateX;
+                const imageTopLeftY = containerCenterY - (scaledImageHeight / 2) + this.translateY;
+                
+                // Grid spacing equals scaled image dimensions
+                const gridSpacingX = scaledImageWidth;
+                const gridSpacingY = scaledImageHeight;
+                
+                // Draw vertical grid lines extending infinitely
+                for (let i = -50; i <= 50; i++) {
+                    const lineX = imageTopLeftX + (i * gridSpacingX);
+                    
+                    // Only draw lines that could be visible
+                    if (lineX >= -canvas.width && lineX <= canvas.width * 2) {
                         ctx.beginPath();
-                        ctx.moveTo(x, 0);
-                        ctx.lineTo(x, canvas.height);
+                        ctx.moveTo(lineX, 0);
+                        ctx.lineTo(lineX, canvas.height);
                         ctx.stroke();
                     }
                 }
                 
-                // Draw horizontal lines  
-                for (let i = -20; i <= 20; i++) {
-                    const y = originY + i * gridSpacingY * this.scale;
-                    if (y >= -10 && y <= canvas.height + 10) {
+                // Draw horizontal grid lines extending infinitely
+                for (let i = -50; i <= 50; i++) {
+                    const lineY = imageTopLeftY + (i * gridSpacingY);
+                    
+                    // Only draw lines that could be visible
+                    if (lineY >= -canvas.height && lineY <= canvas.height * 2) {
                         ctx.beginPath();
-                        ctx.moveTo(0, y);
-                        ctx.lineTo(canvas.width, y);
+                        ctx.moveTo(0, lineY);
+                        ctx.lineTo(canvas.width, lineY);
                         ctx.stroke();
                     }
                 }
                 
-                console.log('🔧 Grid drawn: spacing=' + gridSpacingX + 'x' + gridSpacingY + 'px, scale=' + this.scale);
+                console.log(`🔍 INFINITE GRID: topLeft=(${imageTopLeftX},${imageTopLeftY}), spacing=(${gridSpacingX},${gridSpacingY}), scale=${this.scale}`);
             }
             
             // Helper method to update API configuration
@@ -1620,8 +1699,19 @@
                     this.debugToggleBtn.style.background = this.debugMode ? '#4CAF50' : '#757575';
                 }
                 
+                // Also toggle debug window visibility
+                const debugInfo = document.getElementById('debugInfo');
+                const consoleCapture = document.getElementById('consoleCapture');
+                
+                if (debugInfo && consoleCapture) {
+                    const newDisplay = this.debugMode ? 'block' : 'none';
+                    debugInfo.style.display = newDisplay;
+                    consoleCapture.style.display = newDisplay;
+                }
+                
                 console.log('🐛 Debug mode:', this.debugMode ? 'ENABLED' : 'DISABLED');
                 console.log('🐛 API response blobs will', this.debugMode ? 'be saved to files AND previewed' : 'NOT be saved or previewed');
+                console.log('🔧 Debug windows:', this.debugMode ? 'SHOWN' : 'HIDDEN', '(F12 or Ctrl+D to toggle)');
                 
                 // Hide preview if debug mode is turned off
                 if (!this.debugMode) {
@@ -1774,14 +1864,15 @@
                 
                 const [gridX, gridY] = blockKey.split(',').map(Number);
                 
-                // Calculate grid size using IMAGE dimensions (not container)
-                // For blocksize=1, each grid cell is exactly the original image size
-                // For blocksize=4, each grid cell is 1/4 of the original image size
-                const gridSizeX = this.imageWidth / this.blockDivisions;
-                const gridSizeY = this.imageHeight / this.blockDivisions;
+                // INFINITE GRID SYSTEM: Each grid cell is exactly the original image size
+                // Original image occupies grid cell (0,0)
+                // Adjacent blocks are at (-1,0), (1,0), (0,-1), (0,1), etc.
+                const gridSizeX = this.imageWidth;   // Each cell = full image width (1600px)
+                const gridSizeY = this.imageHeight;  // Each cell = full image height (1024px)
                 
-                // Calculate block position using image coordinates
-                // Grid (0,0) to (blockDivisions-1, blockDivisions-1) contains the original image
+                // Calculate block position in infinite grid coordinates
+                // Grid (0,0) contains the original image
+                // Grid (-1,0) is to the left, (1,0) is to the right, etc.
                 const blockLeft = gridX * gridSizeX;
                 const blockTop = gridY * gridSizeY;
                 
@@ -2733,6 +2824,21 @@
                 this.zoomIndicator.textContent = `${this.scale.toFixed(2)}x`;
                 this.drawGrid(); // Redraw grid when transform changes
                 this.checkVisibleBlocks();
+            }
+            
+            toggleDebugWindows() {
+                const debugInfo = document.getElementById('debugInfo');
+                const consoleCapture = document.getElementById('consoleCapture');
+                
+                if (debugInfo && consoleCapture) {
+                    const isVisible = debugInfo.style.display !== 'none';
+                    const newDisplay = isVisible ? 'none' : 'block';
+                    
+                    debugInfo.style.display = newDisplay;
+                    consoleCapture.style.display = newDisplay;
+                    
+                    console.log(`🔧 Debug windows ${isVisible ? 'hidden' : 'shown'} (F12 or Ctrl+D to toggle)`);
+                }
             }
         }
         
