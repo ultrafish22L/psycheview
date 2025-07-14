@@ -1691,6 +1691,8 @@
                 }
                 
                 // Calculate block position relative to the original image position
+                // IMPORTANT: Blocks must be positioned relative to the UNTRANSFORMED image
+                // because they are children of this.content which gets the CSS transform applied
                 const blockLeft = imageOffsetX + (gridX * actualImageWidth);
                 const blockTop = imageOffsetY + (gridY * actualImageHeight);
                 
@@ -1703,7 +1705,8 @@
                     this.content.appendChild(blockElement);
                 }
                 
-                // Position block to align with grid
+                // Position block to align with grid (relative to untransformed coordinates)
+                // The CSS transform on this.content will handle scaling and translation
                 blockElement.style.left = blockLeft + 'px';
                 blockElement.style.top = blockTop + 'px';
                 blockElement.style.width = actualImageWidth + 'px';
@@ -1714,15 +1717,16 @@
                 if (block.status === 'ready' || block.status === 'completed') {
                     console.log('🖼️ Setting block image:', blockKey, 'imageData:', block.imageData.substring(0, 50) + '...');
                     blockElement.style.backgroundImage = `url(${block.imageData})`;
-                    
-                    // Each block contains its own extracted image sized to fill exactly
-                    blockElement.style.backgroundSize = `${actualImageWidth}px ${actualImageHeight}px`;
-                    blockElement.style.backgroundPosition = '0px 0px';
                     blockElement.style.backgroundRepeat = 'no-repeat';
-                    
                     blockElement.style.backgroundColor = 'transparent';
                     blockElement.innerHTML = '';
-                    console.log('🖼️ Block element updated:', blockElement.id, 'background:', blockElement.style.backgroundImage.substring(0, 50) + '...');
+                    
+                    // SEAMLESS FIX: Show entire downloaded image scaled to fit block (UV 0,0 to 1,1)
+                    // This ensures the full seamless image is visible, not just a cropped chunk
+                    blockElement.style.backgroundSize = `${actualImageWidth}px ${actualImageHeight}px`;
+                    blockElement.style.backgroundPosition = '0px 0px';
+                    
+                    console.log('🖼️ Block element updated with full image scaling:', blockElement.id, `${actualImageWidth}x${actualImageHeight}`);
                 } else if (block.status === 'generating') {
                     blockElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
                     const progressPercent = Math.round(block.progress * 100);
