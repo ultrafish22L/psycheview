@@ -94,23 +94,7 @@
             min-height: 100vh;
         }
 
-        /* Instructions */
-        .instructions {
-            position: fixed;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.9);
-            text-align: center;
-            font-size: 14px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            border-radius: 25px;
-            padding: 15px 25px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 1000;
-            pointer-events: none;
-        }
+
 
         /* Image Viewer */
         .image-viewer {
@@ -252,7 +236,7 @@
             z-index: 3;
         }
 
-        /* Zoom indicator */
+        /* Zoom indicator - hidden by default, shown only in debug mode */
         .zoom-indicator {
             position: absolute;
             top: 10px;
@@ -263,9 +247,10 @@
             border-radius: 15px;
             font-size: 12px;
             font-family: monospace;
+            display: none;
         }
 
-        /* Queue indicator */
+        /* Queue indicator - hidden by default, shown only in debug mode */
         .queue-indicator {
             position: absolute;
             top: 35px;
@@ -276,6 +261,7 @@
             border-radius: 15px;
             font-size: 12px;
             font-family: monospace;
+            display: none;
         }
 
 
@@ -422,9 +408,7 @@
     </div>
 
     <div class="app-container">
-        <div class="instructions">
-            🎨 Click & drag to pan • Scroll to zoom (0.25x - 4x) • Touch supported
-        </div>
+
         
 
 
@@ -538,7 +522,7 @@
                 this.apiKeyInput = document.getElementById('apiKeyInput');
                 this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
                 this.testApiBtn = document.getElementById('testApiBtn');
-                this.debugToggleBtn = document.getElementById('debugToggleBtn');
+
                 this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
                 this.apiCallsToggleBtn = document.getElementById('apiCallsToggleBtn');
                 this.testPanBtn = document.getElementById('testPanBtn');
@@ -593,7 +577,7 @@
                 // Mode system
                 this.isLiveMode = true; // Start in live mode by default
                 this.apiKey = 'sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8';
-                this.debugMode = true; // Enable debug mode to save API responses
+
                 
                 // Stability AI API Configuration
                 this.apiConfig = {
@@ -703,9 +687,7 @@
                     this.testApiBtn.addEventListener('click', () => this.testApiCall());
                 }
                 
-                if (this.debugToggleBtn) {
-                    this.debugToggleBtn.addEventListener('click', () => this.toggleDebugMode());
-                }
+
 
                 if (this.autoGenToggleBtn) {
                     this.autoGenToggleBtn.addEventListener('click', () => this.toggleAutoGeneration());
@@ -762,7 +744,7 @@
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'F12' || (e.ctrlKey && e.key === 'd')) {
                         e.preventDefault();
-                        this.toggleDebugWindows();
+                        this.toggleDebug();
                     }
                 });
             }
@@ -1446,7 +1428,7 @@
 
             // Debug function to save blob to file
             saveDebugBlob(blob, blockKey, description = 'api-response') {
-                if (!this.debugMode) return;
+
                 
                 try {
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1477,32 +1459,25 @@
                 }
             }
 
-            // Toggle debug mode
-            toggleDebugMode() {
-                this.debugMode = !this.debugMode;
-                
-                if (this.debugToggleBtn) {
-                    this.debugToggleBtn.textContent = this.debugMode ? 'Debug: ON' : 'Debug: OFF';
-                    this.debugToggleBtn.style.background = this.debugMode ? '#4CAF50' : '#757575';
-                }
-                
-                // Also toggle debug window visibility
+            // Toggle debug windows and indicators
+            toggleDebug() {
                 const debugInfo = document.getElementById('debugInfo');
                 const consoleCapture = document.getElementById('consoleCapture');
-                
+
                 if (debugInfo && consoleCapture) {
-                    const newDisplay = this.debugMode ? 'block' : 'none';
+                    const isVisible = debugInfo.style.display !== 'none';
+                    const newDisplay = isVisible ? 'none' : 'block';
+
                     debugInfo.style.display = newDisplay;
                     consoleCapture.style.display = newDisplay;
-                }
-                
-                console.log('🐛 Debug mode:', this.debugMode ? 'ENABLED' : 'DISABLED');
-                console.log('🐛 API response blobs will', this.debugMode ? 'be saved to files AND previewed' : 'NOT be saved or previewed');
-                console.log('🔧 Debug windows:', this.debugMode ? 'SHOWN' : 'HIDDEN', '(F12 or Ctrl+D to toggle)');
-                
-                // Hide preview if debug mode is turned off
-                if (!this.debugMode) {
-                    this.hideDebugPreview();
+
+                    // Toggle zoom and queue indicators
+                    if (this.zoomIndicator && this.queueIndicator) {
+                        this.zoomIndicator.style.display = newDisplay;
+                        this.queueIndicator.style.display = newDisplay;
+                    }
+
+                    console.log(`🔧 Debug windows ${isVisible ? 'hidden' : 'shown'} (F12 or Ctrl+D to toggle)`);
                 }
             }
 
@@ -1571,7 +1546,7 @@
 
             // Show debug preview with blob
             showDebugPreview(blob, blockKey, description = 'api-response') {
-                if (!this.debugMode || !this.debugPreview) return;
+                if (!this.debugPreview) return;
                 
                 try {
                     // Create object URL for the blob
@@ -1614,7 +1589,7 @@
             }
             
             showDebugError(title, errorMessage) {
-                if (!this.debugMode || !this.debugPreview) return;
+                if (!this.debugPreview) return;
                 
                 this.debugPreview.classList.add('visible');
                 this.debugPreviewTitle.textContent = title;
@@ -2941,20 +2916,7 @@
                 this.checkVisibleBlocks();
             }
             
-            toggleDebugWindows() {
-                const debugInfo = document.getElementById('debugInfo');
-                const consoleCapture = document.getElementById('consoleCapture');
-                
-                if (debugInfo && consoleCapture) {
-                    const isVisible = debugInfo.style.display !== 'none';
-                    const newDisplay = isVisible ? 'none' : 'block';
-                    
-                    debugInfo.style.display = newDisplay;
-                    consoleCapture.style.display = newDisplay;
-                    
-                    console.log(`🔧 Debug windows ${isVisible ? 'hidden' : 'shown'} (F12 or Ctrl+D to toggle)`);
-                }
-            }
+
         }
         
         // Initialize when page loads
