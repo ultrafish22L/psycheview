@@ -461,10 +461,10 @@
                 // API Configuration
                 this.config = {
                     endpoint: 'https://api.stability.ai/v2beta/stable-image/edit/outpaint',
-                    prompt: 'Extend this psychedelic floral pattern with vibrant colors, intricate botanical details, and flowing organic shapes that seamlessly blend with the existing artwork',
+                    prompt: "Extend this image of a portion of a yakuza's body tatoo.  Match the scale of the floral pattern and extend it in the same style.  Then embedded within the pattern just like the lizard in the input image, are style matching yōkai, all the great ones includinge kappa, tengu, oni, and kitsune, etc.",
                     output_format: 'jpeg',
                     creativity: 0.35,
-                    seed: null
+                    seed: 0
                 };
                 this.zoomIndicator = document.getElementById('zoomIndicator');
                 this.queueIndicator = document.getElementById('queueIndicator');
@@ -533,7 +533,7 @@
                 // Stability AI API Configuration
                 this.apiConfig = {
                     endpoint: 'https://api.stability.ai/v2beta/stable-image/edit/outpaint',
-                    prompt: 'Extend this psychedelic floral pattern with vibrant colors, intricate botanical details, and flowing organic shapes that seamlessly blend with the existing artwork',
+                    prompt: "Extend this image of a portion of a yakuza's body tatoo.  Match the scale of the floral pattern and extend it in the same style.  Then embedded within the pattern just like the lizard in the input image, are style matching yōkai, all the great ones includinge kappa, tengu, oni, and kitsune, etc.",
                     seed: null, // null for random seed
                     output_format: 'jpeg',
                     creativity: 0.35,
@@ -1062,11 +1062,11 @@
             async initializeApiKey() {
                 try {
                     // Try to get API key from environment variable
-                    const response = await fetch('/api/config');
-                    const config = await response.json();
+//                    const response = await fetch('/api/config');
+//                    const config = await response.json();
                     
-                    if (config.hasApiKey && config.apiKey && config.apiKey !== 'test-key-for-demo') {
-                        this.apiKey = config.apiKey;
+                    if (config.apiKey) {
+                        this.apiKey = "sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8"; //config.apiKey;
                         this.apiKeyInput.placeholder = 'API Key Set ✓';
                         this.setApiKeyBtn.textContent = 'Update';
                         console.log('API key loaded from environment variable');
