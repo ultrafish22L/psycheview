@@ -522,6 +522,9 @@
                 // Block layer control (false = under image, true = over image)
                 this.blocksOverImage = false;
                 
+                // Grid visibility control (false = hidden, true = visible)
+                this.gridVisible = false;
+                
                 // Mode system
                 this.isLiveMode = true; // Start in live mode by default
                 this.apiKey = 'sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8';
@@ -691,6 +694,9 @@
                     if (e.key === 'F12' || (e.ctrlKey && e.key === 'd')) {
                         e.preventDefault();
                         this.toggleDebug();
+                    } else if (e.key === 'g' || e.key === 'G') {
+                        e.preventDefault();
+                        this.toggleGrid();
                     }
                 });
             }
@@ -1210,6 +1216,9 @@
                 canvas.height = canvas.clientHeight;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
+                // Exit early if grid is not visible
+                if (!this.gridVisible) return;
+                
                 // Block dimensions (each block = full image size)
                 const blockWidth = this.imageWidth || 1600;   // 1600px
                 const blockHeight = this.imageHeight || 1024; // 1024px
@@ -1495,6 +1504,13 @@
 
                     console.log(`🔧 Debug windows ${isVisible ? 'hidden' : 'shown'} (F12 or Ctrl+D to toggle)`);
                 }
+            }
+
+            // Toggle grid visibility
+            toggleGrid() {
+                this.gridVisible = !this.gridVisible;
+                this.drawGrid(); // Redraw grid with new visibility state
+                console.log(`🔧 Grid ${this.gridVisible ? 'shown' : 'hidden'} (G key to toggle)`);
             }
 
             // Toggle auto-generation mode
