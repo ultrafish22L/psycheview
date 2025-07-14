@@ -970,13 +970,9 @@
                     const formData = new FormData();
                     formData.append('image', imageBlob, 'image.jpg');
                     
-                    // Only add mask if blockDivisions > 1 (when we need partial masking)
-                    if (this.blockDivisions > 1) {
-                        formData.append('mask', maskBlob, 'mask.png');
-                        console.log('🎭 Adding mask for partial outpaint (blockDivisions > 1)');
-                    } else {
-                        console.log('🎭 Skipping mask for full image outpaint (blockDivisions = 1)');
-                    }
+                    // Always add mask - required by Stability AI outpaint API
+                    formData.append('mask', maskBlob, 'mask.png');
+                    console.log('🎭 Adding mask for outpaint (required by API)');
                     
                     formData.append('prompt', this.config.prompt);
                     formData.append('output_format', this.config.output_format);
@@ -2184,28 +2180,41 @@
 
 
             async generateMaskForBlock(blockKey) {
-                const [x, y] = blockKey.split(',').map(Number);
-                const blockSizeX = this.imageWidth / this.blockDivisions;
-                const blockSizeY = this.imageHeight / this.blockDivisions;
+                const [gridX, gridY] = blockKey.split(',').map(Number);
                 
-                // Create a canvas for the mask
+                // Create a canvas for the mask (2x2 for outpaint extensions)
                 const canvas = document.createElement('canvas');
-                canvas.width = this.imageWidth;
-                canvas.height = this.imageHeight;
+                canvas.width = this.imageWidth * 2;
+                canvas.height = this.imageHeight * 2;
                 const ctx = canvas.getContext('2d');
                 
                 // Fill with black (keep existing content)
                 ctx.fillStyle = 'black';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Fill the block area with white (area to outpaint)
-                ctx.fillStyle = 'white';
+                // BLOCKSIZE=1 SYSTEM: Original image is at center (0,0)
+                // Mark the original image area as black (preserve)
+                ctx.fillStyle = 'black';
                 ctx.fillRect(
-                    x * blockSizeX,
-                    y * blockSizeY,
-                    blockSizeX,
-                    blockSizeY
+                    this.imageWidth / 2,
+                    this.imageHeight / 2,
+                    this.imageWidth,
+                    this.imageHeight
                 );
+                
+                // Mark the target extension area as white (outpaint)
+                ctx.fillStyle = 'white';
+                const targetX = this.imageWidth / 2 + (gridX * this.imageWidth);
+                const targetY = this.imageHeight / 2 + (gridY * this.imageHeight);
+                
+                ctx.fillRect(
+                    targetX,
+                    targetY,
+                    this.imageWidth,
+                    this.imageHeight
+                );
+                
+                console.log(`🎭 Generated mask for block ${blockKey}: target area at (${targetX}, ${targetY})`);
                 
                 // Convert canvas to blob
                 return new Promise(resolve => {
