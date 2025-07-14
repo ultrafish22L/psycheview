@@ -1568,12 +1568,25 @@
                     // Create object URL for the blob
                     const imageUrl = URL.createObjectURL(blob);
                     
-                    // Update preview content - just show the image
-                    this.debugPreviewImage.src = imageUrl;
-                    this.debugPreviewImage.style.display = 'block';
-                    
-                    // Show the preview window
-                    this.debugPreview.classList.add('visible');
+                    // Load image to get dimensions and resize window
+                    const tempImg = new Image();
+                    tempImg.onload = () => {
+                        // Resize debug preview window to match image dimensions
+                        this.debugPreview.style.width = tempImg.width + 'px';
+                        this.debugPreview.style.height = tempImg.height + 'px';
+                        
+                        // Ensure left and bottom positioning
+                        this.debugPreview.style.left = '0px';
+                        this.debugPreview.style.bottom = '0px';
+                        
+                        // Update preview content - just show the image
+                        this.debugPreviewImage.src = imageUrl;
+                        this.debugPreviewImage.style.display = 'block';
+                        
+                        // Show the preview window
+                        this.debugPreview.classList.add('visible');
+                    };
+                    tempImg.src = imageUrl;
                     
                     // Clean up the URL after a delay
                     setTimeout(() => {
