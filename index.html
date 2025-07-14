@@ -1571,9 +1571,24 @@
                     // Load image to get dimensions and resize window
                     const tempImg = new Image();
                     tempImg.onload = () => {
-                        // Resize debug preview window to match image dimensions
-                        this.debugPreview.style.width = tempImg.width + 'px';
-                        this.debugPreview.style.height = tempImg.height + 'px';
+                        // Scale down large images to reasonable preview size
+                        const maxWidth = 400;
+                        const maxHeight = 300;
+                        let width = tempImg.width;
+                        let height = tempImg.height;
+                        
+                        // Scale down if too large
+                        if (width > maxWidth || height > maxHeight) {
+                            const scaleX = maxWidth / width;
+                            const scaleY = maxHeight / height;
+                            const scale = Math.min(scaleX, scaleY);
+                            width = width * scale;
+                            height = height * scale;
+                        }
+                        
+                        // Resize debug preview window to scaled dimensions
+                        this.debugPreview.style.width = width + 'px';
+                        this.debugPreview.style.height = height + 'px';
                         
                         // Ensure left and bottom positioning
                         this.debugPreview.style.left = '0px';
