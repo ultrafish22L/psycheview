@@ -1721,12 +1721,13 @@
                     blockElement.style.backgroundColor = 'transparent';
                     blockElement.innerHTML = '';
                     
-                    // SEAMLESS FIX: Show entire downloaded image scaled to fit block (UV 0,0 to 1,1)
-                    // This ensures the full seamless image is visible, not just a cropped chunk
+                    // SEAMLESS FIX: The extracted block image is already the correct size (blockSizeX x blockSizeY)
+                    // We need to scale it to match the current container-fitted dimensions
+                    // This maintains the aspect ratio and ensures seamless alignment
                     blockElement.style.backgroundSize = `${actualImageWidth}px ${actualImageHeight}px`;
                     blockElement.style.backgroundPosition = '0px 0px';
                     
-                    console.log('🖼️ Block element updated with full image scaling:', blockElement.id, `${actualImageWidth}x${actualImageHeight}`);
+                    console.log('🖼️ Block element updated with proper scaling:', blockElement.id, `extracted->display: ${this.imageWidth}x${this.imageHeight}->${actualImageWidth}x${actualImageHeight}`);
                 } else if (block.status === 'generating') {
                     blockElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
                     const progressPercent = Math.round(block.progress * 100);
@@ -2311,8 +2312,8 @@
                                 canvas.height = responseImage.height;
                                 ctx.drawImage(responseImage, 0, 0);
                                 
-                                // Extract and place blocks using existing system
-                                this.extractStrategicBlocks(canvas, strategicCall);
+                                // SEAMLESS LAYER APPROACH: Position entire image as one layer
+                                this.positionEntireImageAsLayer(imageUrl, strategicCall);
                                 
                                 // Clean up
                                 URL.revokeObjectURL(imageUrl);
@@ -2341,6 +2342,64 @@
                 }
             }
             
+            positionEntireImageAsLayer(imageUrl, strategicCall) {
+                // Create a single layer element for the entire API response
+                const layerElement = document.createElement('div');
+                layerElement.id = `layer-${Date.now()}`;
+                layerElement.style.position = 'absolute';
+                layerElement.style.zIndex = '3'; // Above original image (z-index 1) but below UI
+                layerElement.style.backgroundImage = `url(${imageUrl})`;
+                layerElement.style.backgroundRepeat = 'no-repeat';
+                layerElement.style.pointerEvents = 'none'; // Allow interaction with underlying content
+                
+                // Calculate layer position based on API call direction
+                const { directionX, directionY } = strategicCall;
+                
+                // Position the layer so it aligns with the original image
+                // For a right call: left half covers original, right half extends
+                // For a down call: top half covers original, bottom half extends
+                let layerLeft = 0;
+                let layerTop = 0;
+                
+                if (directionX > 0) {
+                    // Right direction: position so left half covers original
+                    layerLeft = 0; // Align with original image left edge
+                } else if (directionX < 0) {
+                    // Left direction: position so right half covers original  
+                    layerLeft = -this.imageWidth; // Shift left by one image width
+                }
+                
+                if (directionY > 0) {
+                    // Down direction: position so top half covers original
+                    layerTop = 0; // Align with original image top edge
+                } else if (directionY < 0) {
+                    // Up direction: position so bottom half covers original
+                    layerTop = -this.imageHeight; // Shift up by one image height
+                }
+                
+                // Set layer dimensions and position
+                layerElement.style.width = `${this.imageWidth * 2}px`; // 2x2 response = 2x width
+                layerElement.style.height = `${this.imageHeight * 2}px`; // 2x2 response = 2x height
+                layerElement.style.left = `${layerLeft}px`;
+                layerElement.style.top = `${layerTop}px`;
+                layerElement.style.backgroundSize = `${this.imageWidth * 2}px ${this.imageHeight * 2}px`;
+                layerElement.style.backgroundPosition = '0px 0px';
+                
+                // Add to content container (will inherit transforms)
+                this.content.appendChild(layerElement);
+                
+                console.log(`🎨 Positioned entire image layer: direction(${directionX},${directionY}), position(${layerLeft},${layerTop}), size(${this.imageWidth * 2}x${this.imageHeight * 2})`);
+                
+                // Mark the blocks as completed in our tracking system
+                strategicCall.generatedBlocks.forEach(blockKey => {
+                    this.outfillBlocks.set(blockKey, {
+                        status: 'completed',
+                        progress: 1,
+                        layerId: layerElement.id
+                    });
+                });
+            }
+
             extractStrategicBlocks(sourceCanvas, strategicCall) {
                 const blockSizeX = this.imageWidth;
                 const blockSizeY = this.imageHeight;
