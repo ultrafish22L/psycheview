@@ -250,18 +250,21 @@
             display: none;
         }
 
-        /* Queue indicator - hidden by default, shown only in debug mode */
+        /* Queue indicator - always visible, positioned top-right but left of debug windows */
         .queue-indicator {
-            position: absolute;
-            top: 35px;
-            right: 10px;
+            position: fixed;
+            top: 20px;
+            right: 300px; /* Left of debug windows (280px width + 20px margin) */
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 12px;
             font-family: monospace;
-            display: none;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            display: block; /* Always visible */
         }
 
 
@@ -426,10 +429,12 @@
                 <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false">
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
-            <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
 
         </div>
     </div>
+
+    <!-- Queue indicator - always visible in top row -->
+    <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
 
     <!-- Debug windows positioned outside app-container for true browser window positioning -->
     <div class="debug-info" id="debugInfo" style="position: fixed; top: 0; right: 0; width: 280px; height: 50vh; background: rgba(0,0,0,0.85); color: white; padding: 12px; font-family: monospace; font-size: 10px; z-index: 1000; overflow-y: auto; border-left: 2px solid #444; backdrop-filter: blur(10px); display: none;">
@@ -1471,10 +1476,9 @@
                     debugInfo.style.display = newDisplay;
                     consoleCapture.style.display = newDisplay;
 
-                    // Toggle zoom and queue indicators
-                    if (this.zoomIndicator && this.queueIndicator) {
+                    // Toggle zoom indicator only (queue indicator stays always visible)
+                    if (this.zoomIndicator) {
                         this.zoomIndicator.style.display = newDisplay;
-                        this.queueIndicator.style.display = newDisplay;
                     }
 
                     console.log(`🔧 Debug windows ${isVisible ? 'hidden' : 'shown'} (F12 or Ctrl+D to toggle)`);
