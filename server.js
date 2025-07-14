@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = process.env.PORT || 52778;
+const PORT = process.env.PORT || 51387;
 const STABILITY_API_KEY = process.env.STABILITY_API_KEY;
 
 // MIME types
