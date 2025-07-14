@@ -2306,31 +2306,21 @@
             getOutpaintDirections(blockKey) {
                 const [gridX, gridY] = blockKey.split(',').map(Number);
                 
-                // For blocksize=1, original image is at (0,0) and each block is full image size
-                // For blocksize=4, original image occupies (0,0) to (3,3) and each block is 1/4 image size
+                // BLOCKSIZE=1 SYSTEM: Original image is at (0,0), each block is full image size
+                // Adjacent blocks: (1,0)=right, (-1,0)=left, (0,1)=down, (0,-1)=up, etc.
                 
-                // Calculate direction vector from original image center
-                const originalCenterX = (this.blockDivisions - 1) / 2;
-                const originalCenterY = (this.blockDivisions - 1) / 2;
+                // For the 3-block trick, we need to determine which diagonal direction
+                // will generate this block as one of the 3 blocks in the response
                 
                 let directionX = 0;
                 let directionY = 0;
                 
-                // Determine horizontal direction
-                if (gridX < 0) {
-                    directionX = -1; // Left
-                } else if (gridX >= this.blockDivisions) {
-                    directionX = 1;  // Right
-                }
+                // Determine direction based on block position relative to original (0,0)
+                if (gridX > 0) directionX = 1;      // Right
+                else if (gridX < 0) directionX = -1; // Left
                 
-                // Determine vertical direction  
-                if (gridY < 0) {
-                    directionY = -1; // Up
-                } else if (gridY >= this.blockDivisions) {
-                    directionY = 1;  // Down
-                }
-                
-                console.log(`🎯 Block ${blockKey}: gridPos=(${gridX},${gridY}), direction=(${directionX},${directionY}), blockDivisions=${this.blockDivisions}`);
+                if (gridY > 0) directionY = 1;      // Down  
+                else if (gridY < 0) directionY = -1; // Up
                 
                 return { directionX, directionY, gridX, gridY };
             }
@@ -2443,9 +2433,9 @@
                 try {
                     const { directionX, directionY, gridX, gridY } = this.getOutpaintDirections(blockKey);
                     
-                    // Calculate the pixel dimensions for outpaint directions
-                    const blockSizeX = this.imageWidth / this.blockDivisions;
-                    const blockSizeY = this.imageHeight / this.blockDivisions;
+                    // BLOCKSIZE=1: Each block is exactly the original image size
+                    const blockSizeX = this.imageWidth;   // 1600px
+                    const blockSizeY = this.imageHeight;  // 1024px
                     
                     console.log(`🎨 API Call for block ${blockKey}: direction=(${directionX},${directionY}), blockSize=${blockSizeX}x${blockSizeY}`);
                     
@@ -2523,9 +2513,9 @@
                                 const canvas = document.createElement('canvas');
                                 const ctx = canvas.getContext('2d');
                                 
-                                // Calculate expected response dimensions
-                                const originalWidth = this.imageWidth / this.blockDivisions;
-                                const originalHeight = this.imageHeight / this.blockDivisions;
+                                // BLOCKSIZE=1: Response is 2x2 of original image size
+                                const originalWidth = this.imageWidth;   // 1600px
+                                const originalHeight = this.imageHeight; // 1024px
                                 
                                 let responseWidth = originalWidth;
                                 let responseHeight = originalHeight;
@@ -2570,8 +2560,10 @@
 
             extractAndPlaceBlocks(sourceCanvas, originalBlockKey, directionX, directionY) {
                 const [originalGridX, originalGridY] = originalBlockKey.split(',').map(Number);
-                const blockSizeX = this.imageWidth / this.blockDivisions;
-                const blockSizeY = this.imageHeight / this.blockDivisions;
+                
+                // BLOCKSIZE=1: Each block is exactly the original image size
+                const blockSizeX = this.imageWidth;   // 1600px
+                const blockSizeY = this.imageHeight;  // 1024px
                 
                 console.log(`🧩 Extracting blocks from ${sourceCanvas.width}x${sourceCanvas.height} canvas`);
                 
