@@ -1330,67 +1330,35 @@
             
             getVisibleBlocks() {
                 if (!this.containerWidth || !this.containerHeight || !this.imageWidth || !this.imageHeight) {
-                    console.log('❌ Missing dimensions:', {
-                        containerWidth: this.containerWidth,
-                        containerHeight: this.containerHeight,
-                        imageWidth: this.imageWidth,
-                        imageHeight: this.imageHeight
-                    });
                     return new Set();
                 }
-                
+
                 const visibleBlocks = new Set();
-                // INFINITE GRID SYSTEM: Each grid cell is exactly the image size
-                const gridSizeX = this.imageWidth;   // 1600px
-                const gridSizeY = this.imageHeight;  // 1024px
                 
-                // Calculate the viewport bounds in world coordinates
-                // The original image is positioned at (0,0) in world coordinates
+                // BLOCK SYSTEM: Each block is exactly the original image size
+                const blockWidth = this.imageWidth;   // 1600px
+                const blockHeight = this.imageHeight; // 1024px
+
+                // Calculate viewport bounds in world coordinates
+                // Original image is at world position (0,0) to (imageWidth, imageHeight)
                 const viewportLeft = -this.translateX / this.scale;
                 const viewportTop = -this.translateY / this.scale;
                 const viewportRight = viewportLeft + this.containerWidth / this.scale;
                 const viewportBottom = viewportTop + this.containerHeight / this.scale;
-                
 
-                
+                // Calculate which blocks are visible
+                const leftmostBlock = Math.floor(viewportLeft / blockWidth);
+                const rightmostBlock = Math.ceil(viewportRight / blockWidth);
+                const topmostBlock = Math.floor(viewportTop / blockHeight);
+                const bottommostBlock = Math.ceil(viewportBottom / blockHeight);
 
-                
-                // Calculate which grid cells are visible
-                // Grid cell (0,0) contains the original image at coordinates (0,0) to (1600,1024)
-                // Grid cell (-1,0) is to the left at (-1600,0) to (0,1024)
-                // Grid cell (1,0) is to the right at (1600,0) to (3200,1024), etc.
-                const startGridX = Math.floor(viewportLeft / gridSizeX);
-                const endGridX = Math.ceil(viewportRight / gridSizeX);
-                const startGridY = Math.floor(viewportTop / gridSizeY);
-                const endGridY = Math.ceil(viewportBottom / gridSizeY);
-                
-                console.log('🔍 Infinite Grid Viewport:', {
-                    viewportLeft, viewportTop, viewportRight, viewportBottom,
-                    gridSizeX, gridSizeY,
-                    startGridX, endGridX, startGridY, endGridY
-                });
-                
-                // Add all visible grid blocks that are NOT the original image
-                for (let gridX = startGridX; gridX < endGridX; gridX++) {
-                    for (let gridY = startGridY; gridY < endGridY; gridY++) {
-                        // Skip the original image at grid cell (0,0)
-                        if (gridX === 0 && gridY === 0) {
-                            continue;
-                        }
-                        
-                        // All other grid cells need AI generation
-                        console.log('🎯 Found outfill block:', `${gridX},${gridY}`, {
-                            worldLeft: gridX * gridSizeX,
-                            worldTop: gridY * gridSizeY,
-                            worldRight: (gridX + 1) * gridSizeX,
-                            worldBottom: (gridY + 1) * gridSizeY
-                        });
-                        visibleBlocks.add(`${gridX},${gridY}`);
+                // Add all visible blocks (including original at 0,0)
+                for (let x = leftmostBlock; x < rightmostBlock; x++) {
+                    for (let y = topmostBlock; y < bottommostBlock; y++) {
+                        visibleBlocks.add(`${x},${y}`);
                     }
                 }
-                
-                // Test blocks removed - system is working properly
-                
+
                 return visibleBlocks;
             }
             
@@ -1860,29 +1828,38 @@
             }
             
             updateOutfillBlock(blockKey, block) {
-                console.log('🔧 updateOutfillBlock called:', blockKey, 'status:', block.status, 'imageData:', block.imageData ? 'present' : 'null');
-                
                 const [gridX, gridY] = blockKey.split(',').map(Number);
                 
-                // INFINITE GRID SYSTEM: Each grid cell is exactly the original image size
-                // Original image occupies grid cell (0,0)
-                // Adjacent blocks are at (-1,0), (1,0), (0,-1), (0,1), etc.
-                const gridSizeX = this.imageWidth;   // Each cell = full image width (1600px)
-                const gridSizeY = this.imageHeight;  // Each cell = full image height (1024px)
+                // BLOCK SYSTEM: Each block is exactly the original image size
+                const blockWidth = this.imageWidth;   // 1600px
+                const blockHeight = this.imageHeight; // 1024px
                 
-                // Calculate block position in infinite grid coordinates
-                // Grid (0,0) contains the original image
-                // Grid (-1,0) is to the left, (1,0) is to the right, etc.
-                const blockLeft = gridX * gridSizeX;
-                const blockTop = gridY * gridSizeY;
+                // Calculate where the original image is positioned within the container
+                // The image uses object-fit: contain, so it's centered and scaled to fit
+                const containerWidth = this.containerWidth;
+                const containerHeight = this.containerHeight;
+                const imageAspect = blockWidth / blockHeight;
+                const containerAspect = containerWidth / containerHeight;
                 
-                console.log(`🔧 Block ${blockKey} positioning:`, {
-                    gridX, gridY,
-                    gridSizeX, gridSizeY,
-                    blockLeft, blockTop,
-                    imageWidth: this.imageWidth, imageHeight: this.imageHeight,
-                    blockDivisions: this.blockDivisions
-                });
+                let actualImageWidth, actualImageHeight, imageOffsetX, imageOffsetY;
+                
+                if (imageAspect > containerAspect) {
+                    // Image is wider - fits to container width
+                    actualImageWidth = containerWidth;
+                    actualImageHeight = containerWidth / imageAspect;
+                    imageOffsetX = 0;
+                    imageOffsetY = (containerHeight - actualImageHeight) / 2;
+                } else {
+                    // Image is taller - fits to container height
+                    actualImageWidth = containerHeight * imageAspect;
+                    actualImageHeight = containerHeight;
+                    imageOffsetX = (containerWidth - actualImageWidth) / 2;
+                    imageOffsetY = 0;
+                }
+                
+                // Calculate block position relative to the original image position
+                const blockLeft = imageOffsetX + (gridX * actualImageWidth);
+                const blockTop = imageOffsetY + (gridY * actualImageHeight);
                 
                 let blockElement = document.getElementById(`outfill-${blockKey}`);
                 if (!blockElement) {
@@ -1893,22 +1870,20 @@
                     this.content.appendChild(blockElement);
                 }
                 
-                // Set positioning using image coordinates (blocks align with grid)
+                // Position block to align with grid
                 blockElement.style.left = blockLeft + 'px';
                 blockElement.style.top = blockTop + 'px';
-                blockElement.style.width = gridSizeX + 'px';
-                blockElement.style.height = gridSizeY + 'px';
+                blockElement.style.width = actualImageWidth + 'px';
+                blockElement.style.height = actualImageHeight + 'px';
                 
-                console.log(`🔧 Block ${blockKey} sizing: left=${blockLeft}px, top=${blockTop}px, width=${gridSizeX}px, height=${gridSizeY}px`);
-                console.log(`🔧 Grid cell size: ${gridSizeX}x${gridSizeY}px, Block divisions: ${this.blockDivisions}`);
+                console.log(`🔧 Block ${blockKey} positioning: left=${blockLeft}px, top=${blockTop}px, width=${actualImageWidth}px, height=${actualImageHeight}px`);
                 
                 if (block.status === 'ready' || block.status === 'completed') {
                     console.log('🖼️ Setting block image:', blockKey, 'imageData:', block.imageData.substring(0, 50) + '...');
                     blockElement.style.backgroundImage = `url(${block.imageData})`;
                     
-                    // For the new system, each block contains its own extracted image
-                    // So we just need to size it to fill the block exactly
-                    blockElement.style.backgroundSize = `${gridSizeX}px ${gridSizeY}px`;
+                    // Each block contains its own extracted image sized to fill exactly
+                    blockElement.style.backgroundSize = `${actualImageWidth}px ${actualImageHeight}px`;
                     blockElement.style.backgroundPosition = '0px 0px';
                     blockElement.style.backgroundRepeat = 'no-repeat';
                     
@@ -1988,15 +1963,7 @@
             isBlockAdjacentToContent(blockKey) {
                 const [gridX, gridY] = blockKey.split(',').map(Number);
                 
-                // Check if block is adjacent to the original image (blocks 0,0 to blockDivisions-1,blockDivisions-1)
-                const isAdjacentToOriginal = this.isBlockAdjacentToOriginalImage(gridX, gridY);
-                
-                if (isAdjacentToOriginal) {
-                    console.log(`✅ Block ${blockKey} is adjacent to original image`);
-                    return true;
-                }
-                
-                // Check if block is adjacent to any completed outpaint blocks
+                // Check if block is adjacent to the original image at (0,0) or any completed blocks
                 const adjacentPositions = [
                     [gridX - 1, gridY],     // Left
                     [gridX + 1, gridY],     // Right
@@ -2009,23 +1976,19 @@
                 ];
                 
                 for (const [adjX, adjY] of adjacentPositions) {
-                    const adjBlockKey = `${adjX},${adjY}`;
-                    
-                    // Check if adjacent position is part of original image
-                    if (adjX >= 0 && adjX < this.blockDivisions && adjY >= 0 && adjY < this.blockDivisions) {
-                        console.log(`✅ Block ${blockKey} is adjacent to original image block ${adjBlockKey}`);
+                    // Check if adjacent to original image at (0,0)
+                    if (adjX === 0 && adjY === 0) {
                         return true;
                     }
                     
-                    // Check if adjacent position has completed outpaint content
+                    // Check if adjacent to any completed outfill block
+                    const adjBlockKey = `${adjX},${adjY}`;
                     const adjBlock = this.outfillBlocks.get(adjBlockKey);
                     if (adjBlock && (adjBlock.status === 'ready' || adjBlock.status === 'completed')) {
-                        console.log(`✅ Block ${blockKey} is adjacent to completed outpaint block ${adjBlockKey}`);
                         return true;
                     }
                 }
                 
-                console.log(`❌ Block ${blockKey} is not adjacent to any existing content`);
                 return false;
             }
             
@@ -2125,6 +2088,9 @@
                 const newBlocks = [];
                 if (this.autoGenerateBlocks) {
                     currentVisibleBlocks.forEach(blockKey => {
+                        // Skip the original image block (0,0)
+                        if (blockKey === '0,0') return;
+                        
                         if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
                             // Only add blocks that are adjacent to existing content
                             if (this.isBlockAdjacentToContent(blockKey)) {
