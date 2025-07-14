@@ -513,6 +513,12 @@
                 // Auto-generation control (default: true - blocks are added automatically)
                 this.autoGenerateBlocks = true;
                 
+                // 🌀 SPIRAL SYSTEM: Breakthrough composite layering
+                this.spiralRings = []; // Array of rings, each ring is array of block coordinates
+                this.currentRing = 0;
+                this.currentRingPosition = 0;
+                this.spiralInitialized = false;
+                
                 // API calls control
                 this.apiCallsEnabled = true;
                 
@@ -815,9 +821,9 @@
                 }
                 
                 try {
-                    // Get the current image as a blob
-                    const imageBlob = await this.getImageAsBlob();
-                    console.log('📸 Image blob size:', imageBlob.size, 'bytes');
+                    // 🌀 BREAKTHROUGH: Use composite sampling instead of original image
+                    const imageBlob = await this.getCompositeImageForBlock(blockKey);
+                    console.log('🌀 Composite image blob size:', imageBlob.size, 'bytes');
                     
                     // Generate mask for the block
                     const maskBlob = await this.generateMaskForBlock(blockKey);
@@ -1020,8 +1026,8 @@
                         this.updateOutfillBlock(blockKey, block);
                         console.log('✅ Block', blockKey, 'generation completed');
                         
-                        // Check for newly adjacent blocks that can now be queued
-                        this.checkForNewlyAdjacentBlocks(blockKey);
+                        // 🌀 SPIRAL SYSTEM: No need for adjacent block detection, spiral handles order
+                        // this.checkForNewlyAdjacentBlocks(blockKey); // DISABLED
                     } else {
                         console.error('❌ Block not found in outfillBlocks map for key:', blockKey);
                         console.log('🔍 Current outfillBlocks keys:', Array.from(this.outfillBlocks.keys()));
@@ -1056,6 +1062,139 @@
                             reject(new Error('Failed to create image blob'));
                         }
                     }, 'image/jpeg', 0.9);
+                });
+            }
+            
+            // 🌀 BREAKTHROUGH: Sample composite image for next generation
+            async getCompositeImageForBlock(blockKey) {
+                console.log(`🌀 Sampling composite image for block ${blockKey}...`);
+                
+                return new Promise((resolve, reject) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas to image size (1 block size)
+                    canvas.width = this.imageWidth;
+                    canvas.height = this.imageHeight;
+                    
+                    // Get the block position to determine what adjacent area to sample
+                    const [gridX, gridY] = blockKey.split(',').map(Number);
+                    
+                    // Calculate the source area to sample from the composite
+                    // This should be the adjacent block that will be used as input
+                    let sourceGridX, sourceGridY;
+                    
+                    // Determine which adjacent block to sample based on direction
+                    if (gridX > 0) {
+                        // Extending right, sample from left adjacent block
+                        sourceGridX = gridX - 1;
+                        sourceGridY = gridY;
+                    } else if (gridX < 0) {
+                        // Extending left, sample from right adjacent block  
+                        sourceGridX = gridX + 1;
+                        sourceGridY = gridY;
+                    } else if (gridY > 0) {
+                        // Extending down, sample from up adjacent block
+                        sourceGridX = gridX;
+                        sourceGridY = gridY - 1;
+                    } else if (gridY < 0) {
+                        // Extending up, sample from down adjacent block
+                        sourceGridX = gridX;
+                        sourceGridY = gridY + 1;
+                    } else {
+                        // This shouldn't happen for outfill blocks
+                        console.error('🚨 Invalid block position for outfill:', blockKey);
+                        sourceGridX = 0;
+                        sourceGridY = 0;
+                    }
+                    
+                    console.log(`🌀 Block ${blockKey} will sample from adjacent block (${sourceGridX},${sourceGridY})`);
+                    
+                    // Sample the appropriate area from the current composite
+                    if (sourceGridX === 0 && sourceGridY === 0) {
+                        // Sample from original image
+                        ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
+                        console.log(`🌀 Sampled original image for block ${blockKey}`);
+                    } else {
+                        // Sample from existing outfill block
+                        const sourceBlockKey = `${sourceGridX},${sourceGridY}`;
+                        const sourceBlock = this.outfillBlocks.get(sourceBlockKey);
+                        
+                        if (sourceBlock && sourceBlock.imageData && sourceBlock.status === 'completed') {
+                            // Create temporary image to sample from
+                            const tempImg = new Image();
+                            tempImg.onload = () => {
+                                // The source block image is 2x2 (2*imageWidth x 2*imageHeight)
+                                // We need to extract the portion that will be adjacent to the new block
+                                const sourceWidth = tempImg.width;
+                                const sourceHeight = tempImg.height;
+                                
+                                // Calculate which quadrant to sample based on direction
+                                let sampleX, sampleY;
+                                const quadrantWidth = sourceWidth / 2;
+                                const quadrantHeight = sourceHeight / 2;
+                                
+                                // Determine sampling quadrant based on relative position
+                                if (gridX > sourceGridX) {
+                                    // New block is to the right, sample right edge of source
+                                    sampleX = quadrantWidth; // Right half
+                                } else if (gridX < sourceGridX) {
+                                    // New block is to the left, sample left edge of source
+                                    sampleX = 0; // Left half
+                                } else {
+                                    // Same X, sample center
+                                    sampleX = quadrantWidth / 2;
+                                }
+                                
+                                if (gridY > sourceGridY) {
+                                    // New block is below, sample bottom edge of source
+                                    sampleY = quadrantHeight; // Bottom half
+                                } else if (gridY < sourceGridY) {
+                                    // New block is above, sample top edge of source
+                                    sampleY = 0; // Top half
+                                } else {
+                                    // Same Y, sample center
+                                    sampleY = quadrantHeight / 2;
+                                }
+                                
+                                const sampleWidth = quadrantWidth;
+                                const sampleHeight = quadrantHeight;
+                                
+                                ctx.drawImage(tempImg, 
+                                    sampleX, sampleY, sampleWidth, sampleHeight,
+                                    0, 0, this.imageWidth, this.imageHeight
+                                );
+                                
+                                console.log(`🌀 Sampled from block ${sourceBlockKey} for block ${blockKey}`);
+                                
+                                canvas.toBlob((blob) => {
+                                    if (blob) {
+                                        resolve(blob);
+                                    } else {
+                                        reject(new Error('Failed to create composite image blob'));
+                                    }
+                                }, 'image/jpeg', 0.9);
+                            };
+                            tempImg.onerror = () => {
+                                console.error(`🚨 Failed to load source block image for ${sourceBlockKey}`);
+                                // Fallback to original image
+                                ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
+                                canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                            };
+                            tempImg.src = sourceBlock.imageData;
+                        } else {
+                            console.warn(`🚨 Source block ${sourceBlockKey} not available, using original image`);
+                            // Fallback to original image
+                            ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    resolve(blob);
+                                } else {
+                                    reject(new Error('Failed to create fallback image blob'));
+                                }
+                            }, 'image/jpeg', 0.9);
+                        }
+                    }
                 });
             }
             
@@ -1922,37 +2061,19 @@
                     <div>Active: ${this.activeGenerations}</div>
                 `;
                 
-                // Find new blocks that weren't visible before (only if auto-generation is enabled)
-                const newBlocks = [];
+                // 🌀 SPIRAL SYSTEM: Use spiral-based queue instead of priority-based
                 if (this.autoGenerateBlocks) {
-                    currentVisibleBlocks.forEach(blockKey => {
-                        // Skip the original image block (0,0)
-                        if (blockKey === '0,0') return;
+                    // Check if we need to queue more spiral blocks
+                    if (this.generationQueue.length === 0 && this.activeGenerations === 0) {
+                        console.log('🌀 Queue empty, checking for next spiral blocks...');
+                        const queuedCount = this.queueVisibleSpiralBlocks();
                         
-                        if (!this.lastVisibleBlocks.has(blockKey) && !this.outfillBlocks.has(blockKey)) {
-                            // Only add blocks that are adjacent to existing content
-                            if (this.isBlockAdjacentToContent(blockKey)) {
-                                newBlocks.push(blockKey);
-                                this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
-                                this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
-                                console.log('🎯 New adjacent outfill block detected:', blockKey);
-                            } else {
-                                console.log('🚫 Skipping isolated block (not adjacent to content):', blockKey);
-                            }
+                        if (queuedCount > 0) {
+                            this.processGenerationQueue();
                         }
-                    });
-                    
-                    // Add new blocks to generation queue
-                    if (newBlocks.length > 0) {
-                        console.log('🚀 Adding adjacent blocks to queue:', newBlocks);
-                        this.generationQueue.push(...newBlocks);
-                        this.processGenerationQueue();
-                    } else if (this.generationQueue.length > 0) {
-                        // Resort existing queue when visibility changes
-                        this.updateGenerationQueue();
                     }
                 } else {
-                    console.log('🔄 Auto-generation disabled - not adding visible blocks automatically');
+                    console.log('🔄 Auto-generation disabled - not adding spiral blocks automatically');
                 }
                 
                 this.lastVisibleBlocks = currentVisibleBlocks;
@@ -2401,48 +2522,48 @@
                 // Resort queue before processing
                 this.updateGenerationQueue();
                 
-                if (this.generationQueue.length > 0 && this.activeGenerations < 2) {
-                    // 🎯 3-BLOCK TRICK: Check if we can use strategic multi-block generation
-                    const strategicCall = this.findStrategicMultiBlockOpportunity();
+                if (this.generationQueue.length > 0 && this.activeGenerations < 1) {
+                    // 🌀 SPIRAL SYSTEM: Sequential generation only (no 3-block trick)
+                    const blockKey = this.generationQueue.shift();
+                    this.activeGenerations++;
                     
-                    if (strategicCall) {
-                        console.log('🧩 Using 3-block trick for strategic generation:', strategicCall);
-                        this.executeStrategicMultiBlockCall(strategicCall);
+                    console.log(`🌀 Starting sequential generation for block: ${blockKey}`);
+                    
+                    // Change status from 'queued' to 'generating'
+                    const block = this.outfillBlocks.get(blockKey);
+                    if (block) {
+                        block.status = 'generating';
+                        this.updateOutfillBlock(blockKey, block);
+                    }
+                    
+                    // Use real API generation in live mode, simulation in demo mode
+                    if (this.isLiveMode && this.apiKey) {
+                        this.generateOutfill(blockKey).then((result) => {
+                            console.log('✅ Spiral generation completed successfully for block:', blockKey, result);
+                            this.activeGenerations--;
+                            
+                            // 🌀 BREAKTHROUGH: After each completion, check for next spiral block
+                            this.checkVisibleBlocks();
+                        }).catch((error) => {
+                            console.error('❌ Spiral generation failed for block:', blockKey, error);
+                            // Mark block as failed and continue
+                            const block = this.outfillBlocks.get(blockKey);
+                            if (block) {
+                                block.status = 'failed';
+                                this.updateOutfillBlock(blockKey, block);
+                            }
+                            this.activeGenerations--;
+                            
+                            // Continue with next spiral block even after failure
+                            this.checkVisibleBlocks();
+                        });
                     } else {
-                        // Fall back to individual block generation
-                        const blockKey = this.generationQueue.shift();
-                        this.activeGenerations++;
-                        
-                        // Change status from 'queued' to 'generating'
-                        const block = this.outfillBlocks.get(blockKey);
-                        if (block) {
-                            block.status = 'generating';
-                            this.updateOutfillBlock(blockKey, block);
-                        }
-                        
-                        // Use real API generation in live mode, simulation in demo mode
-                        if (this.isLiveMode && this.apiKey) {
-                            this.generateOutfill(blockKey).then((result) => {
-                                console.log('✅ generateOutfill completed successfully for block:', blockKey, result);
-                                this.activeGenerations--;
-                                this.processGenerationQueue();
-                            }).catch((error) => {
-                                console.error('❌ Generation failed for block:', blockKey, error);
-                                // Mark block as failed and continue
-                                const block = this.outfillBlocks.get(blockKey);
-                                if (block) {
-                                    block.status = 'failed';
-                                    this.updateOutfillBlock(blockKey, block);
-                                }
-                                this.activeGenerations--;
-                                this.processGenerationQueue();
-                            });
-                        } else {
-                            this.simulateGeneration(blockKey).then(() => {
-                                this.activeGenerations--;
-                                this.processGenerationQueue();
-                            });
-                        }
+                        this.simulateGeneration(blockKey).then(() => {
+                            this.activeGenerations--;
+                            
+                            // Continue with next spiral block after simulation
+                            this.checkVisibleBlocks();
+                        });
                     }
                 }
                 
@@ -2453,7 +2574,160 @@
             updateQueueIndicator() {
                 const queueCount = this.generationQueue.length;
                 const activeCount = this.activeGenerations;
-                this.queueIndicator.textContent = `Queue: ${queueCount} | Active: ${activeCount}`;
+                this.queueIndicator.textContent = `Queue: ${queueCount} | Active: ${activeCount} | Ring: ${this.currentRing}`;
+            }
+
+            // 🌀 SPIRAL SYSTEM: Breakthrough composite layering functions
+            
+            initializeSpiralSystem() {
+                if (this.spiralInitialized) return;
+                
+                console.log('🌀 Initializing spiral ring system...');
+                
+                // Generate spiral rings around original image (0,0)
+                this.spiralRings = [];
+                
+                // Ring 1: 8 blocks immediately around original
+                const ring1 = [
+                    // Lower right quadrant (start here as specified)
+                    [1, 1], [0, 1], [1, 0],
+                    // Lower left quadrant  
+                    [-1, 1], [-1, 0],
+                    // Upper left quadrant
+                    [-1, -1], [0, -1],
+                    // Upper right quadrant
+                    [1, -1]
+                ];
+                
+                // Ring 2: 16 blocks in next ring out
+                const ring2 = [
+                    // Lower right quadrant
+                    [2, 2], [2, 1], [1, 2], [2, 0], [0, 2],
+                    // Lower left quadrant
+                    [-2, 2], [-2, 1], [-1, 2], [-2, 0],
+                    // Upper left quadrant  
+                    [-2, -2], [-2, -1], [-1, -2], [0, -2],
+                    // Upper right quadrant
+                    [2, -2], [2, -1], [1, -2]
+                ];
+                
+                // Ring 3: 24 blocks in next ring out
+                const ring3 = [
+                    // Lower right quadrant
+                    [3, 3], [3, 2], [2, 3], [3, 1], [1, 3], [3, 0], [0, 3],
+                    // Lower left quadrant
+                    [-3, 3], [-3, 2], [-2, 3], [-3, 1], [-1, 3], [-3, 0],
+                    // Upper left quadrant
+                    [-3, -3], [-3, -2], [-2, -3], [-3, -1], [-1, -3], [0, -3],
+                    // Upper right quadrant
+                    [3, -3], [3, -2], [2, -3], [3, -1], [1, -3]
+                ];
+                
+                this.spiralRings = [ring1, ring2, ring3];
+                this.currentRing = 0;
+                this.currentRingPosition = 0;
+                this.spiralInitialized = true;
+                
+                console.log('🌀 Spiral rings initialized:', this.spiralRings.length, 'rings');
+                console.log('🌀 Ring 1:', ring1.length, 'blocks');
+                console.log('🌀 Ring 2:', ring2.length, 'blocks'); 
+                console.log('🌀 Ring 3:', ring3.length, 'blocks');
+            }
+            
+            getNextSpiralBlock() {
+                this.initializeSpiralSystem();
+                
+                // Check if we have more rings to process
+                if (this.currentRing >= this.spiralRings.length) {
+                    console.log('🌀 All spiral rings completed');
+                    return null;
+                }
+                
+                const currentRingBlocks = this.spiralRings[this.currentRing];
+                
+                // Check if current ring is completed
+                if (this.currentRingPosition >= currentRingBlocks.length) {
+                    console.log(`🌀 Ring ${this.currentRing} completed, moving to ring ${this.currentRing + 1}`);
+                    this.currentRing++;
+                    this.currentRingPosition = 0;
+                    
+                    // Recursively get next block from new ring
+                    return this.getNextSpiralBlock();
+                }
+                
+                // Get next block from current ring
+                const [gridX, gridY] = currentRingBlocks[this.currentRingPosition];
+                const blockKey = `${gridX},${gridY}`;
+                this.currentRingPosition++;
+                
+                console.log(`🌀 Next spiral block: ${blockKey} (Ring ${this.currentRing}, Position ${this.currentRingPosition - 1})`);
+                return blockKey;
+            }
+            
+            isBlockInCurrentVisibleArea(blockKey) {
+                const visibleBlocks = this.getVisibleBlocks();
+                return visibleBlocks.has(blockKey);
+            }
+            
+            queueVisibleSpiralBlocks() {
+                console.log('🌀 Queuing visible spiral blocks...');
+                
+                let queuedCount = 0;
+                
+                // Get next block from spiral without advancing position yet
+                const nextBlockKey = this.peekNextSpiralBlock();
+                
+                if (nextBlockKey && !this.outfillBlocks.has(nextBlockKey)) {
+                    // Only queue if visible
+                    if (this.isBlockInCurrentVisibleArea(nextBlockKey)) {
+                        // Now actually advance the spiral position
+                        this.getNextSpiralBlock();
+                        
+                        this.outfillBlocks.set(nextBlockKey, { status: 'queued', progress: 0, imageData: null });
+                        this.updateOutfillBlock(nextBlockKey, this.outfillBlocks.get(nextBlockKey));
+                        this.generationQueue.push(nextBlockKey);
+                        queuedCount++;
+                        console.log(`🌀 Queued visible spiral block: ${nextBlockKey}`);
+                    }
+                }
+                
+                console.log(`🌀 Queued ${queuedCount} visible spiral blocks`);
+                return queuedCount;
+            }
+            
+            peekNextSpiralBlock() {
+                this.initializeSpiralSystem();
+                
+                // Check if we have more rings to process
+                if (this.currentRing >= this.spiralRings.length) {
+                    return null;
+                }
+                
+                const currentRingBlocks = this.spiralRings[this.currentRing];
+                
+                // Check if current ring is completed
+                if (this.currentRingPosition >= currentRingBlocks.length) {
+                    // Would move to next ring, peek at first block of next ring
+                    if (this.currentRing + 1 >= this.spiralRings.length) {
+                        return null;
+                    }
+                    const nextRingBlocks = this.spiralRings[this.currentRing + 1];
+                    if (nextRingBlocks.length === 0) {
+                        return null;
+                    }
+                    const [gridX, gridY] = nextRingBlocks[0];
+                    return `${gridX},${gridY}`;
+                }
+                
+                // Peek at next block from current ring
+                const [gridX, gridY] = currentRingBlocks[this.currentRingPosition];
+                return `${gridX},${gridY}`;
+            }
+            
+            queueOneRingBeyondVisible() {
+                // This will queue blocks that are adjacent to visible area but not yet visible
+                // Implementation can be added later for smooth experience
+                console.log('🌀 Queuing one ring beyond visible area (placeholder)');
             }
 
 
