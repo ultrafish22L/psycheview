@@ -1712,8 +1712,98 @@
                 
                 console.log('🔄 Block layer:', this.blocksOverImage ? 'OVER image' : 'UNDER image');
             }
-            
+            // Show 2x2 composite preview (2x2 response positioned over original image)
+            async show2x2CompositePreview(responseBlob, sourceBlock, directionX, directionY, targetBlockKey) {
+                if (!this.debugPreview) return;
 
+                try {
+                    console.log(`🖼️ Creating 2x2 composite preview: source=${sourceBlock}, direction=(${directionX},${directionY})`);
+
+                    // Create canvas for composite
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const blockWidth = this.imageWidth;   // 1600px
+                    const blockHeight = this.imageHeight; // 1024px
+                    
+                    // Canvas size = 2x2 blocks
+                    canvas.width = blockWidth * 2;
+                    canvas.height = blockHeight * 2;
+                    
+                    // Load original image
+                    const originalImage = this.image;
+                    
+                    // Load 2x2 response image
+                    const responseImage = new Image();
+                    const responseUrl = URL.createObjectURL(responseBlob);
+                    
+                    responseImage.onload = () => {
+                        try {
+                            // Clear canvas with transparent background
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Draw original image in top-left position
+                            ctx.drawImage(originalImage, 0, 0, blockWidth, blockHeight);
+                            
+                            // Draw 2x2 response with 50% opacity to show overlay effect
+                            ctx.globalAlpha = 0.7;
+                            ctx.drawImage(responseImage, 0, 0, canvas.width, canvas.height);
+                            ctx.globalAlpha = 1.0;
+                            
+                            // Add grid lines to show block boundaries
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([5, 5]);
+                            
+                            // Vertical line
+                            ctx.beginPath();
+                            ctx.moveTo(blockWidth, 0);
+                            ctx.lineTo(blockWidth, canvas.height);
+                            ctx.stroke();
+                            
+                            // Horizontal line
+                            ctx.beginPath();
+                            ctx.moveTo(0, blockHeight);
+                            ctx.lineTo(canvas.width, blockHeight);
+                            ctx.stroke();
+                            
+                            // Add labels
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                            ctx.font = '16px monospace';
+                            ctx.fillText('ORIGINAL', 10, 30);
+                            ctx.fillText('2x2 RESPONSE', 10, canvas.height - 10);
+                            
+                            // Convert to blob and show in debug preview
+                            canvas.toBlob((compositeBlob) => {
+                                if (compositeBlob) {
+                                    this.showDebugPreview(compositeBlob, targetBlockKey, '2x2 Composite');
+                                }
+                            }, 'image/png');
+                            
+                            // Clean up
+                            URL.revokeObjectURL(responseUrl);
+                            
+                        } catch (error) {
+                            console.error('❌ Error creating 2x2 composite:', error);
+                            // Fallback to regular preview
+                            this.showDebugPreview(responseBlob, targetBlockKey, '2x2 Response (fallback)');
+                        }
+                    };
+                    
+                    responseImage.onerror = () => {
+                        console.error('❌ Failed to load 2x2 response image');
+                        // Fallback to regular preview
+                        this.showDebugPreview(responseBlob, targetBlockKey, '2x2 Response (fallback)');
+                    };
+                    
+                    responseImage.src = responseUrl;
+                    
+                } catch (error) {
+                    console.error('❌ Error in show2x2CompositePreview:', error);
+                    // Fallback to regular preview
+                    this.showDebugPreview(responseBlob, targetBlockKey, '2x2 Response (fallback)');
+                }
+            }
 
             // Show debug preview with blob
             showDebugPreview(blob, blockKey, description = 'api-response') {
@@ -2538,7 +2628,7 @@
                     
                     // Use real API generation in live mode, simulation in demo mode
                     if (this.isLiveMode && this.apiKey) {
-                        this.generateOutfill(blockKey).then((result) => {
+                        this.generateWithAPI(blockKey).then((result) => {
                             console.log('✅ Spiral generation completed successfully for block:', blockKey, result);
                             this.activeGenerations--;
                             
@@ -2778,25 +2868,49 @@
             }
 
             getOutpaintDirections(blockKey) {
-                const [gridX, gridY] = blockKey.split(',').map(Number);
+                const [targetGridX, targetGridY] = blockKey.split(',').map(Number);
                 
-                // BLOCKSIZE=1 SYSTEM: Original image is at (0,0), each block is full image size
-                // Adjacent blocks: (1,0)=right, (-1,0)=left, (0,1)=down, (0,-1)=up, etc.
+                // CORE CONCEPT: Find the best filled adjacent block to use as source
+                // Then calculate direction from source to target
                 
-                // For the 3-block trick, we need to determine which diagonal direction
-                // will generate this block as one of the 3 blocks in the response
+                // Find adjacent filled blocks (up, down, left, right)
+                const adjacentBlocks = [
+                    { key: `${targetGridX-1},${targetGridY}`, dirX: 1, dirY: 0 }, // left neighbor -> go right
+                    { key: `${targetGridX+1},${targetGridY}`, dirX: -1, dirY: 0 }, // right neighbor -> go left  
+                    { key: `${targetGridX},${targetGridY-1}`, dirX: 0, dirY: 1 }, // up neighbor -> go down
+                    { key: `${targetGridX},${targetGridY+1}`, dirX: 0, dirY: -1 }  // down neighbor -> go up
+                ];
                 
+                // Find the first available filled block to use as source
+                let sourceBlock = null;
                 let directionX = 0;
                 let directionY = 0;
                 
-                // Determine direction based on block position relative to original (0,0)
-                if (gridX > 0) directionX = 1;      // Right
-                else if (gridX < 0) directionX = -1; // Left
+                for (const adj of adjacentBlocks) {
+                    if (this.outfillBlocks.has(adj.key) && this.outfillBlocks.get(adj.key).status === 'completed') {
+                        sourceBlock = adj.key;
+                        directionX = adj.dirX;
+                        directionY = adj.dirY;
+                        break;
+                    }
+                }
                 
-                if (gridY > 0) directionY = 1;      // Down  
-                else if (gridY < 0) directionY = -1; // Up
+                // If no adjacent filled blocks, use original (0,0) as source
+                if (!sourceBlock) {
+                    sourceBlock = '0,0';
+                    directionX = targetGridX > 0 ? 1 : (targetGridX < 0 ? -1 : 0);
+                    directionY = targetGridY > 0 ? 1 : (targetGridY < 0 ? -1 : 0);
+                }
                 
-                return { directionX, directionY, gridX, gridY };
+                console.log(`🎯 Block ${blockKey}: source=${sourceBlock}, direction=(${directionX},${directionY})`);
+                
+                return { 
+                    directionX, 
+                    directionY, 
+                    gridX: targetGridX, 
+                    gridY: targetGridY,
+                    sourceBlock: sourceBlock
+                };
             }
 
             positionOutpaintBackground(blockElement, blockKey, directions) {
@@ -2889,6 +3003,29 @@
                 }
             }
 
+            async getSourceBlockAsBlob(sourceBlockKey) {
+                if (sourceBlockKey === '0,0') {
+                    // Use original image
+                    return await this.getImageAsBlob();
+                } else {
+                    // Get the filled block's image
+                    const sourceBlock = this.outfillBlocks.get(sourceBlockKey);
+                    if (sourceBlock && sourceBlock.element && sourceBlock.element.style.backgroundImage) {
+                        // Extract the background image URL and convert to blob
+                        const bgImage = sourceBlock.element.style.backgroundImage;
+                        const urlMatch = bgImage.match(/url\("?([^"]*)"?\)/);
+                        if (urlMatch && urlMatch[1]) {
+                            const response = await fetch(urlMatch[1]);
+                            return await response.blob();
+                        }
+                    }
+                    
+                    // Fallback to original image if source block not available
+                    console.warn(`⚠️ Source block ${sourceBlockKey} not available, using original image`);
+                    return await this.getImageAsBlob();
+                }
+            }
+
             adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions) {
                 // This method is now deprecated - positioning is handled in positionOutpaintBackground
                 console.log(`🔧 adjustBlockPositionForActualDimensions called for ${blockKey} - using new positioning system`);
@@ -2905,16 +3042,16 @@
                 }
 
                 try {
-                    const { directionX, directionY, gridX, gridY } = this.getOutpaintDirections(blockKey);
+                    const { directionX, directionY, gridX, gridY, sourceBlock } = this.getOutpaintDirections(blockKey);
                     
                     // BLOCKSIZE=1: Each block is exactly the original image size
                     const blockSizeX = this.imageWidth;   // 1600px
                     const blockSizeY = this.imageHeight;  // 1024px
                     
-                    console.log(`🎨 API Call for block ${blockKey}: direction=(${directionX},${directionY}), blockSize=${blockSizeX}x${blockSizeY}`);
+                    console.log(`🎨 API Call for block ${blockKey}: source=${sourceBlock}, direction=(${directionX},${directionY}), blockSize=${blockSizeX}x${blockSizeY}`);
                     
-                    // Get the original image as blob
-                    const imageBlob = await this.getImageAsBlob();
+                    // Get the source block image as blob
+                    const imageBlob = await this.getSourceBlockAsBlob(sourceBlock);
                     
                     // Prepare form data
                     const formData = new FormData();
@@ -2973,48 +3110,55 @@
                 }
             }
 
-            async processMultiBlockResponse(responseBlob, originalBlockKey, directionX, directionY) {
+            async processMultiBlockResponse(responseBlob, targetBlockKey, directionX, directionY) {
                 try {
-                    console.log(`🔄 Processing multi-block response for ${originalBlockKey}, direction=(${directionX},${directionY})`);
+                    const { sourceBlock } = this.getOutpaintDirections(targetBlockKey);
+                    console.log(`🔄 Processing 2x2 response: target=${targetBlockKey}, source=${sourceBlock}, direction=(${directionX},${directionY})`);
                     
-                    // Create image from response blob to extract blocks
+                    // Show 2x2 composite in debug preview (positioned over original)
+                    this.show2x2CompositePreview(responseBlob, sourceBlock, directionX, directionY, targetBlockKey);
+                    
+                    // Create image from response blob
                     const responseImage = new Image();
                     const imageUrl = URL.createObjectURL(responseBlob);
                     
                     return new Promise((resolve, reject) => {
                         responseImage.onload = () => {
                             try {
-                                const canvas = document.createElement('canvas');
-                                const ctx = canvas.getContext('2d');
+                                // CORE CONCEPT: API returns 2x2 image where top-left quarter = source block
+                                // We need to position this 2x2 so top-left aligns with source, filling 3 blocks
                                 
-                                // BLOCKSIZE=1: Response is 2x2 of original image size
-                                const originalWidth = this.imageWidth;   // 1600px
-                                const originalHeight = this.imageHeight; // 1024px
+                                const blockWidth = this.imageWidth;   // 1600px
+                                const blockHeight = this.imageHeight; // 1024px
                                 
-                                let responseWidth = originalWidth;
-                                let responseHeight = originalHeight;
+                                console.log(`📐 Response image: ${responseImage.width}x${responseImage.height}`);
+                                console.log(`📐 Expected 2x2: ${blockWidth*2}x${blockHeight*2}`);
                                 
-                                if (directionX !== 0) responseWidth *= 2;
-                                if (directionY !== 0) responseHeight *= 2;
+                                // Calculate which 3 blocks will be filled by this 2x2 response
+                                const [sourceGridX, sourceGridY] = sourceBlock.split(',').map(Number);
+                                const filledBlocks = [
+                                    sourceBlock, // Source block (top-left quarter)
+                                    `${sourceGridX + directionX},${sourceGridY}`, // Horizontal extension
+                                    `${sourceGridX},${sourceGridY + directionY}`, // Vertical extension
+                                    `${sourceGridX + directionX},${sourceGridY + directionY}` // Diagonal (if both directions)
+                                ];
                                 
-                                console.log(`📐 Expected response: ${responseWidth}x${responseHeight}, actual: ${responseImage.width}x${responseImage.height}`);
+                                // Remove duplicates and source block (already filled)
+                                const newBlocks = filledBlocks.filter((block, index) => 
+                                    index > 0 && !this.outfillBlocks.has(block)
+                                );
                                 
-                                // Set canvas to response image size
-                                canvas.width = responseImage.width;
-                                canvas.height = responseImage.height;
-                                ctx.drawImage(responseImage, 0, 0);
+                                console.log(`🧩 2x2 response will be displayed as single overlay`);
                                 
-                                // Extract and place blocks based on direction
-                                this.extractAndPlaceBlocks(canvas, originalBlockKey, directionX, directionY);
+                                // Display full 2x2 response as single overlay positioned over original
+                                this.create2x2Overlay(responseImage, sourceBlock, directionX, directionY, targetBlockKey);
                                 
                                 // Clean up
                                 URL.revokeObjectURL(imageUrl);
-                                
-                                // Return the original block's data URL for backward compatibility
                                 resolve(imageUrl);
                                 
                             } catch (error) {
-                                console.error('Error processing multi-block response:', error);
+                                console.error('Error processing 2x2 response:', error);
                                 reject(error);
                             }
                         };
@@ -3032,7 +3176,158 @@
                 }
             }
 
+            // Create single 2x2 overlay positioned over original image
+            create2x2Overlay(responseImage, sourceBlock, directionX, directionY, targetBlockKey) {
+                try {
+                    console.log(`🖼️ Creating 2x2 overlay: source=${sourceBlock}, direction=(${directionX},${directionY})`);
+                    
+                    const [sourceGridX, sourceGridY] = sourceBlock.split(',').map(Number);
+                    const blockWidth = this.imageWidth;   // 1600px
+                    const blockHeight = this.imageHeight; // 1024px
+                    
+                    // Create overlay element
+                    const overlayDiv = document.createElement('div');
+                    overlayDiv.className = 'outfill-block overlay-2x2';
+                    overlayDiv.style.position = 'absolute';
+                    overlayDiv.style.pointerEvents = 'none';
+                    overlayDiv.style.zIndex = '10'; // Above regular blocks
+                    
+                    // Size = 2x2 blocks
+                    overlayDiv.style.width = (blockWidth * 2) + 'px';
+                    overlayDiv.style.height = (blockHeight * 2) + 'px';
+                    
+                    // Position so top-left aligns with source block
+                    const sourceLeft = sourceGridX * blockWidth;
+                    const sourceTop = sourceGridY * blockHeight;
+                    overlayDiv.style.left = sourceLeft + 'px';
+                    overlayDiv.style.top = sourceTop + 'px';
+                    
+                    // Create image element
+                    const img = document.createElement('img');
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    img.style.display = 'block';
+                    
+                    // Convert response image to blob URL
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = responseImage.width;
+                    canvas.height = responseImage.height;
+                    ctx.drawImage(responseImage, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const imageUrl = URL.createObjectURL(blob);
+                            img.src = imageUrl;
+                            
+                            // Clean up URL after image loads
+                            img.onload = () => {
+                                setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
+                            };
+                        }
+                    }, 'image/jpeg', 0.9);
+                    
+                    overlayDiv.appendChild(img);
+                    
+                    // Add to viewer content container
+                    const viewerContent = document.querySelector('.viewer-content');
+                    if (viewerContent) {
+                        viewerContent.appendChild(overlayDiv);
+                        console.log(`✅ 2x2 overlay created: ${blockWidth*2}x${blockHeight*2} at (${sourceLeft},${sourceTop})`);
+                    } else {
+                        console.error('❌ Viewer content container not found for 2x2 overlay');
+                    }
+                    
+                    // Store overlay reference for cleanup
+                    const overlayKey = `overlay-${targetBlockKey}`;
+                    if (!this.overlays) this.overlays = new Map();
+                    this.overlays.set(overlayKey, overlayDiv);
+                    
+                } catch (error) {
+                    console.error('❌ Error creating 2x2 overlay:', error);
+                }
+            }
+
+            extract2x2Blocks(responseImage, sourceBlock, directionX, directionY, newBlocks) {
+                const blockWidth = this.imageWidth;   // 1600px
+                const blockHeight = this.imageHeight; // 1024px
+                
+                console.log(`🧩 Extracting blocks from 2x2 response: ${responseImage.width}x${responseImage.height}`);
+                
+                // Create canvas for extraction
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = blockWidth;
+                canvas.height = blockHeight;
+                
+                // Extract each new block from the 2x2 response
+                for (const blockKey of newBlocks) {
+                    const [gridX, gridY] = blockKey.split(',').map(Number);
+                    const [sourceGridX, sourceGridY] = sourceBlock.split(',').map(Number);
+                    
+                    // Calculate position in 2x2 response
+                    let sourceX = 0;
+                    let sourceY = 0;
+                    
+                    if (gridX > sourceGridX) sourceX = blockWidth;  // Right half
+                    if (gridY > sourceGridY) sourceY = blockHeight; // Bottom half
+                    
+                    console.log(`🧩 Extracting block ${blockKey} from position (${sourceX},${sourceY})`);
+                    
+                    // Clear canvas and extract block
+                    ctx.clearRect(0, 0, blockWidth, blockHeight);
+                    ctx.drawImage(responseImage, sourceX, sourceY, blockWidth, blockHeight, 0, 0, blockWidth, blockHeight);
+                    
+                    // Convert to blob and create block
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const imageUrl = URL.createObjectURL(blob);
+                            this.createFilledBlock(blockKey, imageUrl);
+                        }
+                    }, 'image/jpeg', 0.9);
+                }
+            }
+            
+            createFilledBlock(blockKey, imageUrl) {
+                console.log(`✅ Creating filled block ${blockKey}`);
+                
+                // Create block element
+                const blockElement = document.createElement('div');
+                blockElement.className = 'outfill-block';
+                blockElement.style.backgroundImage = `url(${imageUrl})`;
+                blockElement.style.backgroundSize = 'cover';
+                blockElement.style.backgroundPosition = 'center';
+                
+                // Position block in grid
+                const [gridX, gridY] = blockKey.split(',').map(Number);
+                const blockSizeX = this.containerWidth;
+                const blockSizeY = this.containerHeight;
+                
+                blockElement.style.position = 'absolute';
+                blockElement.style.left = (gridX * blockSizeX) + 'px';
+                blockElement.style.top = (gridY * blockSizeY) + 'px';
+                blockElement.style.width = blockSizeX + 'px';
+                blockElement.style.height = blockSizeY + 'px';
+                blockElement.style.zIndex = this.blocksOverImage ? '5' : '1';
+                
+                // Add to container
+                this.content.appendChild(blockElement);
+                
+                // Store in blocks map
+                this.outfillBlocks.set(blockKey, {
+                    status: 'completed',
+                    progress: 1,
+                    element: blockElement,
+                    imageUrl: imageUrl
+                });
+                
+                console.log(`✅ Block ${blockKey} created and positioned`);
+            }
+
+            // Legacy method - keeping for compatibility but not used in new system
             extractAndPlaceBlocks(sourceCanvas, originalBlockKey, directionX, directionY) {
+                console.log(`⚠️ Legacy extractAndPlaceBlocks called - should use extract2x2Blocks instead`);
                 const [originalGridX, originalGridY] = originalBlockKey.split(',').map(Number);
                 
                 // BLOCKSIZE=1: Each block is exactly the original image size
