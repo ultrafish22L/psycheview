@@ -1043,97 +1043,21 @@
             
             async getImageAsBlob() {
                 return new Promise((resolve, reject) => {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        const img = this.image;
-                        
-                        // Check if image is loaded and has dimensions
-                        if (!img.naturalWidth || !img.naturalHeight) {
-                            reject(new Error('Image not loaded or has no dimensions'));
-                            return;
-                        }
-                        
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        
-                        // Try to draw image - this will fail if canvas is tainted
-                        ctx.drawImage(img, 0, 0);
-                        
-                        // Test if canvas is tainted by trying to get image data
-                        try {
-                            ctx.getImageData(0, 0, 1, 1);
-                        } catch (securityError) {
-                            console.warn('🔧 Canvas tainted, using fallback method');
-                            // Fallback: create a mock blob for file:// protocol
-                            if (window.location.protocol === 'file:') {
-                                this.createMockImageBlob().then(resolve).catch(reject);
-                                return;
-                            } else {
-                                reject(new Error('Canvas tainted and no fallback available'));
-                                return;
-                            }
-                        }
-                        
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                resolve(blob);
-                            } else {
-                                reject(new Error('Failed to create image blob'));
-                            }
-                        }, 'image/jpeg', 0.9);
-                        
-                    } catch (error) {
-                        console.warn('🔧 Error in getImageAsBlob:', error.message);
-                        // Fallback for file:// protocol
-                        if (window.location.protocol === 'file:') {
-                            this.createMockImageBlob().then(resolve).catch(reject);
-                        } else {
-                            reject(error);
-                        }
-                    }
-                });
-            }
-            
-            // 🔧 Create mock image blob for file:// protocol when canvas is tainted
-            async createMockImageBlob() {
-                return new Promise((resolve) => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
+                    const img = this.image;
                     
-                    // Use image dimensions or fallback
-                    const width = this.imageWidth || 1600;
-                    const height = this.imageHeight || 1024;
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    ctx.drawImage(img, 0, 0);
                     
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // Create a psychedelic gradient pattern
-                    const gradient = ctx.createLinearGradient(0, 0, width, height);
-                    gradient.addColorStop(0, '#ff6b9d');
-                    gradient.addColorStop(0.25, '#c44569');
-                    gradient.addColorStop(0.5, '#f8b500');
-                    gradient.addColorStop(0.75, '#3742fa');
-                    gradient.addColorStop(1, '#2ed573');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, width, height);
-                    
-                    // Add some texture
-                    ctx.globalAlpha = 0.3;
-                    for (let i = 0; i < 50; i++) {
-                        ctx.beginPath();
-                        ctx.arc(
-                            Math.random() * width,
-                            Math.random() * height,
-                            Math.random() * 20 + 5,
-                            0, 2 * Math.PI
-                        );
-                        ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 60%)`;
-                        ctx.fill();
-                    }
-                    
-                    canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to create image blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
                 });
             }
             
@@ -1189,15 +1113,9 @@
                             ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
                             console.log(`🌀 Sampled original image for block ${blockKey}`);
                         } catch (error) {
-                            console.warn('🔧 Canvas tainted when sampling original image, using fallback');
-                            // Use mock image for file:// protocol
-                            if (window.location.protocol === 'file:') {
-                                this.createMockImageBlob().then(resolve).catch(reject);
-                                return;
-                            } else {
-                                reject(new Error('Canvas tainted and no fallback available'));
-                                return;
-                            }
+                            console.warn('🔧 Canvas tainted when sampling original image');
+                            reject(new Error('Canvas tainted - cannot process image'));
+                            return;
                         }
                     } else {
                         // Sample from existing outfill block
@@ -1266,12 +1184,8 @@
                                     ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
                                     canvas.toBlob(resolve, 'image/jpeg', 0.9);
                                 } catch (error) {
-                                    console.warn('🔧 Canvas tainted in fallback, using mock image');
-                                    if (window.location.protocol === 'file:') {
-                                        this.createMockImageBlob().then(resolve).catch(reject);
-                                    } else {
-                                        reject(error);
-                                    }
+                                    console.warn('🔧 Canvas tainted in fallback');
+                                    reject(error);
                                 }
                             };
                             tempImg.src = sourceBlock.imageData;
@@ -1288,12 +1202,8 @@
                                     }
                                 }, 'image/jpeg', 0.9);
                             } catch (error) {
-                                console.warn('🔧 Canvas tainted in final fallback, using mock image');
-                                if (window.location.protocol === 'file:') {
-                                    this.createMockImageBlob().then(resolve).catch(reject);
-                                } else {
-                                    reject(error);
-                                }
+                                console.warn('🔧 Canvas tainted in final fallback');
+                                reject(error);
                             }
                         }
                     }
