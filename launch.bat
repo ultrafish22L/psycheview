@@ -26,7 +26,8 @@ if not exist node_modules (
     echo.
 )
 
-REM Set environment variables (optional)
+REM Set environment variables
+set PORT=51387
 REM Uncomment and set your Stability AI API key if you have one
 REM set STABILITY_API_KEY=your-api-key-here
 
