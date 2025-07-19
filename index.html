@@ -1435,7 +1435,7 @@
                 console.log(`🔍 INFINITE GRID: topLeft=(${imageTopLeftX},${imageTopLeftY}), spacing=(${gridSpacingX},${gridSpacingY}), scale=${this.scale}`);
             }
             
-            async simulateGeneration(blockKey) {
+            async generateBlock(blockKey) {
                 // Always try API generation - no more demo mode
                 if (this.apiKey) {
                     return this.generateWithAPI(blockKey);
@@ -2234,7 +2234,7 @@
                     } else {
                         // Show not connected for all blocks
                         for (const blockKey of strategicCall.generatedBlocks) {
-                            await this.simulateGeneration(blockKey);
+                            await this.generateBlock(blockKey);
                         }
                     }
                 } catch (error) {
@@ -2510,10 +2510,10 @@
                             this.checkVisibleBlocks();
                         });
                     } else {
-                        this.simulateGeneration(blockKey).then(() => {
+                        this.generateBlock(blockKey).then(() => {
                             this.activeGenerations--;
                             
-                            // Continue with next spiral block after simulation
+                            // Continue with next spiral block after generation
                             this.checkVisibleBlocks();
                         });
                     }

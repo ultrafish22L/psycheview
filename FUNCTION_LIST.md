@@ -3,7 +3,7 @@
 ## 🔍 COMPREHENSIVE FUNCTION ANALYSIS
 
 **Generated:** 2025-07-19  
-**Total Functions:** 62 unique functions identified
+**Total Functions:** 63 unique functions identified
 
 ## 📋 ALL FUNCTIONS (ALPHABETICAL)
 
@@ -21,57 +21,58 @@
 12. `extractAndPlaceBlocks()` - Extract and place blocks from multi-block response
 13. `extractAndUpdateBlock()` - Extract individual block from composite image
 14. `findStrategicMultiBlockOpportunity()` - Find opportunities for multi-block generation
-15. `getNextSpiralBlock()` - Get next block in spiral pattern
-16. `getOutpaintDirections()` - Calculate direction vectors for API calls
-17. `getVisibleBlocks()` - Calculate which blocks are visible in viewport
-18. `handleMouseDown()` - Mouse press event handler
-19. `handleMouseMove()` - Mouse move event handler (panning)
-20. `handleMouseUp()` - Mouse release event handler
-21. `handleTouchEnd()` - Touch end event handler
-22. `handleTouchMove()` - Touch move event handler
-23. `handleTouchStart()` - Touch start event handler
-24. `handleWheel()` - Mouse wheel event handler (zooming)
-25. `hideDebugPreview()` - Hide debug image preview
-26. `init()` - Setup image viewer, load image, bind events
-27. `initializeSpiralSystem()` - Initialize spiral block generation system
-28. `isBlockAdjacentToContent()` - Check if block is adjacent to existing content
-29. `isBlockAdjacentToOriginalImage()` - Check if block is adjacent to original image
-30. `isBlockInCurrentVisibleArea()` - Check if block is in current visible area
-31. `isStrategicCallWorthwhile()` - Determine if strategic call is worthwhile
-32. `peekNextSpiralBlock()` - Peek at next spiral block without consuming
-33. `positionEntireImageAsLayer()` - Position entire image as layer
-34. `positionOutpaintBackground()` - Position generated images as backgrounds
-35. `processGenerationQueue()` - Process queued block generations
-36. `queueOneRingBeyondVisible()` - Queue one ring of blocks beyond visible area
-37. `queueVisibleSpiralBlocks()` - Queue visible blocks in spiral pattern
-38. `saveDebugBlob()` - Save blob for debugging purposes
-39. `setApiKey()` - Set and validate Stability AI API key
-40. `setupSize()` - Calculate and set image container dimensions
-41. `showDebugError()` - Display debug error information
-42. `showDebugPreview()` - Show debug image preview
-43. `showNotConnectedOverlay()` - Show API connection status overlay
-44. `testPan()` - Test panning functionality (UI button)
-45. `toggleApiCalls()` - Toggle API call functionality
-46. `toggleAutoGeneration()` - Toggle automatic block generation
-47. `toggleBlockLayer()` - Toggle outfill block layer visibility
-48. `toggleDebug()` - Toggle debug console visibility
-49. `toggleGrid()` - Toggle grid overlay visibility
-50. `toggleImageOpacity()` - Toggle main image opacity
-51. `updateConsoleCapture()` - Update console capture display
-52. `updateDebugConsole()` - Update debug console display
-53. `updateGenerationQueue()` - Update generation queue status
-54. `updateGridSize()` - Update grid overlay sizing
-55. `updateInitialUIState()` - Set initial UI button states
-56. `updateOutfillBlock()` - Update generated block with new content
-57. `updateQueueIndicator()` - Update queue status indicator
-58. `updateTransform()` - Apply CSS transforms and update display
-59. `zoomOutMax()` - Zoom out to maximum level (UI button)
+15. `generateBlock()` - Handle block generation (API calls or show not connected)
+16. `getNextSpiralBlock()` - Get next block in spiral pattern
+17. `getOutpaintDirections()` - Calculate direction vectors for API calls
+18. `getVisibleBlocks()` - Calculate which blocks are visible in viewport
+19. `handleMouseDown()` - Mouse press event handler
+20. `handleMouseMove()` - Mouse move event handler (panning)
+21. `handleMouseUp()` - Mouse release event handler
+22. `handleTouchEnd()` - Touch end event handler
+23. `handleTouchMove()` - Touch move event handler
+24. `handleTouchStart()` - Touch start event handler
+25. `handleWheel()` - Mouse wheel event handler (zooming)
+26. `hideDebugPreview()` - Hide debug image preview
+27. `init()` - Setup image viewer, load image, bind events
+28. `initializeSpiralSystem()` - Initialize spiral block generation system
+29. `isBlockAdjacentToContent()` - Check if block is adjacent to existing content
+30. `isBlockAdjacentToOriginalImage()` - Check if block is adjacent to original image
+31. `isBlockInCurrentVisibleArea()` - Check if block is in current visible area
+32. `isStrategicCallWorthwhile()` - Determine if strategic call is worthwhile
+33. `peekNextSpiralBlock()` - Peek at next spiral block without consuming
+34. `positionEntireImageAsLayer()` - Position entire image as layer
+35. `positionOutpaintBackground()` - Position generated images as backgrounds
+36. `processGenerationQueue()` - Process queued block generations
+37. `queueOneRingBeyondVisible()` - Queue one ring of blocks beyond visible area
+38. `queueVisibleSpiralBlocks()` - Queue visible blocks in spiral pattern
+39. `saveDebugBlob()` - Save blob for debugging purposes
+40. `setApiKey()` - Set and validate Stability AI API key
+41. `setupSize()` - Calculate and set image container dimensions
+42. `showDebugError()` - Display debug error information
+43. `showDebugPreview()` - Show debug image preview
+44. `showNotConnectedOverlay()` - Show API connection status overlay
+45. `testPan()` - Test panning functionality (UI button)
+46. `toggleApiCalls()` - Toggle API call functionality
+47. `toggleAutoGeneration()` - Toggle automatic block generation
+48. `toggleBlockLayer()` - Toggle outfill block layer visibility
+49. `toggleDebug()` - Toggle debug console visibility
+50. `toggleGrid()` - Toggle grid overlay visibility
+51. `toggleImageOpacity()` - Toggle main image opacity
+52. `updateConsoleCapture()` - Update console capture display
+53. `updateDebugConsole()` - Update debug console display
+54. `updateGenerationQueue()` - Update generation queue status
+55. `updateGridSize()` - Update grid overlay sizing
+56. `updateInitialUIState()` - Set initial UI button states
+57. `updateOutfillBlock()` - Update generated block with new content
+58. `updateQueueIndicator()` - Update queue status indicator
+59. `updateTransform()` - Apply CSS transforms and update display
+60. `zoomOutMax()` - Zoom out to maximum level (UI button)
 
 ## 🌐 GLOBAL FUNCTIONS (Non-Class)
 
-60. `updateDebugConsole()` - Global console override function
-61. `updateConsoleCapture()` - Global console capture function
-62. `setupSize()` - Nested function within init() for size calculation
+61. `updateDebugConsole()` - Global console override function
+62. `updateConsoleCapture()` - Global console capture function
+63. `setupSize()` - Nested function within init() for size calculation
 
 ## 📊 FUNCTION CATEGORIES
 
@@ -121,10 +122,10 @@
 - ✅ Consistent naming conventions
 - ✅ Good separation of concerns
 
-## 🚀 TOTAL FUNCTION COUNT: **62 Functions**
+## 🚀 TOTAL FUNCTION COUNT: **63 Functions**
 
 ### **Breakdown by Location:**
-- **🏛️ ImageViewer Class Methods:** 59 functions
+- **🏛️ ImageViewer Class Methods:** 60 functions
 - **🌐 Global Functions:** 3 functions
 - **📱 Event Handlers:** 7 functions (subset of class)
 - **🎛️ UI Controls:** 8 functions (subset of class)
