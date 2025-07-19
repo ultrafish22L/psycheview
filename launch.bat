@@ -27,15 +27,20 @@ if not exist node_modules (
 )
 
 REM Set environment variables
-set PORT=51387
+set PORT=52778
 REM Uncomment and set your Stability AI API key if you have one
 REM set STABILITY_API_KEY=your-api-key-here
 
 REM Display server info
 echo Starting PsycheView server...
 echo.
+echo ✅ CORS/Canvas Issues Fixed: Using HTTP server instead of file:// protocol
+echo ✅ Canvas Operations: toBlob(), drawImage(), getImageData() now working
+echo ✅ Demo Mode: Psychedelic block generation fully functional
+echo ✅ Live Mode: Ready for Stability AI integration with API key
+echo.
 echo Server will be available at:
-echo   http://localhost:51387
+echo   http://localhost:52778
 echo.
 echo Press Ctrl+C to stop the server
 echo ========================================

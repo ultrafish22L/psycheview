@@ -2,6 +2,18 @@
 
 A super slick, modern, interactive web viewer for psychedelic imagery with AI-powered outfill capabilities, featuring both demo and live generation modes.
 
+## 🔧 v1.5 CORS/Canvas Fix: Server Mode Required
+
+**IMPORTANT UPDATE**: Canvas operations (toBlob, drawImage, getImageData) are blocked by browser security when using file:// protocol. **Use server mode for full functionality:**
+
+### ⚡ Quick Launch:
+- **Windows**: Double-click `launch.bat`
+- **Linux/Mac**: Run `./launch.sh` or `npm start`
+- **Manual**: `node server.js` then visit http://localhost:52778
+
+✅ **Server Mode Benefits**: All canvas operations work, demo blocks generate perfectly, ready for Live API mode  
+⚠️ **File Mode Limitations**: Canvas tainting prevents block generation, shows "Server Required" errors
+
 ## 🎉 v1.4 BREAKTHROUGH: Perfect Seamless Layering System
 
 **MAJOR MILESTONE ACHIEVED!** The seamless image display issue has been completely solved with an elegant layering approach:
