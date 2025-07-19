@@ -531,8 +531,7 @@
                 // Grid visibility control (false = hidden, true = visible)
                 this.gridVisible = false;
                 
-                // Mode system
-                this.isLiveMode = true; // Start in live mode by default
+                // API system - always try API calls if key available
                 this.apiKey = 'sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8';
 
                 
@@ -700,7 +699,7 @@
                     if (e.key === 'F12' || (e.ctrlKey && e.key === 'd')) {
                         e.preventDefault();
                         this.toggleDebug();
-                    } else if (e.key === 'g' || e.key === 'G') {
+                    } else if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
                         e.preventDefault();
                         this.toggleGrid();
                     }
@@ -1446,89 +1445,23 @@
             }
             
             async simulateGeneration(blockKey) {
-                if (this.isLiveMode) {
+                // Always try API generation - no more demo mode
+                if (this.apiKey) {
                     return this.generateWithAPI(blockKey);
                 } else {
-                    return this.generateDemo(blockKey);
+                    // Show "not connected" overlay and log the issue
+                    console.log(`⚠️ Block ${blockKey}: API key not available, showing not connected overlay`);
+                    this.showNotConnectedOverlay(blockKey);
+                    return { success: false, error: 'No API key available' };
                 }
             }
 
-            generateDemo(blockKey) {
-                return new Promise((resolve) => {
-                    let progress = 0;
-                    const interval = setInterval(() => {
-                        progress += 0.05;
-                        const block = this.outfillBlocks.get(blockKey);
-                        if (block) {
-                            block.progress = progress;
-                            this.updateOutfillBlock(blockKey, block);
-                        }
-                        
-                        if (progress >= 1) {
-                            clearInterval(interval);
-                            
-                            // Generate demo image and show in debug preview
-                            this.createDemoImage(blockKey).then((demoBlob) => {
-                                // Show in debug preview window
-                                this.showDebugPreview(demoBlob, blockKey, 'Demo Generation');
-                                
-                                // Update block with demo image
-                                const imageUrl = URL.createObjectURL(demoBlob);
-                                const block = this.outfillBlocks.get(blockKey);
-                                if (block) {
-                                    block.status = 'completed';
-                                    block.imageUrl = imageUrl;
-                                    this.updateOutfillBlock(blockKey, block);
-                                }
-                                
-                                resolve();
-                            });
-                        }
-                    }, 200);
-                });
-            }
-            // Create demo image blob for testing
-            async createDemoImage(blockKey) {
-                return new Promise((resolve) => {
-                    // Create canvas for demo image
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 512;
-                    canvas.height = 512;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Create psychedelic gradient pattern
-                    const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-                    gradient.addColorStop(0, `hsl(${Math.random() * 360}, 80%, 60%)`);
-                    gradient.addColorStop(0.3, `hsl(${Math.random() * 360}, 70%, 50%)`);
-                    gradient.addColorStop(0.6, `hsl(${Math.random() * 360}, 90%, 40%)`);
-                    gradient.addColorStop(1, `hsl(${Math.random() * 360}, 60%, 30%)`);
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, 512, 512);
-                    
-                    // Add some organic shapes
-                    for (let i = 0; i < 20; i++) {
-                        ctx.beginPath();
-                        ctx.fillStyle = `hsla(${Math.random() * 360}, 70%, 50%, 0.3)`;
-                        const x = Math.random() * 512;
-                        const y = Math.random() * 512;
-                        const radius = Math.random() * 50 + 10;
-                        ctx.arc(x, y, radius, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    
-                    // Add block key text
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                    ctx.font = '24px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(`Block ${blockKey}`, 256, 256);
-                    ctx.fillText('DEMO', 256, 290);
-                    
-                    // Convert to blob
-                    canvas.toBlob((blob) => {
-                        resolve(blob);
-                    }, 'image/jpeg', 0.8);
-                });
+            showNotConnectedOverlay(blockKey) {
+                const block = this.outfillBlocks.get(blockKey);
+                if (block) {
+                    block.status = 'not-connected';
+                    this.updateOutfillBlock(blockKey, block);
+                }
             }
 
 
@@ -1649,7 +1582,7 @@
             toggleGrid() {
                 this.gridVisible = !this.gridVisible;
                 this.drawGrid(); // Redraw grid with new visibility state
-                console.log(`🔧 Grid ${this.gridVisible ? 'shown' : 'hidden'} (G key to toggle)`);
+                console.log(`🔧 Grid ${this.gridVisible ? 'shown' : 'hidden'} (Ctrl+G to toggle)`);
             }
 
             // Toggle auto-generation mode
@@ -1717,86 +1650,10 @@
                 if (!this.debugPreview) return;
 
                 try {
-                    console.log(`🖼️ Creating 2x2 composite preview: source=${sourceBlock}, direction=(${directionX},${directionY})`);
-
-                    // Create canvas for composite
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+                    console.log(`🖼️ Showing 2x2 response preview: source=${sourceBlock}, direction=(${directionX},${directionY})`);
                     
-                    const blockWidth = this.imageWidth;   // 1600px
-                    const blockHeight = this.imageHeight; // 1024px
-                    
-                    // Canvas size = 2x2 blocks
-                    canvas.width = blockWidth * 2;
-                    canvas.height = blockHeight * 2;
-                    
-                    // Load original image
-                    const originalImage = this.image;
-                    
-                    // Load 2x2 response image
-                    const responseImage = new Image();
-                    const responseUrl = URL.createObjectURL(responseBlob);
-                    
-                    responseImage.onload = () => {
-                        try {
-                            // Clear canvas with transparent background
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            
-                            // Draw original image in top-left position
-                            ctx.drawImage(originalImage, 0, 0, blockWidth, blockHeight);
-                            
-                            // Draw 2x2 response with 50% opacity to show overlay effect
-                            ctx.globalAlpha = 0.7;
-                            ctx.drawImage(responseImage, 0, 0, canvas.width, canvas.height);
-                            ctx.globalAlpha = 1.0;
-                            
-                            // Add grid lines to show block boundaries
-                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                            ctx.lineWidth = 2;
-                            ctx.setLineDash([5, 5]);
-                            
-                            // Vertical line
-                            ctx.beginPath();
-                            ctx.moveTo(blockWidth, 0);
-                            ctx.lineTo(blockWidth, canvas.height);
-                            ctx.stroke();
-                            
-                            // Horizontal line
-                            ctx.beginPath();
-                            ctx.moveTo(0, blockHeight);
-                            ctx.lineTo(canvas.width, blockHeight);
-                            ctx.stroke();
-                            
-                            // Add labels
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                            ctx.font = '16px monospace';
-                            ctx.fillText('ORIGINAL', 10, 30);
-                            ctx.fillText('2x2 RESPONSE', 10, canvas.height - 10);
-                            
-                            // Convert to blob and show in debug preview
-                            canvas.toBlob((compositeBlob) => {
-                                if (compositeBlob) {
-                                    this.showDebugPreview(compositeBlob, targetBlockKey, '2x2 Composite');
-                                }
-                            }, 'image/png');
-                            
-                            // Clean up
-                            URL.revokeObjectURL(responseUrl);
-                            
-                        } catch (error) {
-                            console.error('❌ Error creating 2x2 composite:', error);
-                            // Fallback to regular preview
-                            this.showDebugPreview(responseBlob, targetBlockKey, '2x2 Response (fallback)');
-                        }
-                    };
-                    
-                    responseImage.onerror = () => {
-                        console.error('❌ Failed to load 2x2 response image');
-                        // Fallback to regular preview
-                        this.showDebugPreview(responseBlob, targetBlockKey, '2x2 Response (fallback)');
-                    };
-                    
-                    responseImage.src = responseUrl;
+                    // Simply show the response blob directly to avoid canvas tainting issues
+                    this.showDebugPreview(responseBlob, targetBlockKey, `2x2 Response (${directionX},${directionY})`);
                     
                 } catch (error) {
                     console.error('❌ Error in show2x2CompositePreview:', error);
@@ -2023,6 +1880,20 @@
                             font-size: 12px;
                             text-align: center;
                         ">❌</div>
+                    `;
+                } else if (block.status === 'not-connected') {
+                    blockElement.style.backgroundColor = 'rgba(255, 165, 0, 0.3)';
+                    blockElement.innerHTML = `
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            color: rgba(255, 255, 255, 0.9);
+                            font-size: 10px;
+                            text-align: center;
+                            line-height: 1.2;
+                        ">🔌<br>No API</div>
                     `;
                 }
             }
@@ -2366,11 +2237,11 @@
                 
                 try {
                     // Use the strategic origin and directions for the API call
-                    if (this.isLiveMode && this.apiKey) {
+                    if (this.apiKey) {
                         const result = await this.generateStrategicOutfill(strategicCall);
                         console.log('✅ Strategic multi-block generation completed:', result);
                     } else {
-                        // Simulate generation for all blocks
+                        // Show not connected for all blocks
                         for (const blockKey of strategicCall.generatedBlocks) {
                             await this.simulateGeneration(blockKey);
                         }
@@ -2626,8 +2497,8 @@
                         this.updateOutfillBlock(blockKey, block);
                     }
                     
-                    // Use real API generation in live mode, simulation in demo mode
-                    if (this.isLiveMode && this.apiKey) {
+                    // Use real API generation if key available
+                    if (this.apiKey) {
                         this.generateWithAPI(blockKey).then((result) => {
                             console.log('✅ Spiral generation completed successfully for block:', blockKey, result);
                             this.activeGenerations--;
