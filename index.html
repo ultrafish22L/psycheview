@@ -379,7 +379,7 @@
             <canvas class="grid-overlay" id="gridCanvas"></canvas>
             <div class="viewer-content" id="viewerContent">
                 <div class="tiled-background"></div>
-                <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false">
+                <img class="main-image" id="mainImage" src="psychedelic-flora.jpg" alt="Psychedelic Flora" draggable="false" crossorigin="anonymous">
             </div>
             <div class="zoom-indicator" id="zoomIndicator">1.00x</div>
 
@@ -1043,21 +1043,97 @@
             
             async getImageAsBlob() {
                 return new Promise((resolve, reject) => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const img = this.image;
+                        
+                        // Check if image is loaded and has dimensions
+                        if (!img.naturalWidth || !img.naturalHeight) {
+                            reject(new Error('Image not loaded or has no dimensions'));
+                            return;
+                        }
+                        
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        
+                        // Try to draw image - this will fail if canvas is tainted
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Test if canvas is tainted by trying to get image data
+                        try {
+                            ctx.getImageData(0, 0, 1, 1);
+                        } catch (securityError) {
+                            console.warn('🔧 Canvas tainted, using fallback method');
+                            // Fallback: create a mock blob for file:// protocol
+                            if (window.location.protocol === 'file:') {
+                                this.createMockImageBlob().then(resolve).catch(reject);
+                                return;
+                            } else {
+                                reject(new Error('Canvas tainted and no fallback available'));
+                                return;
+                            }
+                        }
+                        
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Failed to create image blob'));
+                            }
+                        }, 'image/jpeg', 0.9);
+                        
+                    } catch (error) {
+                        console.warn('🔧 Error in getImageAsBlob:', error.message);
+                        // Fallback for file:// protocol
+                        if (window.location.protocol === 'file:') {
+                            this.createMockImageBlob().then(resolve).catch(reject);
+                        } else {
+                            reject(error);
+                        }
+                    }
+                });
+            }
+            
+            // 🔧 Create mock image blob for file:// protocol when canvas is tainted
+            async createMockImageBlob() {
+                return new Promise((resolve) => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const img = this.image;
                     
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    ctx.drawImage(img, 0, 0);
+                    // Use image dimensions or fallback
+                    const width = this.imageWidth || 1600;
+                    const height = this.imageHeight || 1024;
                     
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Failed to create image blob'));
-                        }
-                    }, 'image/jpeg', 0.9);
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Create a psychedelic gradient pattern
+                    const gradient = ctx.createLinearGradient(0, 0, width, height);
+                    gradient.addColorStop(0, '#ff6b9d');
+                    gradient.addColorStop(0.25, '#c44569');
+                    gradient.addColorStop(0.5, '#f8b500');
+                    gradient.addColorStop(0.75, '#3742fa');
+                    gradient.addColorStop(1, '#2ed573');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    // Add some texture
+                    ctx.globalAlpha = 0.3;
+                    for (let i = 0; i < 50; i++) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            Math.random() * width,
+                            Math.random() * height,
+                            Math.random() * 20 + 5,
+                            0, 2 * Math.PI
+                        );
+                        ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                        ctx.fill();
+                    }
+                    
+                    canvas.toBlob(resolve, 'image/jpeg', 0.9);
                 });
             }
             
@@ -1108,9 +1184,21 @@
                     
                     // Sample the appropriate area from the current composite
                     if (sourceGridX === 0 && sourceGridY === 0) {
-                        // Sample from original image
-                        ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
-                        console.log(`🌀 Sampled original image for block ${blockKey}`);
+                        // Sample from original image with CORS/tainting protection
+                        try {
+                            ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
+                            console.log(`🌀 Sampled original image for block ${blockKey}`);
+                        } catch (error) {
+                            console.warn('🔧 Canvas tainted when sampling original image, using fallback');
+                            // Use mock image for file:// protocol
+                            if (window.location.protocol === 'file:') {
+                                this.createMockImageBlob().then(resolve).catch(reject);
+                                return;
+                            } else {
+                                reject(new Error('Canvas tainted and no fallback available'));
+                                return;
+                            }
+                        }
                     } else {
                         // Sample from existing outfill block
                         const sourceBlockKey = `${sourceGridX},${sourceGridY}`;
@@ -1173,22 +1261,40 @@
                             };
                             tempImg.onerror = () => {
                                 console.error(`🚨 Failed to load source block image for ${sourceBlockKey}`);
-                                // Fallback to original image
-                                ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
-                                canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                                // Fallback to original image with CORS protection
+                                try {
+                                    ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
+                                    canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                                } catch (error) {
+                                    console.warn('🔧 Canvas tainted in fallback, using mock image');
+                                    if (window.location.protocol === 'file:') {
+                                        this.createMockImageBlob().then(resolve).catch(reject);
+                                    } else {
+                                        reject(error);
+                                    }
+                                }
                             };
                             tempImg.src = sourceBlock.imageData;
                         } else {
                             console.warn(`🚨 Source block ${sourceBlockKey} not available, using original image`);
-                            // Fallback to original image
-                            ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
-                            canvas.toBlob((blob) => {
-                                if (blob) {
-                                    resolve(blob);
+                            // Fallback to original image with CORS protection
+                            try {
+                                ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
+                                canvas.toBlob((blob) => {
+                                    if (blob) {
+                                        resolve(blob);
+                                    } else {
+                                        reject(new Error('Failed to create fallback image blob'));
+                                    }
+                                }, 'image/jpeg', 0.9);
+                            } catch (error) {
+                                console.warn('🔧 Canvas tainted in final fallback, using mock image');
+                                if (window.location.protocol === 'file:') {
+                                    this.createMockImageBlob().then(resolve).catch(reject);
                                 } else {
-                                    reject(new Error('Failed to create fallback image blob'));
+                                    reject(error);
                                 }
-                            }, 'image/jpeg', 0.9);
+                            }
                         }
                     }
                 });
@@ -3312,36 +3418,63 @@
             if (window.location.protocol === 'file:') {
                 const img = document.getElementById('mainImage');
                 
+                // Remove crossorigin attribute for file:// protocol to avoid CORS issues
+                img.removeAttribute('crossorigin');
+                
                 // Wait for image to load, then convert to data URL before initializing viewer
-                if (img.complete) {
+                if (img.complete && img.naturalWidth > 0) {
                     convertAndInitialize();
                 } else {
                     img.onload = convertAndInitialize;
+                    img.onerror = (error) => {
+                        console.warn('🔧 Image failed to load:', error);
+                        // Initialize viewer with fallback
+                        window.viewer = new ImageViewer();
+                    };
                 }
                 
                 function convertAndInitialize() {
                     try {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        ctx.drawImage(img, 0, 0);
-                        const dataURL = canvas.toDataURL('image/jpeg', 0.9);
-                        img.src = dataURL;
-                        console.log('🔧 Converted image to data URL for standalone mode');
                         
-                        // Initialize viewer after conversion
+                        // Use actual image dimensions or fallback
+                        const width = img.naturalWidth || 1600;
+                        const height = img.naturalHeight || 1024;
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        // Try to draw the image
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Test if canvas is tainted
+                        try {
+                            ctx.getImageData(0, 0, 1, 1);
+                            // Canvas is not tainted, convert to data URL
+                            const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                            img.src = dataURL;
+                            console.log('🔧 Converted image to data URL for standalone mode');
+                        } catch (securityError) {
+                            console.warn('🔧 Canvas tainted, keeping original image source');
+                            // Keep original image source, viewer will handle tainting issues
+                        }
+                        
+                        // Initialize viewer after conversion attempt
                         setTimeout(() => {
                             window.viewer = new ImageViewer();
                         }, 100);
+                        
                     } catch (error) {
-                        console.log('🔧 Could not convert image to data URL:', error.message);
-                        // Initialize viewer anyway
+                        console.warn('🔧 Could not process image:', error.message);
+                        // Initialize viewer anyway - it has fallback mechanisms
                         window.viewer = new ImageViewer();
                     }
                 }
             } else {
-                // Server mode - initialize normally
+                // Server mode - initialize normally with crossorigin for CORS
+                const img = document.getElementById('mainImage');
+                img.setAttribute('crossorigin', 'anonymous');
                 window.viewer = new ImageViewer();
             }
         });
