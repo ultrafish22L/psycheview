@@ -1043,21 +1043,31 @@
             
             async getImageAsBlob() {
                 return new Promise((resolve, reject) => {
+                    // Check if we're in file:// protocol - canvas will be tainted
+                    if (window.location.protocol === 'file:') {
+                        reject(new Error('Canvas operations not available in file:// protocol due to browser security restrictions. Please use a local server or enable Live mode with API key.'));
+                        return;
+                    }
+                    
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     const img = this.image;
                     
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
-                    ctx.drawImage(img, 0, 0);
                     
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Failed to create image blob'));
-                        }
-                    }, 'image/jpeg', 0.9);
+                    try {
+                        ctx.drawImage(img, 0, 0);
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Failed to create image blob'));
+                            }
+                        }, 'image/jpeg', 0.9);
+                    } catch (error) {
+                        reject(new Error('Canvas tainted - cannot process image: ' + error.message));
+                    }
                 });
             }
             
@@ -1066,6 +1076,12 @@
                 console.log(`🌀 Sampling composite image for block ${blockKey}...`);
                 
                 return new Promise((resolve, reject) => {
+                    // Check if we're in file:// protocol - canvas will be tainted
+                    if (window.location.protocol === 'file:') {
+                        reject(new Error('Canvas operations not available in file:// protocol due to browser security restrictions. Please use a local server or enable Live mode with API key.'));
+                        return;
+                    }
+                    
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
@@ -3331,53 +3347,57 @@
                 // Remove crossorigin attribute for file:// protocol to avoid CORS issues
                 img.removeAttribute('crossorigin');
                 
-                // Wait for image to load, then convert to data URL before initializing viewer
-                if (img.complete && img.naturalWidth > 0) {
+                // Force reload the image to ensure it loads without crossorigin
+                const originalSrc = img.src;
+                img.src = '';
+                
+                img.onload = () => {
+                    console.log('🔧 Image loaded successfully, converting to data URL...');
                     convertAndInitialize();
-                } else {
-                    img.onload = convertAndInitialize;
-                    img.onerror = (error) => {
-                        console.warn('🔧 Image failed to load:', error);
-                        // Initialize viewer with fallback
-                        window.viewer = new ImageViewer();
-                    };
-                }
+                };
+                
+                img.onerror = (error) => {
+                    console.error('❌ Image failed to load:', error);
+                    // Initialize viewer anyway
+                    window.viewer = new ImageViewer();
+                };
+                
+                // Reload the image
+                img.src = originalSrc;
                 
                 function convertAndInitialize() {
                     try {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // Use actual image dimensions or fallback
-                        const width = img.naturalWidth || 1600;
-                        const height = img.naturalHeight || 1024;
+                        // Use actual image dimensions
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
                         
-                        canvas.width = width;
-                        canvas.height = height;
+                        console.log('🔧 Converting image to data URL...', {
+                            width: img.naturalWidth,
+                            height: img.naturalHeight,
+                            src: img.src
+                        });
                         
-                        // Try to draw the image
+                        // Draw the image to canvas
                         ctx.drawImage(img, 0, 0);
                         
-                        // Test if canvas is tainted
-                        try {
-                            ctx.getImageData(0, 0, 1, 1);
-                            // Canvas is not tainted, convert to data URL
-                            const dataURL = canvas.toDataURL('image/jpeg', 0.9);
-                            img.src = dataURL;
-                            console.log('🔧 Converted image to data URL for standalone mode');
-                        } catch (securityError) {
-                            console.warn('🔧 Canvas tainted, keeping original image source');
-                            // Keep original image source, viewer will handle tainting issues
-                        }
+                        // Convert to data URL (this should work since crossorigin is removed)
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.9);
                         
-                        // Initialize viewer after conversion attempt
+                        // Replace image source with data URL
+                        img.src = dataURL;
+                        console.log('✅ Successfully converted image to data URL');
+                        
+                        // Initialize viewer after successful conversion
                         setTimeout(() => {
                             window.viewer = new ImageViewer();
                         }, 100);
                         
                     } catch (error) {
-                        console.warn('🔧 Could not process image:', error.message);
-                        // Initialize viewer anyway - it has fallback mechanisms
+                        console.error('❌ Failed to convert image to data URL:', error.message);
+                        // Initialize viewer anyway but it will have tainting issues
                         window.viewer = new ImageViewer();
                     }
                 }
