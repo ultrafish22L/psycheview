@@ -1007,10 +1007,7 @@
                         console.log('📏 Generated image dimensions:', generatedDimensions);
                         
                         // Adjust block positioning based on actual returned image dimensions
-                        const block = this.outfillBlocks.get(blockKey);
-                        if (block) {
-                            this.adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions);
-                        }
+                        // Block positioning is now handled by positionOutpaintBackground
                     };
                     img.src = imageUrl;
                     
@@ -1312,8 +1309,8 @@
                 const visibleBlocks = new Set();
                 
                 // BLOCK SYSTEM: Each block is exactly the original image size
-                const blockWidth = this.imageWidth;   // 1600px
-                const blockHeight = this.imageHeight; // 1024px
+                const blockWidth = this.imageWidth;
+                const blockHeight = this.imageHeight;
 
                 // Calculate viewport bounds in world coordinates
                 // Original image is at world position (0,0) to (imageWidth, imageHeight)
@@ -1436,12 +1433,6 @@
                 }
                 
                 console.log(`🔍 INFINITE GRID: topLeft=(${imageTopLeftX},${imageTopLeftY}), spacing=(${gridSpacingX},${gridSpacingY}), scale=${this.scale}`);
-            }
-            
-            // Helper method to update API configuration
-            updateApiConfig(newConfig) {
-                this.apiConfig = { ...this.apiConfig, ...newConfig };
-                console.log('🔧 API Configuration Updated:', this.apiConfig);
             }
             
             async simulateGeneration(blockKey) {
@@ -2895,11 +2886,6 @@
                     console.warn(`⚠️ Source block ${sourceBlockKey} not available, using original image`);
                     return await this.getImageAsBlob();
                 }
-            }
-
-            adjustBlockPositionForActualDimensions(blockKey, block, generatedDimensions) {
-                // This method is now deprecated - positioning is handled in positionOutpaintBackground
-                console.log(`🔧 adjustBlockPositionForActualDimensions called for ${blockKey} - using new positioning system`);
             }
 
             async callStabilityAPI(blockKey) {
