@@ -387,7 +387,7 @@
     </div>
 
     <!-- Queue indicator - always visible in top row -->
-    <div class="queue-indicator" id="queueIndicator">Queue: 0 | Active: 0</div>
+    <div class="queue-indicator" id="queueIndicator">Active: 0 | Expansion: Waiting</div>
 
     <!-- Debug windows positioned outside app-container for true browser window positioning -->
     <div class="debug-info" id="debugInfo" style="position: fixed; top: 0; right: 0; width: 280px; height: 50vh; background: rgba(0,0,0,0.85); color: white; padding: 12px; font-family: monospace; font-size: 10px; z-index: 1000; overflow-y: auto; border-left: 2px solid #444; backdrop-filter: blur(10px); display: none;">
@@ -513,11 +513,7 @@
                 // Auto-generation control (default: true - blocks are added automatically)
                 this.autoGenerateBlocks = true;
                 
-                // 🌀 SPIRAL SYSTEM: Breakthrough composite layering
-                this.spiralRings = []; // Array of rings, each ring is array of block coordinates
-                this.currentRing = 0;
-                this.currentRingPosition = 0;
-                this.spiralInitialized = false;
+                // Simple expansion system - no complex spiral
                 
                 // API calls control
                 this.apiCallsEnabled = true;
@@ -531,8 +527,8 @@
                 // Grid visibility control (false = hidden, true = visible)
                 this.gridVisible = false;
                 
-                // API system - always try API calls if key available
-                this.apiKey = 'sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8';
+                // API system - will be set from environment or user input
+                this.apiKey = null;
 
                 
                 // Stability AI API Configuration
@@ -547,11 +543,10 @@
                 
                 // Outfill properties
                 this.outfillBlocks = new Map();
-                this.generationQueue = [];
                 this.activeGenerations = 0;
-                this.lastVisibleBlocks = new Set();
                 this.imageWidth = 0;
                 this.imageHeight = 0;
+                this.hasTriggeredExpansion = false; // Simple flag to trigger one expansion
                 
                 this.init();
             }
@@ -812,7 +807,7 @@
                 console.log('✅ Zoomed out to maximum scale: 0.25x');
             }
             
-            async generateOutfill(blockKey) {
+            async generateOutfill(blockKey, directionX = null, directionY = null) {
                 console.log('🚀 Starting generateOutfill for block:', blockKey);
                 
                 if (!this.apiKey) {
@@ -840,23 +835,31 @@
                     formData.append('output_format', this.config.output_format);
                     formData.append('creativity', this.config.creativity.toString());
                     
-                    // Add outpaint directions based on block position
-                    const { directionX, directionY, gridX, gridY } = this.getOutpaintDirections(blockKey);
-                    const blockSizeX = Math.round(this.imageWidth / this.blockDivisions);
-                    const blockSizeY = Math.round(this.imageHeight / this.blockDivisions);
+                    // Use passed direction parameters or calculate from block position
+                    let finalDirectionX = directionX;
+                    let finalDirectionY = directionY;
                     
-                    console.log(`🎯 Block ${blockKey} outpaint directions: directionX=${directionX}, directionY=${directionY} (${blockSizeX}x${blockSizeY}px)`);
+                    if (finalDirectionX === null || finalDirectionY === null) {
+                        const directions = this.getOutpaintDirections(blockKey);
+                        finalDirectionX = directions.directionX;
+                        finalDirectionY = directions.directionY;
+                    }
+                    
+                    const blockSizeX = this.imageWidth;  // Full image width for 3-block trick
+                    const blockSizeY = this.imageHeight; // Full image height for 3-block trick
+                    
+                    console.log(`🎯 Block ${blockKey} outpaint directions: directionX=${finalDirectionX}, directionY=${finalDirectionY} (${blockSizeX}x${blockSizeY}px)`);
                     
                     // Add direction-based outpaint parameters
-                    if (directionX > 0) {
+                    if (finalDirectionX > 0) {
                         formData.append('right', blockSizeX.toString());
-                    } else if (directionX < 0) {
+                    } else if (finalDirectionX < 0) {
                         formData.append('left', blockSizeX.toString());
                     }
                     
-                    if (directionY > 0) {
+                    if (finalDirectionY > 0) {
                         formData.append('down', blockSizeY.toString());
-                    } else if (directionY < 0) {
+                    } else if (finalDirectionY < 0) {
                         formData.append('up', blockSizeY.toString());
                     }
                     
@@ -1229,18 +1232,20 @@
             async initializeApiKey() {
                 try {
                     // Try to get API key from environment variable
-//                    const response = await fetch('/api/config');
-//                    const config = await response.json();
+                    const response = await fetch('/api/config');
+                    const config = await response.json();
                     
                     if (config.apiKey) {
-                        this.apiKey = "sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8"; //config.apiKey;
+                        this.apiKey = config.apiKey;
                         this.apiKeyInput.placeholder = 'API Key Set ✓';
                         this.setApiKeyBtn.textContent = 'Update';
-                        console.log('API key loaded from environment variable');
+                        console.log('🔑 API key loaded from environment variable');
                         // Live mode is always enabled
+                    } else {
+                        console.log('🔑 No API key found in environment - using demo mode');
                     }
                 } catch (error) {
-                    console.error('Failed to fetch API config:', error);
+                    console.log('🔑 API config fetch failed - using demo mode:', error.message);
                 }
             }
             
@@ -1994,17 +1999,9 @@
                     console.log(`🆕 Found newly adjacent block: ${adjBlockKey} (adjacent to completed ${completedBlockKey})`);
                 }
                 
-                // Add newly adjacent blocks to the system
-                if (newlyAdjacentBlocks.length > 0 && this.autoGenerateBlocks) {
-                    console.log('🚀 Adding newly adjacent blocks to queue:', newlyAdjacentBlocks);
-                    
-                    for (const blockKey of newlyAdjacentBlocks) {
-                        this.outfillBlocks.set(blockKey, { status: 'queued', progress: 0, imageData: null });
-                        this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
-                        this.generationQueue.push(blockKey);
-                    }
-                    
-                    this.processGenerationQueue();
+                // No longer adding to queue - using simple expansion trigger instead
+                if (newlyAdjacentBlocks.length > 0) {
+                    console.log('🚀 Found newly adjacent blocks (no longer queuing):', newlyAdjacentBlocks);
                 }
             }
 
@@ -2032,35 +2029,61 @@
             }
 
             checkVisibleBlocks() {
-                const currentVisibleBlocks = this.getVisibleBlocks();
-                
                 // Update debug info
                 this.debugInfo.innerHTML = `
                     <div>Image: ${this.imageWidth}x${this.imageHeight}</div>
                     <div>Container: ${this.containerWidth}x${this.containerHeight}</div>
                     <div>Transform: ${this.translateX.toFixed(1)}, ${this.translateY.toFixed(1)}</div>
                     <div>Scale: ${this.scale.toFixed(2)}</div>
-                    <div>Visible Blocks: ${currentVisibleBlocks.size}</div>
-                    <div>Queue: ${this.generationQueue.length}</div>
                     <div>Active: ${this.activeGenerations}</div>
                 `;
                 
-                // 🌀 SPIRAL SYSTEM: Use spiral-based queue instead of priority-based
-                if (this.autoGenerateBlocks) {
-                    // Check if we need to queue more spiral blocks
-                    if (this.generationQueue.length === 0 && this.activeGenerations === 0) {
-                        console.log('🌀 Queue empty, checking for next spiral blocks...');
-                        const queuedCount = this.queueVisibleSpiralBlocks();
-                        
-                        if (queuedCount > 0) {
-                            this.processGenerationQueue();
-                        }
+                // Simple expansion trigger: when user gets near edge and we haven't expanded yet
+                if (this.autoGenerateBlocks && !this.hasTriggeredExpansion && this.activeGenerations === 0) {
+                    if (this.isNearImageEdge()) {
+                        console.log('🎯 User near edge - triggering 3-block expansion');
+                        this.triggerExpansion();
                     }
-                } else {
-                    console.log('🔄 Auto-generation disabled - not adding spiral blocks automatically');
                 }
+            }
+            
+            // Simple edge detection - check if user is near any edge of the original image
+            isNearImageEdge() {
+                const margin = 200; // pixels from edge to trigger expansion
                 
-                this.lastVisibleBlocks = currentVisibleBlocks;
+                // Calculate image bounds in screen coordinates
+                const imageLeft = (this.containerWidth - this.imageWidth * this.scale) / 2 + this.translateX;
+                const imageTop = (this.containerHeight - this.imageHeight * this.scale) / 2 + this.translateY;
+                const imageRight = imageLeft + this.imageWidth * this.scale;
+                const imageBottom = imageTop + this.imageHeight * this.scale;
+                
+                // Check if any edge is close to viewport
+                const nearLeft = imageLeft > -margin;
+                const nearRight = imageRight < this.containerWidth + margin;
+                const nearTop = imageTop > -margin;
+                const nearBottom = imageBottom < this.containerHeight + margin;
+                
+                return nearLeft || nearRight || nearTop || nearBottom;
+            }
+            
+            // Trigger the single strategic expansion - 2x2 call for blocks (0,0), (1,0), (0,1), (1,1)
+            async triggerExpansion() {
+                this.hasTriggeredExpansion = true;
+                console.log('🎯 STRATEGIC EXPANSION: Making single 2x2 API call for 3-block trick');
+                
+                // Use direction (1,1) to get a 2x2 response covering:
+                // (0,0) = original, (1,0) = right, (0,1) = down, (1,1) = diagonal
+                const blockKey = '1,1'; // Target the diagonal block
+                const directionX = 1;
+                const directionY = 1;
+                
+                // Create placeholder blocks for the 3 new blocks we'll get
+                this.createBlock('1,0'); // right
+                this.createBlock('0,1'); // down  
+                this.createBlock('1,1'); // diagonal
+                
+                // Make the strategic API call
+                await this.generateOutfill(blockKey, directionX, directionY);
             }
             
             calculateBlockPriority(blockKey) {
@@ -2137,586 +2160,16 @@
                 return priority;
             }
 
-            updateGenerationQueue() {
-                // Calculate priorities for all queued blocks
-                const queuedBlocks = this.generationQueue.map(blockKey => ({
-                    blockKey,
-                    priority: this.calculateBlockPriority(blockKey)
-                }));
-                
-                // Sort by priority (highest first)
-                queuedBlocks.sort((a, b) => b.priority - a.priority);
-                
-                // Update the queue with sorted block keys
-                this.generationQueue = queuedBlocks.map(item => item.blockKey);
-                
-                // Update queue indicator
-                this.updateQueueIndicator();
-            }
-
-            // 🧩 3-BLOCK TRICK: Strategic Multi-Block Generation Functions
-            
-            findStrategicMultiBlockOpportunity() {
-                if (this.generationQueue.length < 2) return null; // Need at least 2 blocks for efficiency
-                
-                // Look for diagonal blocks that can benefit from 3-block trick
-                for (let i = 0; i < this.generationQueue.length; i++) {
-                    const blockKey = this.generationQueue[i];
-                    const [gridX, gridY] = blockKey.split(',').map(Number);
-                    
-                    // Check if this is a diagonal block (both X and Y non-zero)
-                    if (gridX !== 0 && gridY !== 0) {
-                        // Check if we can generate useful adjacent blocks
-                        const strategicCall = this.calculateStrategicCall(blockKey);
-                        if (strategicCall && this.isStrategicCallWorthwhile(strategicCall)) {
-                            return strategicCall;
-                        }
-                    }
-                }
-                
-                return null; // No strategic opportunity found
-            }
-            
-            calculateStrategicCall(targetBlockKey) {
-                const [targetX, targetY] = targetBlockKey.split(',').map(Number);
-                
-                // For diagonal block (1,1), we want to make a call that generates:
-                // - The target block (1,1)
-                // - Useful adjacent blocks like (1,0) and (0,1)
-                
-                // Strategy: Call from (0,0) with directions that include the target
-                const strategicOrigin = '0,0'; // Always use original image as reference
-                const directionX = targetX > 0 ? 1 : -1;
-                const directionY = targetY > 0 ? 1 : -1;
-                
-                // Calculate which blocks this strategic call would generate
-                const generatedBlocks = [
-                    `${directionX > 0 ? 1 : -1},0`, // Horizontal adjacent
-                    `0,${directionY > 0 ? 1 : -1}`, // Vertical adjacent  
-                    `${directionX > 0 ? 1 : -1},${directionY > 0 ? 1 : -1}` // Diagonal target
-                ];
-                
-                return {
-                    originBlock: strategicOrigin,
-                    directionX: directionX,
-                    directionY: directionY,
-                    targetBlock: targetBlockKey,
-                    generatedBlocks: generatedBlocks
-                };
-            }
-            
-            isStrategicCallWorthwhile(strategicCall) {
-                // Check how many of the generated blocks are actually needed
-                let neededBlocks = 0;
-                let queuedBlocks = [];
-                
-                strategicCall.generatedBlocks.forEach(blockKey => {
-                    if (this.generationQueue.includes(blockKey) || 
-                        (!this.outfillBlocks.has(blockKey) && this.isBlockAdjacentToContent(blockKey))) {
-                        neededBlocks++;
-                        if (this.generationQueue.includes(blockKey)) {
-                            queuedBlocks.push(blockKey);
-                        }
-                    }
-                });
-                
-                // Strategic call is worthwhile if we need at least 2 of the 3 blocks
-                const isWorthwhile = neededBlocks >= 2;
-                
-                if (isWorthwhile) {
-                    console.log(`🎯 Strategic call worthwhile: ${neededBlocks}/3 blocks needed`, {
-                        target: strategicCall.targetBlock,
-                        generated: strategicCall.generatedBlocks,
-                        queued: queuedBlocks
-                    });
-                }
-                
-                return isWorthwhile;
-            }
-            
-            async executeStrategicMultiBlockCall(strategicCall) {
-                this.activeGenerations++;
-                
-                // Mark all generated blocks as generating
-                strategicCall.generatedBlocks.forEach(blockKey => {
-                    // Remove from queue if present
-                    const queueIndex = this.generationQueue.indexOf(blockKey);
-                    if (queueIndex !== -1) {
-                        this.generationQueue.splice(queueIndex, 1);
-                    }
-                    
-                    // Create or update block status
-                    if (!this.outfillBlocks.has(blockKey)) {
-                        this.outfillBlocks.set(blockKey, { status: 'generating', progress: 0, imageData: null });
-                        this.updateOutfillBlock(blockKey, this.outfillBlocks.get(blockKey));
-                    } else {
-                        const block = this.outfillBlocks.get(blockKey);
-                        block.status = 'generating';
-                        this.updateOutfillBlock(blockKey, block);
-                    }
-                });
-                
-                console.log(`🧩 Executing strategic multi-block call for ${strategicCall.generatedBlocks.length} blocks:`, strategicCall.generatedBlocks);
-                
-                try {
-                    // Use the strategic origin and directions for the API call
-                    if (this.apiKey) {
-                        const result = await this.generateStrategicOutfill(strategicCall);
-                        console.log('✅ Strategic multi-block generation completed:', result);
-                    } else {
-                        // Show not connected for all blocks
-                        for (const blockKey of strategicCall.generatedBlocks) {
-                            await this.generateBlock(blockKey);
-                        }
-                    }
-                } catch (error) {
-                    console.error('❌ Strategic multi-block generation failed:', error);
-                    // Mark all blocks as failed
-                    strategicCall.generatedBlocks.forEach(blockKey => {
-                        const block = this.outfillBlocks.get(blockKey);
-                        if (block) {
-                            block.status = 'failed';
-                            this.updateOutfillBlock(blockKey, block);
-                        }
-                    });
-                } finally {
-                    this.activeGenerations--;
-                    this.processGenerationQueue();
-                }
-            }
-            
-            async generateStrategicOutfill(strategicCall) {
-                console.log('🚀 Starting strategic generateOutfill:', strategicCall);
-                
-                if (!this.apiKey) {
-                    throw new Error('No API key set');
-                }
-                
-                try {
-                    // Get the current image as a blob
-                    const imageBlob = await this.getImageAsBlob();
-                    console.log('📸 Strategic image blob size:', imageBlob.size, 'bytes');
-                    
-                    // Generate mask for strategic call (2x2 canvas with target areas)
-                    const maskBlob = await this.generateStrategicMask(strategicCall);
-                    console.log('🎭 Strategic mask size:', maskBlob.size, 'bytes');
-                    
-                    // Make API call with strategic directions
-                    const response = await this.callStabilityAPIStrategic(imageBlob, maskBlob, strategicCall);
-                    
-                    if (!response.ok) {
-                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    // Get the response blob
-                    const responseBlob = await response.blob();
-                    
-                    // Process multi-block response using existing system
-                    return await this.processStrategicMultiBlockResponse(responseBlob, strategicCall);
-                    
-                } catch (error) {
-                    console.error('Strategic outfill error:', error);
-                    throw error;
-                }
-            }
-            
-            async generateStrategicMask(strategicCall) {
-                // Create a 2x2 canvas mask for strategic multi-block generation
-                const canvas = document.createElement('canvas');
-                canvas.width = this.imageWidth * 2;
-                canvas.height = this.imageHeight * 2;
-                const ctx = canvas.getContext('2d');
-                
-                // Fill with black (preserve existing content)
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Mark the original image area as black (preserve)
-                ctx.fillStyle = 'black';
-                ctx.fillRect(
-                    this.imageWidth / 2,
-                    this.imageHeight / 2,
-                    this.imageWidth,
-                    this.imageHeight
-                );
-                
-                // Mark all target extension areas as white (outpaint)
-                ctx.fillStyle = 'white';
-                
-                strategicCall.generatedBlocks.forEach(blockKey => {
-                    const [gridX, gridY] = blockKey.split(',').map(Number);
-                    const targetX = this.imageWidth / 2 + (gridX * this.imageWidth);
-                    const targetY = this.imageHeight / 2 + (gridY * this.imageHeight);
-                    
-                    ctx.fillRect(targetX, targetY, this.imageWidth, this.imageHeight);
-                    console.log(`🎭 Strategic mask: marked block ${blockKey} at (${targetX}, ${targetY})`);
-                });
-                
-                return new Promise(resolve => {
-                    canvas.toBlob(resolve, 'image/png');
-                });
-            }
-            
-            async callStabilityAPIStrategic(imageBlob, maskBlob, strategicCall) {
-                const formData = new FormData();
-                formData.append('image', imageBlob, 'image.jpg');
-                formData.append('mask', maskBlob, 'mask.png');
-                formData.append('prompt', this.config.prompt);
-                formData.append('output_format', this.config.output_format);
-                formData.append('creativity', this.config.creativity.toString());
-                
-                // Add strategic direction parameters
-                const blockSizeX = this.imageWidth;
-                const blockSizeY = this.imageHeight;
-                
-                console.log(`🎯 Strategic API call directions: directionX=${strategicCall.directionX}, directionY=${strategicCall.directionY}`);
-                
-                // Add direction-based outpaint parameters
-                if (strategicCall.directionX > 0) {
-                    formData.append('right', blockSizeX.toString());
-                } else if (strategicCall.directionX < 0) {
-                    formData.append('left', blockSizeX.toString());
-                }
-                
-                if (strategicCall.directionY > 0) {
-                    formData.append('down', blockSizeY.toString());
-                } else if (strategicCall.directionY < 0) {
-                    formData.append('up', blockSizeY.toString());
-                }
-                
-                console.log('📤 Strategic API request to:', this.config.endpoint);
-                
-                return fetch(this.config.endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
-                        'Accept': 'image/*'
-                    },
-                    body: formData
-                });
-            }
-            
-            async processStrategicMultiBlockResponse(responseBlob, strategicCall) {
-                try {
-                    console.log(`🔄 Processing strategic multi-block response for ${strategicCall.generatedBlocks.length} blocks`);
-                    
-                    // Show downloaded image in debug preview
-                    this.showDebugPreview(responseBlob, strategicCall.generatedBlocks.join(','), 'Strategic API Response');
-                    
-                    // Create image from response blob
-                    const responseImage = new Image();
-                    const imageUrl = URL.createObjectURL(responseBlob);
-                    
-                    return new Promise((resolve, reject) => {
-                        responseImage.onload = () => {
-                            try {
-                                const canvas = document.createElement('canvas');
-                                const ctx = canvas.getContext('2d');
-                                
-                                canvas.width = responseImage.width;
-                                canvas.height = responseImage.height;
-                                ctx.drawImage(responseImage, 0, 0);
-                                
-                                // SEAMLESS LAYER APPROACH: Position entire image as one layer
-                                this.positionEntireImageAsLayer(imageUrl, strategicCall);
-                                
-                                // Clean up
-                                URL.revokeObjectURL(imageUrl);
-                                
-                                resolve({
-                                    blocksGenerated: strategicCall.generatedBlocks,
-                                    size: responseBlob.size
-                                });
-                                
-                            } catch (error) {
-                                console.error('Error processing strategic multi-block response:', error);
-                                reject(error);
-                            }
-                        };
-                        
-                        responseImage.onerror = () => {
-                            reject(new Error('Failed to load strategic response image'));
-                        };
-                        
-                        responseImage.src = imageUrl;
-                    });
-                    
-                } catch (error) {
-                    console.error('Error in processStrategicMultiBlockResponse:', error);
-                    throw error;
-                }
-            }
-            
-            positionEntireImageAsLayer(imageUrl, strategicCall) {
-                // Calculate the 3-block area bounds
-                const { directionX, directionY } = strategicCall;
-                const blocks = strategicCall.generatedBlocks;
-                
-                // Find min/max coordinates of the 3 blocks
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                blocks.forEach(blockKey => {
-                    const [gridX, gridY] = blockKey.split(',').map(Number);
-                    minX = Math.min(minX, gridX);
-                    maxX = Math.max(maxX, gridX);
-                    minY = Math.min(minY, gridY);
-                    maxY = Math.max(maxY, gridY);
-                });
-                
-                // Calculate 3-block area position and size
-                const areaLeft = minX * this.imageWidth;
-                const areaTop = minY * this.imageHeight;
-                const areaWidth = (maxX - minX + 1) * this.imageWidth;
-                const areaHeight = (maxY - minY + 1) * this.imageHeight;
-                
-                // Create layer element for entire downloaded image
-                const layerElement = document.createElement('div');
-                layerElement.id = `layer-${Date.now()}`;
-                layerElement.style.position = 'absolute';
-                layerElement.style.zIndex = '3';
-                layerElement.style.backgroundImage = `url(${imageUrl})`;
-                layerElement.style.backgroundRepeat = 'no-repeat';
-                layerElement.style.pointerEvents = 'none';
-                
-                // Position entire image in 3-block area (UV 0,0 to 1,1)
-                layerElement.style.left = `${areaLeft}px`;
-                layerElement.style.top = `${areaTop}px`;
-                layerElement.style.width = `${areaWidth}px`;
-                layerElement.style.height = `${areaHeight}px`;
-                layerElement.style.backgroundSize = `${areaWidth}px ${areaHeight}px`;
-                layerElement.style.backgroundPosition = '0px 0px';
-                
-                this.content.appendChild(layerElement);
-                
-                console.log(`🎨 Full image in 3-block area: position(${areaLeft},${areaTop}), size(${areaWidth}x${areaHeight})`);
-                
-                // Mark blocks as completed
-                strategicCall.generatedBlocks.forEach(blockKey => {
-                    this.outfillBlocks.set(blockKey, {
-                        status: 'completed',
-                        progress: 1,
-                        layerId: layerElement.id
-                    });
-                });
-            }
-
-            // Legacy function - replaced by positionEntireImageAsLayer()
-            // Kept for reference but no longer used
-
-            processGenerationQueue() {
-                // Resort queue before processing
-                this.updateGenerationQueue();
-                
-                if (this.generationQueue.length > 0 && this.activeGenerations < 1) {
-                    // 🌀 SPIRAL SYSTEM: Sequential generation only (no 3-block trick)
-                    const blockKey = this.generationQueue.shift();
-                    this.activeGenerations++;
-                    
-                    console.log(`🌀 Starting sequential generation for block: ${blockKey}`);
-                    
-                    // Change status from 'queued' to 'generating'
-                    const block = this.outfillBlocks.get(blockKey);
-                    if (block) {
-                        block.status = 'generating';
-                        this.updateOutfillBlock(blockKey, block);
-                    }
-                    
-                    // Use real API generation if key available
-                    if (this.apiKey) {
-                        this.generateWithAPI(blockKey).then((result) => {
-                            console.log('✅ Spiral generation completed successfully for block:', blockKey, result);
-                            this.activeGenerations--;
-                            
-                            // 🌀 BREAKTHROUGH: After each completion, check for next spiral block
-                            this.checkVisibleBlocks();
-                        }).catch((error) => {
-                            console.error('❌ Spiral generation failed for block:', blockKey, error);
-                            // Mark block as failed and continue
-                            const block = this.outfillBlocks.get(blockKey);
-                            if (block) {
-                                block.status = 'failed';
-                                this.updateOutfillBlock(blockKey, block);
-                            }
-                            this.activeGenerations--;
-                            
-                            // Continue with next spiral block even after failure
-                            this.checkVisibleBlocks();
-                        });
-                    } else {
-                        this.generateBlock(blockKey).then(() => {
-                            this.activeGenerations--;
-                            
-                            // Continue with next spiral block after generation
-                            this.checkVisibleBlocks();
-                        });
-                    }
-                }
-                
-                // Update queue indicator
-                this.updateQueueIndicator();
-            }
+            // Removed complex queue management and spiral system
+            // Removed all strategic multi-block functions  
+            // Replaced with simple 3-block trick expansion
 
             updateQueueIndicator() {
-                const queueCount = this.generationQueue.length;
                 const activeCount = this.activeGenerations;
-                this.queueIndicator.textContent = `Queue: ${queueCount} | Active: ${activeCount} | Ring: ${this.currentRing}`;
+                this.queueIndicator.textContent = `Active: ${activeCount} | Expansion: ${this.hasTriggeredExpansion ? 'Done' : 'Waiting'}`;
             }
 
-            // 🌀 SPIRAL SYSTEM: Breakthrough composite layering functions
-            
-            initializeSpiralSystem() {
-                if (this.spiralInitialized) return;
-                
-                console.log('🌀 Initializing spiral ring system...');
-                
-                // Generate spiral rings around original image (0,0)
-                this.spiralRings = [];
-                
-                // Ring 1: 8 blocks immediately around original
-                const ring1 = [
-                    // Lower right quadrant (start here as specified)
-                    [1, 1], [0, 1], [1, 0],
-                    // Lower left quadrant  
-                    [-1, 1], [-1, 0],
-                    // Upper left quadrant
-                    [-1, -1], [0, -1],
-                    // Upper right quadrant
-                    [1, -1]
-                ];
-                
-                // Ring 2: 16 blocks in next ring out
-                const ring2 = [
-                    // Lower right quadrant
-                    [2, 2], [2, 1], [1, 2], [2, 0], [0, 2],
-                    // Lower left quadrant
-                    [-2, 2], [-2, 1], [-1, 2], [-2, 0],
-                    // Upper left quadrant  
-                    [-2, -2], [-2, -1], [-1, -2], [0, -2],
-                    // Upper right quadrant
-                    [2, -2], [2, -1], [1, -2]
-                ];
-                
-                // Ring 3: 24 blocks in next ring out
-                const ring3 = [
-                    // Lower right quadrant
-                    [3, 3], [3, 2], [2, 3], [3, 1], [1, 3], [3, 0], [0, 3],
-                    // Lower left quadrant
-                    [-3, 3], [-3, 2], [-2, 3], [-3, 1], [-1, 3], [-3, 0],
-                    // Upper left quadrant
-                    [-3, -3], [-3, -2], [-2, -3], [-3, -1], [-1, -3], [0, -3],
-                    // Upper right quadrant
-                    [3, -3], [3, -2], [2, -3], [3, -1], [1, -3]
-                ];
-                
-                this.spiralRings = [ring1, ring2, ring3];
-                this.currentRing = 0;
-                this.currentRingPosition = 0;
-                this.spiralInitialized = true;
-                
-                console.log('🌀 Spiral rings initialized:', this.spiralRings.length, 'rings');
-                console.log('🌀 Ring 1:', ring1.length, 'blocks');
-                console.log('🌀 Ring 2:', ring2.length, 'blocks'); 
-                console.log('🌀 Ring 3:', ring3.length, 'blocks');
-            }
-            
-            getNextSpiralBlock() {
-                this.initializeSpiralSystem();
-                
-                // Check if we have more rings to process
-                if (this.currentRing >= this.spiralRings.length) {
-                    console.log('🌀 All spiral rings completed');
-                    return null;
-                }
-                
-                const currentRingBlocks = this.spiralRings[this.currentRing];
-                
-                // Check if current ring is completed
-                if (this.currentRingPosition >= currentRingBlocks.length) {
-                    console.log(`🌀 Ring ${this.currentRing} completed, moving to ring ${this.currentRing + 1}`);
-                    this.currentRing++;
-                    this.currentRingPosition = 0;
-                    
-                    // Recursively get next block from new ring
-                    return this.getNextSpiralBlock();
-                }
-                
-                // Get next block from current ring
-                const [gridX, gridY] = currentRingBlocks[this.currentRingPosition];
-                const blockKey = `${gridX},${gridY}`;
-                this.currentRingPosition++;
-                
-                console.log(`🌀 Next spiral block: ${blockKey} (Ring ${this.currentRing}, Position ${this.currentRingPosition - 1})`);
-                return blockKey;
-            }
-            
-            isBlockInCurrentVisibleArea(blockKey) {
-                const visibleBlocks = this.getVisibleBlocks();
-                return visibleBlocks.has(blockKey);
-            }
-            
-            queueVisibleSpiralBlocks() {
-                console.log('🌀 Queuing visible spiral blocks...');
-                
-                let queuedCount = 0;
-                
-                // Get next block from spiral without advancing position yet
-                const nextBlockKey = this.peekNextSpiralBlock();
-                
-                if (nextBlockKey && !this.outfillBlocks.has(nextBlockKey)) {
-                    // Only queue if visible
-                    if (this.isBlockInCurrentVisibleArea(nextBlockKey)) {
-                        // Now actually advance the spiral position
-                        this.getNextSpiralBlock();
-                        
-                        this.outfillBlocks.set(nextBlockKey, { status: 'queued', progress: 0, imageData: null });
-                        this.updateOutfillBlock(nextBlockKey, this.outfillBlocks.get(nextBlockKey));
-                        this.generationQueue.push(nextBlockKey);
-                        queuedCount++;
-                        console.log(`🌀 Queued visible spiral block: ${nextBlockKey}`);
-                    }
-                }
-                
-                console.log(`🌀 Queued ${queuedCount} visible spiral blocks`);
-                return queuedCount;
-            }
-            
-            peekNextSpiralBlock() {
-                this.initializeSpiralSystem();
-                
-                // Check if we have more rings to process
-                if (this.currentRing >= this.spiralRings.length) {
-                    return null;
-                }
-                
-                const currentRingBlocks = this.spiralRings[this.currentRing];
-                
-                // Check if current ring is completed
-                if (this.currentRingPosition >= currentRingBlocks.length) {
-                    // Would move to next ring, peek at first block of next ring
-                    if (this.currentRing + 1 >= this.spiralRings.length) {
-                        return null;
-                    }
-                    const nextRingBlocks = this.spiralRings[this.currentRing + 1];
-                    if (nextRingBlocks.length === 0) {
-                        return null;
-                    }
-                    const [gridX, gridY] = nextRingBlocks[0];
-                    return `${gridX},${gridY}`;
-                }
-                
-                // Peek at next block from current ring
-                const [gridX, gridY] = currentRingBlocks[this.currentRingPosition];
-                return `${gridX},${gridY}`;
-            }
-            
-            queueOneRingBeyondVisible() {
-                // This will queue blocks that are adjacent to visible area but not yet visible
-                // Implementation can be added later for smooth experience
-                console.log('🌀 Queuing one ring beyond visible area (placeholder)');
-            }
-
-
-
-
+            // All spiral system functions removed - replaced with simple strategic expansion
 
             async generateMaskForBlock(blockKey) {
                 const [gridX, gridY] = blockKey.split(',').map(Number);
