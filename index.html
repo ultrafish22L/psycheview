@@ -496,14 +496,14 @@
                 
 
                 
-                this.scale = 0.25;
+                this.scale = 0.125;
                 this.translateX = 0;
                 this.translateY = 0;
                 this.isDragging = false;
                 this.lastX = 0;
                 this.lastY = 0;
                 
-                this.minScale = 0.25;
+                this.minScale = 0.0625;
                 this.maxScale = 4;
                 
                 // Block size configuration (1 = same size as image, 4 = quarter size, etc.)
@@ -798,12 +798,12 @@
             zoomOutMax() {
                 console.log('🔍 Zooming out to maximum...');
                 
-                // Set scale to minimum (0.25x)
-                this.scale = 0.25;
+                // Set scale to minimum (0.0625x)
+                this.scale = 0.0625;
                 this.updateTransform();
                 this.checkVisibleBlocks();
                 
-                console.log('✅ Zoomed out to maximum scale: 0.25x');
+                console.log('✅ Zoomed out to maximum scale: 0.0625x');
             }
             
             
