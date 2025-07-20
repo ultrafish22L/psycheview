@@ -547,6 +547,9 @@
                 this.imageHeight = 0;
                 this.hasTriggeredExpansion = false; // Simple flag to trigger one expansion
                 
+                // Blob storage for CORS-safe image capture
+                this.overlayBlobs = new Map();
+                
                 this.init();
             }
             
@@ -2266,6 +2269,10 @@
                                 return;
                             }
                             
+                            // Store the original blob for CORS-safe capture
+                            this.overlayBlobs.set(overlay.id, responseBlob);
+                            console.log(`💾 Stored blob for overlay: ${responseBlob.size} bytes`);
+                            
                             console.log(`✅ 2x2 overlay created and positioned`);
                             
                             // 🌀 Start iterative expansion after first overlay
@@ -2468,12 +2475,12 @@
             }
 
             async expansionLoop() {
-                console.log('🔄 Starting expansion loop');
-                
-                // Capture current expanded image (original + all overlays)
-                const expandedImageBlob = await this.captureExpandedImage();
-                
-                if (expandedImageBlob) {
+                try {
+                    console.log('🔄 Starting expansion loop');
+                    
+                    // Capture current expanded image (original + all overlays)
+                    const expandedImageBlob = await this.captureExpandedImage();
+                    
                     console.log('📸 Captured expanded image, making next API call');
                     
                     // Make next API call using expanded image
@@ -2483,64 +2490,29 @@
                     setTimeout(() => {
                         this.expansionLoop();
                     }, 3000); // 3 second delay between expansions
-                } else {
-                    console.log('❌ Failed to capture expanded image, stopping expansion');
+                    
+                } catch (error) {
+                    console.error('❌ Expansion loop failed:', error.message);
+                    console.log('🛑 Stopping iterative expansion');
                 }
             }
 
             async captureExpandedImage() {
-                try {
-                    console.log('📸 Capturing current expanded image...');
-                    
-                    // Get the viewer content container
-                    const viewerContent = document.getElementById('viewerContent');
-                    if (!viewerContent) {
-                        throw new Error('viewerContent not found');
-                    }
-
-                    // Create canvas to capture the current state
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Find the expansion overlay (the 2x2 result)
-                    const overlay = document.getElementById('expansion-overlay');
-                    if (!overlay) {
-                        console.log('⚠️ No expansion overlay found, using original image');
-                        return await this.getImageAsBlob();
-                    }
-
-                    // Get overlay dimensions
-                    const overlayRect = overlay.getBoundingClientRect();
-                    canvas.width = overlayRect.width;
-                    canvas.height = overlayRect.height;
-
-                    // Draw the overlay background image to canvas
-                    const overlayImage = new Image();
-                    const overlayBgImage = overlay.style.backgroundImage;
-                    const imageUrl = overlayBgImage.slice(5, -2); // Remove 'url("' and '")'
-                    
-                    return new Promise((resolve) => {
-                        overlayImage.onload = () => {
-                            ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
-                            
-                            canvas.toBlob((blob) => {
-                                console.log(`✅ Captured expanded image: ${blob.size} bytes`);
-                                resolve(blob);
-                            }, 'image/jpeg', 0.9);
-                        };
-                        
-                        overlayImage.onerror = () => {
-                            console.log('❌ Failed to load overlay image, using original');
-                            resolve(null);
-                        };
-                        
-                        overlayImage.src = imageUrl;
-                    });
-
-                } catch (error) {
-                    console.error('❌ Error capturing expanded image:', error);
-                    return null;
+                console.log('📸 Capturing current expanded image...');
+                
+                // Find the expansion overlay (the 2x2 result)
+                const overlay = document.getElementById('expansion-overlay');
+                if (!overlay) {
+                    throw new Error('No expansion overlay found');
                 }
+
+                // Get the stored blob from the overlay element
+                if (this.overlayBlobs && this.overlayBlobs.has(overlay.id)) {
+                    console.log('✅ Using stored blob for capture');
+                    return this.overlayBlobs.get(overlay.id);
+                }
+
+                throw new Error('No stored blob available for capture');
             }
 
             async expandFromCapturedImage(imageBlob) {
@@ -2550,6 +2522,11 @@
                     // Remove existing overlay to prepare for new one
                     const existingOverlay = document.getElementById('expansion-overlay');
                     if (existingOverlay) {
+                        // Clean up stored blob
+                        if (this.overlayBlobs.has(existingOverlay.id)) {
+                            this.overlayBlobs.delete(existingOverlay.id);
+                            console.log('🗑️ Cleaned up stored blob');
+                        }
                         existingOverlay.remove();
                         console.log('🗑️ Removed existing overlay');
                     }
