@@ -691,7 +691,7 @@
                 
                 // Add keyboard shortcut to toggle debug windows
                 document.addEventListener('keydown', (e) => {
-                    if (e.key === 'F12' || (e.ctrlKey && e.key === 'd')) {
+                    if ((e.ctrlKey && e.key === 'd')) {
                         e.preventDefault();
                         this.toggleDebug();
                     } else if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
@@ -812,7 +812,7 @@
                 
                 if (!this.apiKey) {
                     console.log('🔑 Setting API key for live generation');
-                    this.apiKey = 'sk-khSJsDLcgZd4LxCCRoylXQhiZmPwbAWfdiKCuZ71YzkoJvm8';
+                    this.apiKey = 'sk-fiMPhfEsjhT7GxYJUttnKZagHH4Py4Ru1Bsl5dgmnSBHF9Lc';
                 }
                 
                 try {
@@ -1231,23 +1231,11 @@
             }
             
             async initializeApiKey() {
-                try {
-                    // Try to get API key from environment variable
-                    const response = await fetch('/api/config');
-                    const config = await response.json();
-                    
-                    if (config.apiKey) {
-                        this.apiKey = config.apiKey;
-                        this.apiKeyInput.placeholder = 'API Key Set ✓';
-                        this.setApiKeyBtn.textContent = 'Update';
-                        console.log('🔑 API key loaded from environment variable');
-                        // Live mode is always enabled
-                    } else {
-                        console.log('🔑 No API key found in environment - using demo mode');
-                    }
-                } catch (error) {
-                    console.log('🔑 API config fetch failed - using demo mode:', error.message);
-                }
+
+                this.apiKey = "sk-fiMPhfEsjhT7GxYJUttnKZagHH4Py4Ru1Bsl5dgmnSBHF9Lc"
+                this.apiKeyInput.placeholder = 'API Key Set ✓';
+                this.setApiKeyBtn.textContent = 'Update';
+                console.log('🔑 API key loaded from environment variable');
             }
             
 
@@ -1674,22 +1662,6 @@
                 
                 console.log('🔄 Block layer:', this.blocksOverImage ? 'OVER image' : 'UNDER image');
             }
-            // Show 2x2 composite preview (2x2 response positioned over original image)
-            async show2x2CompositePreview(responseBlob, sourceBlock, directionX, directionY, targetBlockKey) {
-                if (!this.debugPreview) return;
-
-                try {
-                    console.log(`🖼️ Showing 2x2 response preview: source=${sourceBlock}, direction=(${directionX},${directionY})`);
-                    
-                    // Simply show the response blob directly to avoid canvas tainting issues
-                    this.showDebugPreview(responseBlob, targetBlockKey, `2x2 Response (${directionX},${directionY})`);
-                    
-                } catch (error) {
-                    console.error('❌ Error in show2x2CompositePreview:', error);
-                    // Fallback to regular preview
-                    this.showDebugPreview(responseBlob, targetBlockKey, '2x2 Response (fallback)');
-                }
-            }
 
             // Show debug preview with blob
             showDebugPreview(blob, blockKey, description = 'api-response') {
@@ -2096,7 +2068,8 @@
                 this.createBlock('1,1'); // diagonal
                 
                 // Make the strategic API call
-                await this.generateOutfill(blockKey, directionX, directionY);
+//                await this.generateOutfill(blockKey, directionX, directionY);
+                await this.callStabilityAPI(blockKey, directionX, directionY);
             }
             
             calculateBlockPriority(blockKey) {
@@ -2464,7 +2437,7 @@
                     throw error;
                 }
             }
-
+// FUNC
             async processMultiBlockResponse(responseBlob, targetBlockKey, directionX, directionY) {
                 console.log(`🎯 SIMPLE OVERLAY: Just position 2x2 response over original image`);
                 
@@ -2660,120 +2633,6 @@
                 
                 console.log(`✅ Block ${blockKey} created and positioned`);
             }
-
-            // Legacy method - keeping for compatibility but not used in new system
-            extractAndPlaceBlocks(sourceCanvas, originalBlockKey, directionX, directionY) {
-                console.log(`⚠️ Legacy extractAndPlaceBlocks called - should use extract2x2Blocks instead`);
-                const [originalGridX, originalGridY] = originalBlockKey.split(',').map(Number);
-                
-                // BLOCKSIZE=1: Each block is exactly the original image size
-                const blockSizeX = this.imageWidth;   // 1600px
-                const blockSizeY = this.imageHeight;  // 1024px
-                
-                console.log(`🧩 Extracting blocks from ${sourceCanvas.width}x${sourceCanvas.height} canvas`);
-                
-                // Calculate which blocks to extract based on direction
-                const blocksToExtract = [];
-                
-                if (directionX !== 0 && directionY !== 0) {
-                    // Diagonal direction - extracts 3 blocks
-                    const rightBlockX = originalGridX + (directionX > 0 ? 1 : -1);
-                    const downBlockY = originalGridY + (directionY > 0 ? 1 : -1);
-                    
-                    blocksToExtract.push({
-                        blockKey: `${rightBlockX},${originalGridY}`,
-                        sourceX: directionX > 0 ? blockSizeX : 0,
-                        sourceY: 0,
-                        width: blockSizeX,
-                        height: blockSizeY
-                    });
-                    
-                    blocksToExtract.push({
-                        blockKey: `${originalGridX},${downBlockY}`,
-                        sourceX: 0,
-                        sourceY: directionY > 0 ? blockSizeY : 0,
-                        width: blockSizeX,
-                        height: blockSizeY
-                    });
-                    
-                    blocksToExtract.push({
-                        blockKey: `${rightBlockX},${downBlockY}`,
-                        sourceX: directionX > 0 ? blockSizeX : 0,
-                        sourceY: directionY > 0 ? blockSizeY : 0,
-                        width: blockSizeX,
-                        height: blockSizeY
-                    });
-                    
-                } else if (directionX !== 0) {
-                    // Horizontal direction - extracts 1 block
-                    const newBlockX = originalGridX + (directionX > 0 ? 1 : -1);
-                    blocksToExtract.push({
-                        blockKey: `${newBlockX},${originalGridY}`,
-                        sourceX: directionX > 0 ? blockSizeX : 0,
-                        sourceY: 0,
-                        width: blockSizeX,
-                        height: blockSizeY
-                    });
-                    
-                } else if (directionY !== 0) {
-                    // Vertical direction - extracts 1 block
-                    const newBlockY = originalGridY + (directionY > 0 ? 1 : -1);
-                    blocksToExtract.push({
-                        blockKey: `${originalGridX},${newBlockY}`,
-                        sourceX: 0,
-                        sourceY: directionY > 0 ? blockSizeY : 0,
-                        width: blockSizeX,
-                        height: blockSizeY
-                    });
-                }
-                
-                // Extract each block and update the system
-                blocksToExtract.forEach(block => {
-                    this.extractAndUpdateBlock(sourceCanvas, block);
-                });
-                
-                console.log(`✅ Extracted ${blocksToExtract.length} blocks from API response`);
-            }
-
-            extractAndUpdateBlock(sourceCanvas, blockInfo) {
-                try {
-                    // Create canvas for this block
-                    const blockCanvas = document.createElement('canvas');
-                    const blockCtx = blockCanvas.getContext('2d');
-                    
-                    blockCanvas.width = blockInfo.width;
-                    blockCanvas.height = blockInfo.height;
-                    
-                    // Extract the block area from source canvas
-                    blockCtx.drawImage(
-                        sourceCanvas,
-                        blockInfo.sourceX, blockInfo.sourceY, blockInfo.width, blockInfo.height,
-                        0, 0, blockInfo.width, blockInfo.height
-                    );
-                    
-                    // Convert to data URL
-                    const blockDataUrl = blockCanvas.toDataURL('image/jpeg', 0.9);
-                    
-                    // Update the block in our system
-                    this.outfillBlocks.set(blockInfo.blockKey, {
-                        status: 'ready',
-                        progress: 1,
-                        imageData: blockDataUrl
-                    });
-                    
-                    this.updateOutfillBlock(blockInfo.blockKey, this.outfillBlocks.get(blockInfo.blockKey));
-                    
-                    console.log(`🎯 Block ${blockInfo.blockKey} extracted and updated`);
-                    
-                    // Check for newly adjacent blocks
-                    this.checkForNewlyAdjacentBlocks(blockInfo.blockKey);
-                    
-                } catch (error) {
-                    console.error(`Error extracting block ${blockInfo.blockKey}:`, error);
-                }
-            }
-
-
 
             updateTransform() {
                 this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
