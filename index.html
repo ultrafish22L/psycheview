@@ -820,22 +820,57 @@
                     const ctx = canvas.getContext('2d');
                     const img = this.image;
                     
+                    // Debug: Log image state
+                    console.log('🔧 getImageAsBlob() debug:', {
+                        imgSrc: img.src.substring(0, 50) + '...',
+                        naturalWidth: img.naturalWidth,
+                        naturalHeight: img.naturalHeight,
+                        complete: img.complete,
+                        crossOrigin: img.crossOrigin
+                    });
+                    
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
                     
                     try {
                         ctx.drawImage(img, 0, 0);
+                        
+                        // Try toBlob first (preferred method)
                         canvas.toBlob((blob) => {
                             if (blob) {
+                                console.log('✅ toBlob() success:', blob.size, 'bytes');
                                 resolve(blob);
                             } else {
-                                reject(new Error('Failed to create image blob'));
+                                console.log('⚠️ toBlob() returned null, trying dataURL fallback...');
+                                // Fallback: Convert dataURL to blob
+                                try {
+                                    const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                                    const blob = this.dataURLToBlob(dataURL);
+                                    console.log('✅ dataURL fallback success:', blob.size, 'bytes');
+                                    resolve(blob);
+                                } catch (fallbackError) {
+                                    console.error('❌ Both toBlob() and dataURL fallback failed');
+                                    reject(new Error('Failed to create image blob: ' + fallbackError.message));
+                                }
                             }
                         }, 'image/jpeg', 0.9);
                     } catch (error) {
                         reject(new Error('Canvas tainted - cannot process image: ' + error.message));
                     }
                 });
+            }
+            
+            // Helper: Convert dataURL to blob
+            dataURLToBlob(dataURL) {
+                const arr = dataURL.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new Blob([u8arr], { type: mime });
             }
             
             // 🌀 BREAKTHROUGH: Sample composite image for next generation
