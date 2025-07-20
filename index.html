@@ -2205,11 +2205,10 @@
                     
                     console.log(`📤 API Request: ${directionX > 0 ? 'right=' + blockSizeX : ''}${directionX < 0 ? 'left=' + blockSizeX : ''}${directionY > 0 ? ' down=' + blockSizeY : ''}${directionY < 0 ? ' up=' + blockSizeY : ''}`);
                     
-                    // Make API call
-                    const response = await fetch(this.apiConfig.endpoint, {
+                    // Make API call through our proxy
+                    const response = await fetch('/api/outpaint', {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${this.apiKey}`,
                             'Accept': 'image/*'
                         },
                         body: formData

@@ -50,6 +50,59 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Proxy endpoint for Stability AI API
+    if (pathname === '/api/outpaint' && req.method === 'POST') {
+        if (!STABILITY_API_KEY) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'STABILITY_API_KEY not configured' }));
+            return;
+        }
+
+        // Collect request body
+        let body = [];
+        req.on('data', chunk => {
+            body.push(chunk);
+        });
+
+        req.on('end', () => {
+            const requestBody = Buffer.concat(body);
+            
+            // Forward request to Stability AI
+            const https = require('https');
+            const options = {
+                hostname: 'api.stability.ai',
+                port: 443,
+                path: '/v2beta/stable-image/edit/outpaint',
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${STABILITY_API_KEY}`,
+                    'Content-Type': req.headers['content-type'],
+                    'Content-Length': requestBody.length
+                }
+            };
+
+            const proxyReq = https.request(options, (proxyRes) => {
+                // Forward response headers
+                res.writeHead(proxyRes.statusCode, proxyRes.headers);
+                
+                // Forward response body
+                proxyRes.pipe(res);
+            });
+
+            proxyReq.on('error', (err) => {
+                console.error('Proxy request error:', err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Proxy request failed' }));
+            });
+
+            // Send the request body
+            proxyReq.write(requestBody);
+            proxyReq.end();
+        });
+
+        return;
+    }
+
     // Serve static files
     let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
     
