@@ -371,8 +371,7 @@
         <div class="api-key-input" id="apiKeyContainer">
             <input type="password" id="apiKeyInput" placeholder="Enter Stability AI API Key" />
             <button id="setApiKeyBtn">Set Key</button>
-
-
+            <button id="testApiBtn">Test API</button>
         </div>
 
         <div class="image-viewer" id="imageViewer">
@@ -2268,6 +2267,13 @@
                             }
                             
                             console.log(`✅ 2x2 overlay created and positioned`);
+                            
+                            // 🌀 Start iterative expansion after first overlay
+                            setTimeout(() => {
+                                console.log('🌀 Triggering iterative expansion in 5 seconds...');
+                                this.startIterativeExpansion();
+                            }, 5000);
+                            
                             resolve(imageUrl);
                             
                         } catch (error) {
@@ -2438,6 +2444,183 @@
                 this.zoomIndicator.textContent = `${this.scale.toFixed(2)}x`;
                 this.drawGrid(); // Redraw grid when transform changes
                 this.checkVisibleBlocks();
+            }
+
+            // 🌀 ITERATIVE EXPANSION SYSTEM
+            // Captures current expanded image and uses it for next API call
+            async startIterativeExpansion() {
+                console.log('🌀 STARTING ITERATIVE EXPANSION SYSTEM');
+                
+                // Wait for current expansion to complete
+                await this.waitForCurrentExpansion();
+                
+                // Start expansion loop
+                this.expansionLoop();
+            }
+
+            async waitForCurrentExpansion() {
+                // Wait until no active generations
+                while (this.activeGenerations > 0) {
+                    console.log('⏳ Waiting for current expansion to complete...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                console.log('✅ Current expansion complete, ready for next iteration');
+            }
+
+            async expansionLoop() {
+                console.log('🔄 Starting expansion loop');
+                
+                // Capture current expanded image (original + all overlays)
+                const expandedImageBlob = await this.captureExpandedImage();
+                
+                if (expandedImageBlob) {
+                    console.log('📸 Captured expanded image, making next API call');
+                    
+                    // Make next API call using expanded image
+                    await this.expandFromCapturedImage(expandedImageBlob);
+                    
+                    // Schedule next iteration
+                    setTimeout(() => {
+                        this.expansionLoop();
+                    }, 3000); // 3 second delay between expansions
+                } else {
+                    console.log('❌ Failed to capture expanded image, stopping expansion');
+                }
+            }
+
+            async captureExpandedImage() {
+                try {
+                    console.log('📸 Capturing current expanded image...');
+                    
+                    // Get the viewer content container
+                    const viewerContent = document.getElementById('viewerContent');
+                    if (!viewerContent) {
+                        throw new Error('viewerContent not found');
+                    }
+
+                    // Create canvas to capture the current state
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Find the expansion overlay (the 2x2 result)
+                    const overlay = document.getElementById('expansion-overlay');
+                    if (!overlay) {
+                        console.log('⚠️ No expansion overlay found, using original image');
+                        return await this.getImageAsBlob();
+                    }
+
+                    // Get overlay dimensions
+                    const overlayRect = overlay.getBoundingClientRect();
+                    canvas.width = overlayRect.width;
+                    canvas.height = overlayRect.height;
+
+                    // Draw the overlay background image to canvas
+                    const overlayImage = new Image();
+                    const overlayBgImage = overlay.style.backgroundImage;
+                    const imageUrl = overlayBgImage.slice(5, -2); // Remove 'url("' and '")'
+                    
+                    return new Promise((resolve) => {
+                        overlayImage.onload = () => {
+                            ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+                            
+                            canvas.toBlob((blob) => {
+                                console.log(`✅ Captured expanded image: ${blob.size} bytes`);
+                                resolve(blob);
+                            }, 'image/jpeg', 0.9);
+                        };
+                        
+                        overlayImage.onerror = () => {
+                            console.log('❌ Failed to load overlay image, using original');
+                            resolve(null);
+                        };
+                        
+                        overlayImage.src = imageUrl;
+                    });
+
+                } catch (error) {
+                    console.error('❌ Error capturing expanded image:', error);
+                    return null;
+                }
+            }
+
+            async expandFromCapturedImage(imageBlob) {
+                try {
+                    console.log('🎨 Making API call with captured expanded image');
+                    
+                    // Remove existing overlay to prepare for new one
+                    const existingOverlay = document.getElementById('expansion-overlay');
+                    if (existingOverlay) {
+                        existingOverlay.remove();
+                        console.log('🗑️ Removed existing overlay');
+                    }
+
+                    // Make API call with the captured image
+                    const response = await this.callStabilityAPIWithBlob(imageBlob, 'right', 1600, 'down', 1024);
+                    
+                    if (response) {
+                        console.log('✅ Iterative expansion API call successful');
+                        await this.processMultiBlockResponse(response, '1,0', 1, 0);
+                    } else {
+                        console.log('❌ Iterative expansion API call failed');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Error in iterative expansion:', error);
+                }
+            }
+
+            async callStabilityAPIWithBlob(imageBlob, ...directions) {
+                // Use the existing API call logic but with provided blob
+                const originalGetImageAsBlob = this.getImageAsBlob;
+                
+                // Temporarily override getImageAsBlob to return our captured image
+                this.getImageAsBlob = () => Promise.resolve(imageBlob);
+                
+                try {
+                    // Make the API call
+                    const response = await this.makeStabilityAPICall(...directions);
+                    return response;
+                } finally {
+                    // Restore original method
+                    this.getImageAsBlob = originalGetImageAsBlob;
+                }
+            }
+
+            async makeStabilityAPICall(leftDirection, leftPixels, rightDirection, rightPixels, upDirection, upPixels, downDirection, downPixels) {
+                try {
+                    const imageBlob = await this.getImageAsBlob();
+                    
+                    const formData = new FormData();
+                    formData.append('image', imageBlob, 'image.jpg');
+                    
+                    // Add direction parameters
+                    if (leftDirection && leftPixels) formData.append(leftDirection, leftPixels);
+                    if (rightDirection && rightPixels) formData.append(rightDirection, rightPixels);
+                    if (upDirection && upPixels) formData.append(upDirection, upPixels);
+                    if (downDirection && downPixels) formData.append(downDirection, downPixels);
+                    
+                    formData.append('prompt', 'psychedelic floral pattern, vibrant colors, organic shapes, detailed botanical elements');
+                    formData.append('creativity', '0.35');
+                    formData.append('output_format', 'jpeg');
+
+                    const response = await fetch('https://api.stability.ai/v2beta/stable-image/edit/outpaint', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.apiKey}`,
+                            'Accept': 'image/*'
+                        },
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+                    }
+
+                    return await response.blob();
+                } catch (error) {
+                    console.error('❌ API call error:', error);
+                    return null;
+                }
             }
             
 
