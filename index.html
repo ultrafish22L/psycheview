@@ -371,8 +371,9 @@
         <div class="api-key-input" id="apiKeyContainer">
             <input type="password" id="apiKeyInput" placeholder="Enter Stability AI API Key" />
             <button id="setApiKeyBtn">Set Key</button>
-
-
+            <button id="testApiBtn">Test API</button>
+            <button id="startExpanderBtn">🌀 Start EXPANDER</button>
+            <button id="stopExpanderBtn">⏹️ Stop EXPANDER</button>
         </div>
 
         <div class="image-viewer" id="imageViewer">
@@ -452,6 +453,91 @@
             }
         }
         
+        // 🌀 EXPANDER: Composite Canvas Manager for Seamless Infinite Expansion
+        class CompositeManager {
+            constructor(originalImage) {
+                this.originalImage = originalImage;
+                this.compositeCanvas = document.createElement('canvas');
+                this.compositeCtx = this.compositeCanvas.getContext('2d');
+                
+                // Initialize composite with original image
+                this.compositeCanvas.width = originalImage.naturalWidth;
+                this.compositeCanvas.height = originalImage.naturalHeight;
+                this.compositeCtx.drawImage(originalImage, 0, 0);
+                
+                // Track expansion state
+                this.filledBlocks = new Set(['0,0']); // Original block at (0,0)
+                this.expansionBounds = {
+                    minX: 0, maxX: 0,
+                    minY: 0, maxY: 0
+                };
+                
+                console.log('🌀 CompositeManager initialized:', {
+                    originalSize: `${originalImage.naturalWidth}x${originalImage.naturalHeight}`,
+                    filledBlocks: Array.from(this.filledBlocks)
+                });
+            }
+            
+            // Get current composite as blob for API calls
+            async getCompositeBlob() {
+                return new Promise((resolve, reject) => {
+                    this.compositeCanvas.toBlob((blob) => {
+                        if (blob) {
+                            console.log('✅ Composite blob created:', blob.size, 'bytes');
+                            resolve(blob);
+                        } else {
+                            // Fallback to dataURL method
+                            try {
+                                const dataURL = this.compositeCanvas.toDataURL('image/jpeg', 0.9);
+                                const blob = this.dataURLToBlob(dataURL);
+                                console.log('✅ Composite blob via dataURL:', blob.size, 'bytes');
+                                resolve(blob);
+                            } catch (error) {
+                                reject(new Error('Failed to create composite blob: ' + error.message));
+                            }
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
+            }
+            
+            // Helper: Convert dataURL to blob (same as ImageViewer)
+            dataURLToBlob(dataURL) {
+                if (!dataURL || typeof dataURL !== 'string') {
+                    throw new Error('Invalid dataURL provided');
+                }
+                
+                const arr = dataURL.split(',');
+                if (arr.length !== 2) {
+                    throw new Error('Invalid dataURL format');
+                }
+                
+                const mimeMatch = arr[0].match(/:(.*?);/);
+                if (!mimeMatch) {
+                    throw new Error('Could not extract MIME type from dataURL');
+                }
+                
+                const mime = mimeMatch[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new Blob([u8arr], { type: mime });
+            }
+            
+            // Check if block is already filled
+            isBlockFilled(blockKey) {
+                return this.filledBlocks.has(blockKey);
+            }
+            
+            // Mark block as filled
+            markBlockFilled(blockKey) {
+                this.filledBlocks.add(blockKey);
+                console.log(`🌀 Block ${blockKey} marked as filled. Total: ${this.filledBlocks.size}`);
+            }
+        }
+
         class ImageViewer {
             constructor() {
                 this.viewer = document.getElementById('imageViewer');
@@ -473,6 +559,8 @@
                 this.apiKeyInput = document.getElementById('apiKeyInput');
                 this.setApiKeyBtn = document.getElementById('setApiKeyBtn');
                 this.testApiBtn = document.getElementById('testApiBtn');
+                this.startExpanderBtn = document.getElementById('startExpanderBtn');
+                this.stopExpanderBtn = document.getElementById('stopExpanderBtn');
 
                 this.autoGenToggleBtn = document.getElementById('autoGenToggleBtn');
                 this.apiCallsToggleBtn = document.getElementById('apiCallsToggleBtn');
@@ -548,6 +636,10 @@
                 this.imageHeight = 0;
                 this.hasTriggeredExpansion = false; // Simple flag to trigger one expansion
                 
+                // 🌀 EXPANDER: Composite manager for infinite expansion
+                this.compositeManager = null;
+                this.activeExpansion = false; // Prevent concurrent expansions
+                
                 this.init();
             }
             
@@ -591,9 +683,18 @@
                     
                     // Update grid size to match image dimensions
                     this.updateGridSize();
+                    
+                    // 🌀 EXPANDER: Initialize CompositeManager after image loads
+                    if (this.image.complete && this.image.naturalWidth > 0) {
+                        this.initializeCompositeManager();
+                    }
                 };
                 
-                this.image.onload = setupSize;
+                this.image.onload = () => {
+                    setupSize();
+                    // 🌀 EXPANDER: Initialize CompositeManager after image loads
+                    this.initializeCompositeManager();
+                };
                 // Also call immediately in case image is already loaded
                 setupSize();
                 
@@ -636,6 +737,15 @@
                 
                 if (this.testApiBtn) {
                     this.testApiBtn.addEventListener('click', () => this.testApiCall());
+                }
+                
+                // 🌀 EXPANDER: Event listeners for expansion controls
+                if (this.startExpanderBtn) {
+                    this.startExpanderBtn.addEventListener('click', () => this.startExpansion());
+                }
+                
+                if (this.stopExpanderBtn) {
+                    this.stopExpanderBtn.addEventListener('click', () => this.stopExpansion());
                 }
                 
 
@@ -912,6 +1022,192 @@
                     u8arr[n] = bstr.charCodeAt(n);
                 }
                 return new Blob([u8arr], { type: mime });
+            }
+            
+            // 🌀 EXPANDER: Initialize CompositeManager after image loads
+            initializeCompositeManager() {
+                if (!this.image || !this.image.complete || this.image.naturalWidth === 0) {
+                    console.log('⚠️ Cannot initialize CompositeManager - image not ready');
+                    return;
+                }
+                
+                try {
+                    this.compositeManager = new CompositeManager(this.image);
+                    console.log('✅ CompositeManager initialized successfully');
+                } catch (error) {
+                    console.error('❌ Failed to initialize CompositeManager:', error);
+                }
+            }
+            
+            // 🌀 EXPANDER: Get next edge block for expansion
+            getNextExpansionBlock() {
+                if (!this.compositeManager) {
+                    console.log('⚠️ CompositeManager not initialized');
+                    return null;
+                }
+                
+                // Find the first visible empty block adjacent to filled blocks
+                const visibleBlocks = this.getVisibleBlocks();
+                
+                for (const blockKey of visibleBlocks) {
+                    if (!this.compositeManager.isBlockFilled(blockKey) && !this.outfillBlocks.has(blockKey)) {
+                        // Check if this block is adjacent to a filled block
+                        if (this.isAdjacentToFilledBlock(blockKey)) {
+                            console.log(`🌀 Next expansion block: ${blockKey}`);
+                            return blockKey;
+                        }
+                    }
+                }
+                
+                console.log('🌀 No expansion blocks found');
+                return null;
+            }
+            
+            // 🌀 EXPANDER: Check if block is adjacent to filled blocks
+            isAdjacentToFilledBlock(blockKey) {
+                const [x, y] = blockKey.split(',').map(Number);
+                const adjacentBlocks = [
+                    `${x-1},${y}`, `${x+1},${y}`,  // left, right
+                    `${x},${y-1}`, `${x},${y+1}`   // up, down
+                ];
+                
+                return adjacentBlocks.some(adjKey => 
+                    this.compositeManager.isBlockFilled(adjKey)
+                );
+            }
+            
+            // 🌀 EXPANDER: Start continuous expansion process
+            async startExpansion() {
+                if (this.activeExpansion) {
+                    console.log('🌀 Expansion already active');
+                    return;
+                }
+                
+                if (!this.compositeManager) {
+                    console.log('⚠️ CompositeManager not initialized');
+                    return;
+                }
+                
+                this.activeExpansion = true;
+                console.log('🌀 Starting continuous expansion...');
+                
+                try {
+                    while (this.activeExpansion) {
+                        const nextBlock = this.getNextExpansionBlock();
+                        
+                        if (!nextBlock) {
+                            console.log('🌀 No more blocks to expand, pausing...');
+                            await this.sleep(2000); // Wait 2 seconds before checking again
+                            continue;
+                        }
+                        
+                        console.log(`🌀 Expanding block: ${nextBlock}`);
+                        await this.expandBlock(nextBlock);
+                        
+                        // Small delay between expansions
+                        await this.sleep(500);
+                    }
+                } catch (error) {
+                    console.error('❌ Expansion error:', error);
+                } finally {
+                    this.activeExpansion = false;
+                    console.log('🌀 Expansion stopped');
+                }
+            }
+            
+            // 🌀 EXPANDER: Expand a specific block using composite sampling
+            async expandBlock(blockKey) {
+                if (!this.compositeManager) {
+                    throw new Error('CompositeManager not initialized');
+                }
+                
+                try {
+                    // Get composite blob for API call
+                    const compositeBlob = await this.compositeManager.getCompositeBlob();
+                    
+                    // Create mask for the target block
+                    const maskBlob = await this.createMaskForBlock(blockKey);
+                    
+                    // Get direction for API call
+                    const directions = this.getOutpaintDirections(blockKey);
+                    
+                    console.log(`🌀 Calling API for block ${blockKey} with composite sampling...`);
+                    
+                    // Call API with composite image
+                    const result = await this.callStabilityAPIWithComposite(
+                        blockKey, 
+                        compositeBlob, 
+                        maskBlob, 
+                        directions
+                    );
+                    
+                    if (result.success) {
+                        // Mark block as filled in composite manager
+                        this.compositeManager.markBlockFilled(blockKey);
+                        console.log(`✅ Block ${blockKey} expanded successfully`);
+                    } else {
+                        console.error(`❌ Failed to expand block ${blockKey}:`, result.error);
+                    }
+                    
+                } catch (error) {
+                    console.error(`❌ Error expanding block ${blockKey}:`, error);
+                }
+            }
+            
+            // 🌀 EXPANDER: Call Stability API with composite image
+            async callStabilityAPIWithComposite(blockKey, compositeBlob, maskBlob, directions) {
+                console.log(`🌀 Calling Stability API with composite for block ${blockKey}...`);
+                
+                if (!this.apiKey) {
+                    throw new Error('API key not set');
+                }
+
+                const formData = new FormData();
+                formData.append('image', compositeBlob, 'composite.jpg');
+                formData.append('mask', maskBlob, 'mask.png');
+                formData.append('prompt', 'psychedelic floral pattern, vibrant colors, organic shapes, detailed botanical elements');
+                formData.append('creativity', '0.35');
+                formData.append('output_format', 'jpeg');
+
+                // Add direction parameters
+                if (directions.directionX < 0) formData.append('left', Math.abs(directions.directionX * this.imageWidth));
+                if (directions.directionX > 0) formData.append('right', directions.directionX * this.imageWidth);
+                if (directions.directionY < 0) formData.append('up', Math.abs(directions.directionY * this.imageHeight));
+                if (directions.directionY > 0) formData.append('down', directions.directionY * this.imageHeight);
+
+                const response = await fetch('https://api.stability.ai/v2beta/stable-image/edit/outpaint', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Accept': 'image/*'
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+                }
+
+                const responseBlob = await response.blob();
+                console.log(`✅ Composite API call successful for block ${blockKey}, response size: ${responseBlob.size} bytes`);
+                
+                return responseBlob;
+            }
+            
+            // 🌀 EXPANDER: Stop continuous expansion
+            stopExpansion() {
+                if (this.activeExpansion) {
+                    this.activeExpansion = false;
+                    console.log('🌀 Expansion stop requested...');
+                } else {
+                    console.log('🌀 No active expansion to stop');
+                }
+            }
+            
+            // 🌀 EXPANDER: Helper sleep function
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
             }
             
             // 🌀 BREAKTHROUGH: Sample composite image for next generation
