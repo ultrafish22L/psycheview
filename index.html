@@ -816,8 +816,6 @@
                         return;
                     }
                     
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
                     const img = this.image;
                     
                     // Debug: Log image state
@@ -829,41 +827,84 @@
                         crossOrigin: img.crossOrigin
                     });
                     
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    
-                    try {
-                        ctx.drawImage(img, 0, 0);
-                        
-                        // Try toBlob first (preferred method)
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                console.log('✅ toBlob() success:', blob.size, 'bytes');
-                                resolve(blob);
-                            } else {
-                                console.log('⚠️ toBlob() returned null, trying dataURL fallback...');
-                                // Fallback: Convert dataURL to blob
-                                try {
-                                    const dataURL = canvas.toDataURL('image/jpeg', 0.9);
-                                    const blob = this.dataURLToBlob(dataURL);
-                                    console.log('✅ dataURL fallback success:', blob.size, 'bytes');
-                                    resolve(blob);
-                                } catch (fallbackError) {
-                                    console.error('❌ Both toBlob() and dataURL fallback failed');
-                                    reject(new Error('Failed to create image blob: ' + fallbackError.message));
-                                }
-                            }
-                        }, 'image/jpeg', 0.9);
-                    } catch (error) {
-                        reject(new Error('Canvas tainted - cannot process image: ' + error.message));
+                    // CRITICAL FIX: Wait for image to load if not ready
+                    if (!img.complete || img.naturalWidth === 0) {
+                        console.log('⏳ Image not loaded, waiting for load event...');
+                        img.onload = () => {
+                            console.log('✅ Image loaded, retrying blob creation...');
+                            this.createBlobFromLoadedImage(img, resolve, reject);
+                        };
+                        img.onerror = () => {
+                            reject(new Error('Image failed to load'));
+                        };
+                        return;
                     }
+                    
+                    // Image is already loaded, proceed immediately
+                    this.createBlobFromLoadedImage(img, resolve, reject);
                 });
+            }
+            
+            // Helper: Create blob from fully loaded image
+            createBlobFromLoadedImage(img, resolve, reject) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                
+                console.log('🎨 Creating blob from loaded image:', {
+                    width: img.naturalWidth,
+                    height: img.naturalHeight
+                });
+                
+                try {
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Try toBlob first (preferred method)
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            console.log('✅ toBlob() success:', blob.size, 'bytes');
+                            resolve(blob);
+                        } else {
+                            console.log('⚠️ toBlob() returned null, trying dataURL fallback...');
+                            // Fallback: Convert dataURL to blob
+                            try {
+                                const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                                if (!dataURL || dataURL === 'data:,') {
+                                    throw new Error('Canvas toDataURL returned empty data');
+                                }
+                                const blob = this.dataURLToBlob(dataURL);
+                                console.log('✅ dataURL fallback success:', blob.size, 'bytes');
+                                resolve(blob);
+                            } catch (fallbackError) {
+                                console.error('❌ Both toBlob() and dataURL fallback failed:', fallbackError.message);
+                                reject(new Error('Failed to create image blob: ' + fallbackError.message));
+                            }
+                        }
+                    }, 'image/jpeg', 0.9);
+                } catch (error) {
+                    reject(new Error('Canvas tainted - cannot process image: ' + error.message));
+                }
             }
             
             // Helper: Convert dataURL to blob
             dataURLToBlob(dataURL) {
+                if (!dataURL || typeof dataURL !== 'string') {
+                    throw new Error('Invalid dataURL provided');
+                }
+                
                 const arr = dataURL.split(',');
-                const mime = arr[0].match(/:(.*?);/)[1];
+                if (arr.length !== 2) {
+                    throw new Error('Invalid dataURL format');
+                }
+                
+                const mimeMatch = arr[0].match(/:(.*?);/);
+                if (!mimeMatch) {
+                    throw new Error('Could not extract MIME type from dataURL');
+                }
+                
+                const mime = mimeMatch[1];
                 const bstr = atob(arr[1]);
                 let n = bstr.length;
                 const u8arr = new Uint8Array(n);
