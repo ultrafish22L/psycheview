@@ -2180,9 +2180,16 @@
                             overlay.style.zIndex = '10';
                             overlay.style.pointerEvents = 'none';
                             
-                            // Add to image container
-                            const imageContainer = document.querySelector('.image-container');
-                            imageContainer.appendChild(overlay);
+                            // Add to viewer content container
+                            const viewerContent = document.getElementById('viewerContent');
+                            if (viewerContent) {
+                                viewerContent.appendChild(overlay);
+                                console.log(`✅ Overlay added to viewerContent`);
+                            } else {
+                                console.error('❌ viewerContent not found');
+                                reject(new Error('viewerContent container not found'));
+                                return;
+                            }
                             
                             console.log(`✅ 2x2 overlay created and positioned`);
                             resolve(imageUrl);
